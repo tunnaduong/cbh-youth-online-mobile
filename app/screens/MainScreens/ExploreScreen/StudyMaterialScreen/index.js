@@ -25,6 +25,53 @@ import {
   getStudyMaterialCategories,
   getStudyMaterials,
 } from "../../../../services/api/Api";
+import FastImage from "../../../../components/FastImage";
+import formatTime from "../../../../utils/formatTime";
+
+const CATEGORY_DOTS = [
+  "#10B981", // emerald
+  "#0EA5E9", // sky
+  "#8B5CF6", // violet
+  "#F59E0B", // amber
+  "#F43F5E", // rose
+  "#14B8A6", // teal
+];
+
+function getCategoryDotColor(name) {
+  if (!name) return CATEGORY_DOTS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return CATEGORY_DOTS[hash % CATEGORY_DOTS.length];
+}
+
+function formatCount(value) {
+  const n = Number(value) || 0;
+  if (n < 1000) return String(n);
+  return (
+    (n / 1000)
+      .toFixed(n < 10000 ? 1 : 0)
+      .replace(".", ",")
+      .replace(",0", "") + "k"
+  );
+}
+
+const getPreviewUrl = (path) => {
+  if (!path || typeof path !== "string") return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const clean = path.replace(/^\/+/, "").replace(/^storage\//, "");
+  return `https://api.chuyenbienhoa.com/storage/${clean}`;
+};
+
+const getAuthorAvatarUrl = (author) => {
+  if (!author) return null;
+  if (author.avatar_url) return author.avatar_url;
+  if (author.username) {
+    return `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`;
+  }
+  return null;
+};
 
 const filterOptions = [
   { key: "all", labelKey: "all" },
@@ -38,6 +85,151 @@ const sortOptions = [
   { key: "downloads", labelKey: "downloads" },
   { key: "views", labelKey: "views" },
 ];
+
+const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryLabel }) => {
+  const [imageError, setImageError] = useState(false);
+  const previewUrl = getPreviewUrl(item?.preview_path);
+  const showPreview = Boolean(previewUrl) && !imageError;
+
+  const author = item?.author || {};
+  const authorName = author.profile_name || author.username || t("studyMaterial.member", "Thành viên");
+  const authorAvatar = getAuthorAvatarUrl(author);
+
+  const categoryName = item?.category ? getCategoryLabel(item.category) : null;
+  const dotColor = getCategoryDotColor(item?.category?.name || item?.category?.slug || "");
+  const timeText = item?.created_at ? formatTime(item.created_at) : null;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.materialCard,
+        {
+          backgroundColor: isDarkMode ? "#1C1E24" : "#FFFFFF",
+          borderColor: isDarkMode ? "#272A34" : "#E5E7EB",
+        },
+      ]}
+      activeOpacity={0.88}
+      onPress={() => navigation.navigate("StudyMaterialDetailScreen", { materialId: item.id })}
+    >
+      {/* Ảnh xem trước tài liệu */}
+      <View style={[styles.previewContainer, { backgroundColor: isDarkMode ? "#15171C" : "#F3F4F6" }]}>
+        {showPreview ? (
+          <FastImage
+            source={{ uri: previewUrl }}
+            style={styles.previewImage}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={styles.previewPlaceholder}>
+            <Ionicons name="document-text-outline" size={44} color={theme.placeholder || "#9CA3AF"} />
+          </View>
+        )}
+
+        {/* Nhãn giá / trạng thái */}
+        <View style={styles.priceBadgeWrapper}>
+          {item.is_purchased ? (
+            <View style={[styles.priceBadge, styles.purchasedBadge]}>
+              <Ionicons name="checkmark" size={12} color="#0284C7" style={{ marginRight: 2 }} />
+              <Text style={styles.purchasedBadgeText}>{t("studyMaterial.purchased", "Đã mua")}</Text>
+            </View>
+          ) : item.is_free || item.price === 0 ? (
+            <View style={[styles.priceBadge, styles.freeBadge]}>
+              <Text style={[styles.freeBadgeText, { color: isDarkMode ? "#4ADE80" : "#15803D" }]}>
+                {t("studyMaterial.free", "Miễn phí")}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.priceBadge, styles.paidBadge]}>
+              <Text style={[styles.paidBadgeText, { color: isDarkMode ? "#FBBF24" : "#B45309" }]}>
+                {t("studyMaterial.points", { value: item.price || 0, defaultValue: `${item.price} điểm` })}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Nội dung card */}
+      <View style={styles.cardContent}>
+        {/* Category & Time */}
+        <View style={styles.categoryTimeRow}>
+          {categoryName ? (
+            <View style={styles.categoryItemRow}>
+              <View style={[styles.categoryDot, { backgroundColor: dotColor }]} />
+              <Text style={[styles.categoryNameText, { color: theme.subText }]} numberOfLines={1}>
+                {categoryName.toUpperCase()}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.categoryNameText, { color: theme.subText }]}>
+              {t("studyMaterial.uncategorized", "CHƯA PHÂN LOẠI")}
+            </Text>
+          )}
+
+          {timeText ? (
+            <>
+              <Text style={[styles.dotSeparator, { color: theme.subText }]}>·</Text>
+              <Text style={[styles.timeAgoText, { color: theme.subText }]}>{timeText}</Text>
+            </>
+          ) : null}
+        </View>
+
+        {/* Title */}
+        <Text style={[styles.materialTitle, { color: theme.text }]} numberOfLines={2}>
+          {item?.title || t("studyMaterial.untitled", "Không có tiêu đề")}
+        </Text>
+
+        {/* Description */}
+        {Boolean(item?.description) && (
+          <Text style={[styles.materialDescription, { color: theme.subText }]} numberOfLines={2}>
+            {item.description}
+          </Text>
+        )}
+
+        {/* Footer: Author & Stats */}
+        <View style={[styles.cardFooter, { borderTopColor: isDarkMode ? "#272A34" : "#F3F4F6" }]}>
+          <View style={styles.authorSection}>
+            {authorAvatar ? (
+              <FastImage source={{ uri: authorAvatar }} style={styles.authorAvatar} />
+            ) : (
+              <View style={[styles.authorAvatarFallback, { backgroundColor: theme.primary + "20" }]}>
+                <Text style={[styles.authorAvatarInitial, { color: theme.primary }]}>
+                  {authorName[0]?.toUpperCase() || "?"}
+                </Text>
+              </View>
+            )}
+            <Text style={[styles.authorNameText, { color: theme.text }]} numberOfLines={1}>
+              {authorName}
+            </Text>
+          </View>
+
+          <View style={styles.statsSection}>
+            <View style={styles.statItem}>
+              <Ionicons name="download-outline" size={14} color={theme.subText} />
+              <Text style={[styles.statText, { color: theme.subText }]}>
+                {formatCount(item?.download_count)}
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="eye-outline" size={14} color={theme.subText} />
+              <Text style={[styles.statText, { color: theme.subText }]}>
+                {formatCount(item?.view_count)}
+              </Text>
+            </View>
+            {Number(item?.average_rating) > 0 ? (
+              <View style={styles.statItem}>
+                <Ionicons name="star" size={13} color="#F59E0B" />
+                <Text style={[styles.statText, { color: "#F59E0B" }]}>
+                  {item.average_rating}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const StudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -235,57 +427,6 @@ const StudyMaterialScreen = ({ navigation }) => {
     return t("exploreScreen.examDocuments") || "Chợ tài liệu";
   }, [t]);
 
-  const renderItem = ({ item }) => {
-    const priceLabel = item?.is_free || item?.price === 0
-      ? t("studyMaterial.free")
-      : t("studyMaterial.points", { value: item?.price || 0 });
-    const ratingLabel = item?.average_rating
-      ? `${item.average_rating}/5`
-      : t("studyMaterial.noRating");
-
-    return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate("StudyMaterialDetailScreen", { materialId: item.id })}
-      >
-        <View style={styles.cardHeader}>
-          <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}>
-            <Text style={[styles.badgeText, { color: theme.primary }]}>{item?.category ? getCategoryLabel(item.category) : t("studyMaterial.material")}</Text>
-          </View>
-          <Text style={[styles.priceText, { color: theme.primary }]}>{priceLabel}</Text>
-        </View>
-
-        <Text style={[styles.titleText, { color: theme.text }]} numberOfLines={2}>
-          {item?.title || t("studyMaterial.untitled")}
-        </Text>
-
-        <Text style={[styles.descriptionText, { color: theme.subText }]} numberOfLines={3}>
-          {item?.description || t("studyMaterial.noDescription")}
-        </Text>
-
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Ionicons name="star-outline" size={14} color={theme.primary} />
-            <Text style={[styles.metaText, { color: theme.subText }]}>{ratingLabel}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="download-outline" size={14} color={theme.primary} />
-            <Text style={[styles.metaText, { color: theme.subText }]}>{item?.download_count || 0}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="eye-outline" size={14} color={theme.primary} />
-            <Text style={[styles.metaText, { color: theme.subText }]}>{item?.view_count || 0}</Text>
-          </View>
-        </View>
-
-        <View style={styles.authorRow}>
-          <Ionicons name="person-circle-outline" size={18} color={theme.primary} />
-          <Text style={[styles.authorText, { color: theme.subText }]}>{t("studyMaterial.byAuthor", { author: item?.author?.profile_name || item?.author?.username || t("studyMaterial.member") })}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -396,7 +537,15 @@ const StudyMaterialScreen = ({ navigation }) => {
         ) : (
           <View style={styles.listWrapper}>
             {materials.map((item) => (
-              <View key={item.id}>{renderItem({ item })}</View>
+              <MaterialCardItem
+                key={item.id}
+                item={item}
+                navigation={navigation}
+                theme={theme}
+                isDarkMode={isDarkMode}
+                t={t}
+                getCategoryLabel={getCategoryLabel}
+              />
             ))}
           </View>
         )}
@@ -419,7 +568,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2,
+    zIndex: 100,
+    elevation: 10,
   },
   backButton: {
     width: 40,
@@ -564,62 +714,170 @@ const styles = StyleSheet.create({
   listWrapper: {
     paddingHorizontal: 16,
   },
-  card: {
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+  materialCard: {
+    borderRadius: 20,
+    overflow: "hidden",
     borderWidth: 1,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  cardHeader: {
+  previewContainer: {
+    width: "100%",
+    aspectRatio: 4 / 3,
+    overflow: "hidden",
+    position: "relative",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  previewPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  priceBadgeWrapper: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 2,
+  },
+  priceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  purchasedBadge: {
+    borderWidth: 1,
+    borderColor: "rgba(2, 132, 199, 0.2)",
+  },
+  purchasedBadgeText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#0284C7",
+  },
+  freeBadge: {
+    borderWidth: 1,
+    borderColor: "rgba(21, 128, 61, 0.2)",
+  },
+  freeBadgeText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#15803D",
+  },
+  paidBadge: {
+    borderWidth: 1,
+    borderColor: "rgba(180, 83, 9, 0.2)",
+  },
+  paidBadgeText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#B45309",
+  },
+  cardContent: {
+    padding: 14,
+  },
+  categoryTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  categoryItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    maxWidth: "60%",
+  },
+  categoryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  categoryNameText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  dotSeparator: {
+    marginHorizontal: 5,
+    fontSize: 11,
+  },
+  timeAgoText: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  materialTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 22,
+    marginBottom: 5,
+  },
+  materialDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  cardFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
   },
-  badge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  authorSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 8,
   },
-  badgeText: {
-    fontSize: 11,
+  authorAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    marginRight: 6,
+  },
+  authorAvatarFallback: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    marginRight: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  authorAvatarInitial: {
+    fontSize: 10,
     fontWeight: "700",
   },
-  priceText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  titleText: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  descriptionText: {
+  authorNameText: {
     fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 10,
+    fontWeight: "500",
+    flexShrink: 1,
   },
-  metaRow: {
+  statsSection: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  metaItem: {
+  statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3.5,
   },
-  metaText: {
-    fontSize: 12,
-  },
-  authorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 10,
-  },
-  authorText: {
-    fontSize: 12,
+  statText: {
+    fontSize: 11.5,
+    fontWeight: "500",
   },
 });
 

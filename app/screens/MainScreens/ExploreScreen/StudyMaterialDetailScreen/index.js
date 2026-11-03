@@ -559,6 +559,17 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                 />
               </View>
             </View>
+          ) : material?.preview_path ? (
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
+              <View style={[styles.webviewContainer, { borderColor: theme.border, height: 320, backgroundColor: isDarkMode ? "#18181B" : "#F3F4F6", overflow: "hidden" }]}>
+                <FastImage
+                  source={{ uri: material.preview_path.startsWith("http") ? material.preview_path : `https://api.chuyenbienhoa.com/storage/${material.preview_path.replace(/^\/+/, "")}` }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
           ) : null}
 
           {material.preview_content ? (
@@ -691,7 +702,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2,
+    zIndex: 100,
+    elevation: 10,
   },
   backButton: {
     width: 40,

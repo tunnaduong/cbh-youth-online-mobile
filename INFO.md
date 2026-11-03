@@ -586,3 +586,8 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Search & Filter bar: rounded pill container with search icon, text input, clear button, and circular filter button (`options-outline`) supporting quick filter pills ("Tất cả", "Chưa đọc", "Nhóm").
   - Conversation card items: styled individual rounded cards (`borderRadius: 20`, subtle border, shadow) replacing flat separator rows; online dot indicator on avatars; double green checkmark `✓✓` for messages sent by the user and read; green pill badge for unread counts; muted bell icon for muted/casual group chats; localized timestamps ("HH:mm", "Hôm qua", "DD/MM").
 
+- **Study Material preview images (Chợ tài liệu) like web** (tested on iOS simulator):
+  - `StudyMaterialScreen/index.js`: updated document cards with top 4:3 preview image (`material.preview_path`), fallback document placeholder, floating top-right price/status badge ("Miễn phí", "Đã mua", "[X] điểm"), category color dot with relative timestamp (`formatTime`), title, description, author avatar and stats (downloads, views, rating).
+  - `StudyMaterialDetailScreen/index.js`: added preview image display fallback when document webview viewer is unavailable.
+
+
