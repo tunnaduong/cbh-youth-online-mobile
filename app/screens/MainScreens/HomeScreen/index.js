@@ -86,6 +86,7 @@ import {
   parseStoryOverlays,
 } from "../../../components/StoryOverlays/storyOverlayModel";
 import { openExternalLink } from "../../../utils/externalLink";
+import * as Haptics from "expo-haptics";
 
 const emojis = ["❤️", "😆", "😮", "😢", "😡", "👍"];
 
@@ -1059,6 +1060,24 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return unsubscribe;
   }, [navigation, isStoryVisible, updateStatusBar]);
 
+  // Open feedback form with haptic feedback
+  const openFeedback = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    navigation.navigate("FeedbackScreen", { source: "home_logo_long_press" });
+  }, [navigation]);
+
+  // Open forum screen with haptic feedback
+  const openForum = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate("ForumScreen");
+  }, [navigation]);
+
+  // Open search screen with haptic feedback
+  const openSearch = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate("SearchScreen");
+  }, [navigation]);
+
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
@@ -2002,115 +2021,244 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       : null;
 
     return (
-      <>
-        {EmailVerificationAlert()}
-        {/* "Bạn đang nghĩ gì?" composer prompt */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 15,
-            paddingTop: 12,
-            paddingBottom: 4,
-            gap: 10,
-            backgroundColor: theme.background,
-          }}
-        >
+      <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8) }}>
+        {/* Modern Top Header (Frog Mascot + Title + Sparkle Star + Forum & Search buttons) */}
+        <View style={styles.topHeaderRow}>
           <TouchableOpacity
-            activeOpacity={0.8}
+            style={styles.headerLeftGroup}
+            activeOpacity={0.75}
+            onPress={scrollToTopOrReload}
+            onLongPress={openFeedback}
+            delayLongPress={450}
             accessibilityRole="button"
-            accessibilityLabel={t("navigation.profile")}
-            onPress={() =>
-              username
-                ? navigation.navigate("ProfileScreen", { username })
-                : navigation.navigate("CreatePostScreen")
-            }
+            accessibilityLabel={t("navigation.home")}
           >
-            {avatarUri ? (
-              <AvatarFrameWrap theme={ownTheme} size={38}>
-                <View
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 19,
-                    overflow: "hidden",
-                  }}
-                >
-                  <FastImage
-                    source={{ uri: avatarUri }}
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 19,
-                      borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: theme.border,
-                    }}
-                  />
-                </View>
-              </AvatarFrameWrap>
-            ) : (
-              <View
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
-                  backgroundColor: theme.iconBackground,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="person-outline" size={20} color={theme.subText} />
+            <View style={styles.mascotWrapper}>
+              <View style={styles.actionLinesWrapper}>
+                <View style={[styles.actionLine, styles.actionLine1]} />
+                <View style={[styles.actionLine, styles.actionLine2]} />
+                <View style={[styles.actionLine, styles.actionLine3]} />
               </View>
-            )}
+              <FastImage
+                source={require("../../../assets/logo.png")}
+                style={styles.mascotLogo}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.titleColumn}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={[styles.brandTitle, { color: isDarkMode ? "#4ADE80" : "#15803D" }]}>
+                  CBH Youth
+                </Text>
+                <Text style={styles.sparkleStar}>✦</Text>
+              </View>
+              <Text style={[styles.brandSubtitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>
+                {t("home.feed", "Bảng tin")}
+              </Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel={t("createPost.title")}
-            onPress={() => navigation.navigate("CreatePostScreen")}
-            style={{
-              flex: 1,
-              height: 40,
-              borderRadius: 999,
-              backgroundColor: theme.surface,
-              borderWidth: 1,
-              borderColor: theme.border,
-              paddingHorizontal: 14,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              numberOfLines={1}
-              style={{
-                flex: 1,
-                fontSize: 14,
-                color: theme.subText,
-              }}
+          <View style={styles.headerRightGroup}>
+            {/* Forum shortcut button */}
+            <TouchableOpacity
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(34, 197, 94, 0.16)"
+                    : "rgba(34, 197, 94, 0.12)",
+                },
+              ]}
+              activeOpacity={0.7}
+              onPress={openForum}
+              accessibilityRole="button"
+              accessibilityLabel={t("navigation.forum", "Diễn đàn")}
             >
-              {t("createPost.placeholderContent")}
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="people-outline"
+                size={21}
+                color={isDarkMode ? "#4ADE80" : "#15803D"}
+              />
+            </TouchableOpacity>
+
+            {/* Search shortcut button */}
+            <TouchableOpacity
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(34, 197, 94, 0.16)"
+                    : "rgba(34, 197, 94, 0.12)",
+                },
+              ]}
+              activeOpacity={0.7}
+              onPress={openSearch}
+              accessibilityRole="button"
+              accessibilityLabel={t("search.title", "Tìm kiếm")}
+            >
+              <Ionicons
+                name="search-outline"
+                size={20}
+                color={isDarkMode ? "#4ADE80" : "#15803D"}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
+
+        {EmailVerificationAlert()}
+
+        {/* Modern "Bạn đang nghĩ gì?" composer card */}
+        <View style={styles.composerCardWrapper}>
+          <View
+            style={[
+              styles.composerCard,
+              {
+                backgroundColor: isDarkMode ? "#1C1D22" : "#FFFFFF",
+                borderColor: isDarkMode ? "#2D3039" : "#E5E7EB",
+              },
+            ]}
+          >
+            <View style={styles.composerRow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t("navigation.profile")}
+                onPress={() =>
+                  username
+                    ? navigation.navigate("ProfileScreen", { username })
+                    : navigation.navigate("CreatePostScreen")
+                }
+              >
+                {avatarUri ? (
+                  <AvatarFrameWrap theme={ownTheme} size={40}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <FastImage
+                        source={{ uri: avatarUri }}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          borderWidth: StyleSheet.hairlineWidth,
+                          borderColor: theme.border,
+                        }}
+                      />
+                    </View>
+                  </AvatarFrameWrap>
+                ) : (
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: theme.iconBackground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Ionicons name="person-outline" size={20} color={theme.subText} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={t("createPost.title")}
+                onPress={() => navigation.navigate("CreatePostScreen")}
+                style={[
+                  styles.composerInputPill,
+                  {
+                    backgroundColor: isDarkMode ? "#272930" : "#F3F4F6",
+                    borderColor: isDarkMode ? "#373A43" : "#E5E7EB",
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={[styles.composerPlaceholder, { color: theme.subText }]}
+                >
+                  {t("createPost.placeholderContent")}
+                </Text>
+                <Ionicons
+                  name="create-outline"
+                  size={18}
+                  color={isDarkMode ? "#4ADE80" : "#16A34A"}
+                  style={{ marginLeft: 6 }}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick action buttons row (Photo & Story) */}
+            <View
+              style={[
+                styles.composerQuickRow,
+                { borderTopColor: isDarkMode ? "#272930" : "#F3F4F6" },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.composerQuickBtn}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate("CreatePostScreen")}
+              >
+                <View
+                  style={[
+                    styles.composerQuickIconWrap,
+                    { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.15)" : "#DCFCE7" },
+                  ]}
+                >
+                  <Ionicons name="images-outline" size={17} color="#22C55E" />
+                </View>
+                <Text style={[styles.composerQuickLabel, { color: theme.text }]}>
+                  {t("createPost.addImage", "Thêm ảnh")}
+                </Text>
+              </TouchableOpacity>
+
+              <View
+                style={[
+                  styles.composerQuickDivider,
+                  { backgroundColor: isDarkMode ? "#2E313A" : "#E5E7EB" },
+                ]}
+              />
+
+              <TouchableOpacity
+                style={styles.composerQuickBtn}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate("CreateStory")}
+              >
+                <View
+                  style={[
+                    styles.composerQuickIconWrap,
+                    { backgroundColor: isDarkMode ? "rgba(245, 158, 11, 0.15)" : "#FEF3C7" },
+                  ]}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color="#F59E0B" />
+                </View>
+                <Text style={[styles.composerQuickLabel, { color: theme.text }]}>
+                  {t("home.createStory", "Tạo tin")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Dành cho bạn / Mới nhất / Đang theo dõi / Tin tức Đoàn feed chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ backgroundColor: theme.background }}
-          contentContainerStyle={{
-            paddingHorizontal: 15,
-            paddingTop: 14,
-            paddingBottom: 10,
-            gap: 8,
-          }}
+          contentContainerStyle={styles.feedModeScroll}
         >
           {[
-            { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
-            { mode: "latest", label: t('home.latest'), icon: "flash" },
-            { mode: "following", label: t('home.following'), icon: "people" },
-            { mode: "youth-news", label: t('home.youthNews'), icon: "newspaper" },
+            { mode: "personalized", label: t("home.forYou"), icon: "sparkles" },
+            { mode: "latest", label: t("home.latest"), icon: "flash" },
+            { mode: "following", label: t("home.following"), icon: "people" },
+            { mode: "youth-news", label: t("home.youthNews"), icon: "newspaper" },
           ].map(({ mode, label, icon }) => (
             <FeedModeChip
               key={mode}
@@ -2124,178 +2272,188 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             />
           ))}
         </ScrollView>
-        <ScrollView
-          style={{
-            borderBottomWidth: 10,
-            borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
-            padding: 15,
-            backgroundColor: theme.background,
-          }}
-          contentContainerStyle={{ gap: 10, paddingRight: 15 }}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          scrollEnabled={scrollEnabled}
-        >
-          {/* Story like Facebook component */}
-          <TouchableHighlight
-            onPress={() => navigation.navigate("CreateStory")}
-            style={{
-              position: "relative",
-              overflow: "hidden",
-              borderRadius: 16,
-              backgroundColor: theme.cardBackground,
-              width: 100,
-              height: 160,
-              borderWidth: 1,
-              borderColor: theme.border
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <FastImage
-                source={{
-                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-                }}
-                style={{ width: 100, height: 115 }}
-              />
-              <View style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                backgroundColor: theme.cardBackground,
-                paddingTop: 24,
-                paddingBottom: 8,
-                alignItems: "center"
-              }}>
-                <Text style={{
-                  fontSize: 13,
-                  fontWeight: "500",
-                  textAlign: "center",
-                  color: theme.text
-                }}>
-                  {t('home.createStory')}
-                </Text>
-              </View>
-              <View style={{
-                position: "absolute",
-                bottom: 28,
-                left: 31,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 20
-              }}>
-                <Ionicons name="add-circle" size={40} color={theme.primary} />
-              </View>
-            </View>
-          </TouchableHighlight>
-          {filteredStories.map((user) => (
-            <TouchableHighlight
-              key={user.id}
-              onPress={() => storyRef.current?.show(user.id)}
-              style={{
-                position: "relative",
-                width: 100,
-                height: 160,
-                borderRadius: 16,
-                overflow: "hidden",
-                backgroundColor: theme.cardBackground,
-                borderWidth: 1,
-                borderColor: theme.border
-              }}
-            >
-              <View>
-                {/* Story Preview */}
-                {user.stories[0].isTextStory ? (
-                  <LinearGradient
-                    colors={
-                      user.stories[0].previewGradientColors.length > 1
-                        ? user.stories[0].previewGradientColors
-                        : [
-                            user.stories[0].previewGradientColors[0],
-                            shadeHex(user.stories[0].previewGradientColors[0], -12),
-                          ]
-                    }
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={{
-                      width: 100,
-                      height: 160,
-                      justifyContent: "center",
-                      alignItems: "center",
-                      paddingHorizontal: 8,
-                    }}
-                  >
-                    <Text
-                      numberOfLines={4}
-                      style={{ color: "#fff", fontWeight: "700", textAlign: "center", fontSize: 13 }}
-                    >
-                      {user.stories[0].previewText}
-                    </Text>
-                  </LinearGradient>
-                ) : (
-                  <Image
-                    source={{ uri: user.stories[0].cardThumbnailUri }}
-                    style={{ width: 100, height: 160 }}
-                  />
-                )}
 
-                {/* Avatar: the author's avatar frame (Khung) if they picked
-                    one, otherwise the plain ring as before */}
-                <View style={{ position: "absolute", top: 8, left: 8 }}>
-                  {getAvatarFrame(user.profileTheme) ? (
-                    <View style={{ margin: 3 }}>
-                      <AvatarFrameWrap theme={user.profileTheme} size={26}>
-                        <View style={{ width: 26, height: 26, borderRadius: 13, overflow: "hidden" }}>
+        {/* Modern Stories tray */}
+        <View style={styles.storiesSectionWrap}>
+          <ScrollView
+            style={styles.storiesScrollView}
+            contentContainerStyle={styles.storiesContentContainer}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={scrollEnabled}
+          >
+            {/* Modern Create Story card */}
+            <TouchableHighlight
+              onPress={() => navigation.navigate("CreateStory")}
+              underlayColor={isDarkMode ? "#272930" : "#E5E7EB"}
+              style={[
+                styles.storyCard,
+                {
+                  backgroundColor: isDarkMode ? "#1C1D22" : "#FFFFFF",
+                  borderColor: isDarkMode ? "#2D3039" : "#E5E7EB",
+                },
+              ]}
+            >
+              <View style={{ flex: 1 }}>
+                <FastImage
+                  source={{
+                    uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+                  }}
+                  style={styles.createStoryAvatar}
+                />
+                <View
+                  style={[
+                    styles.createStoryBottomArea,
+                    { backgroundColor: isDarkMode ? "#1C1D22" : "#FFFFFF" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.createStoryLabel, { color: theme.text }]}
+                    numberOfLines={1}
+                  >
+                    {t("home.createStory")}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.createStoryAddBadge,
+                    {
+                      backgroundColor: isDarkMode ? "#1C1D22" : "#FFFFFF",
+                      borderColor: isDarkMode ? "#1C1D22" : "#FFFFFF",
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={["#22C55E", "#16A34A"]}
+                    style={styles.createStoryAddGradient}
+                  >
+                    <Ionicons name="add" size={22} color="#FFFFFF" />
+                  </LinearGradient>
+                </View>
+              </View>
+            </TouchableHighlight>
+
+            {/* Friend stories list */}
+            {filteredStories.map((user) => (
+              <TouchableHighlight
+                key={user.id}
+                onPress={() => storyRef.current?.show(user.id)}
+                underlayColor="rgba(0,0,0,0.2)"
+                style={[
+                  styles.storyCard,
+                  {
+                    backgroundColor: isDarkMode ? "#1C1D22" : "#FFFFFF",
+                    borderColor: isDarkMode ? "#2D3039" : "#E5E7EB",
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  {/* Story Preview */}
+                  {user.stories[0].isTextStory ? (
+                    <LinearGradient
+                      colors={
+                        user.stories[0].previewGradientColors.length > 1
+                          ? user.stories[0].previewGradientColors
+                          : [
+                              user.stories[0].previewGradientColors[0],
+                              shadeHex(user.stories[0].previewGradientColors[0], -12),
+                            ]
+                      }
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={styles.storyTextPreviewWrap}
+                    >
+                      <Text
+                        numberOfLines={4}
+                        style={{
+                          color: "#fff",
+                          fontWeight: "700",
+                          textAlign: "center",
+                          fontSize: 13,
+                        }}
+                      >
+                        {user.stories[0].previewText}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <Image
+                      source={{ uri: user.stories[0].cardThumbnailUri }}
+                      style={styles.storyImagePreview}
+                    />
+                  )}
+
+                  {/* Avatar ring with optional profile frame */}
+                  <View style={styles.storyAvatarWrap}>
+                    {getAvatarFrame(user.profileTheme) ? (
+                      <View style={{ margin: 3 }}>
+                        <AvatarFrameWrap theme={user.profileTheme} size={28}>
+                          <View
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 14,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <FastImage
+                              source={{ uri: user.avatarSource.uri }}
+                              style={{ width: 28, height: 28 }}
+                            />
+                          </View>
+                        </AvatarFrameWrap>
+                      </View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.storyAvatarBorder,
+                          { borderColor: theme.primary },
+                        ]}
+                      >
+                        <View
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 13,
+                            overflow: "hidden",
+                          }}
+                        >
                           <FastImage
                             source={{ uri: user.avatarSource.uri }}
                             style={{ width: 26, height: 26 }}
                           />
                         </View>
-                      </AvatarFrameWrap>
-                    </View>
-                  ) : (
-                    <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
-                      <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
-                        <FastImage
-                          source={{ uri: user.avatarSource.uri }}
-                          style={{ width: 24, height: 24 }}
-                        />
                       </View>
-                    </View>
-                  )}
-                </View>
+                    )}
+                  </View>
 
-                {/* Gradient + Title */}
-                <View className="absolute bottom-0 left-0 right-0 h-14 justify-end">
-                  <LinearGradient
-                    colors={["black", "transparent"]}
-                    start={{ x: 0.5, y: 1 }}
-                    end={{ x: 0.5, y: 0 }}
-                    style={{
-                      position: "absolute",
-                      width: "100%",
-                      height: 130,
-                      bottom: -90,
-                    }}
-                  />
-                  <UserNameRow
-                    name={user.name}
-                    theme={user.profileTheme}
-                    containerStyle={{ padding: 6 }}
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "600",
-                      color: "#fff",
-                      textShadowColor: "rgba(0, 0, 0, 0.8)",
-                      textShadowOffset: { width: 0, height: 0 },
-                      textShadowRadius: 2,
-                    }}
-                  />
+                  {/* Gradient overlay + author name */}
+                  <View style={styles.storyBottomOverlay}>
+                    <LinearGradient
+                      colors={["rgba(0,0,0,0.85)", "transparent"]}
+                      start={{ x: 0.5, y: 1 }}
+                      end={{ x: 0.5, y: 0 }}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    <UserNameRow
+                      name={user.name}
+                      theme={user.profileTheme}
+                      containerStyle={{ padding: 6 }}
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: "600",
+                        color: "#fff",
+                        textShadowColor: "rgba(0, 0, 0, 0.8)",
+                        textShadowOffset: { width: 0, height: 0 },
+                        textShadowRadius: 2,
+                      }}
+                    />
+                  </View>
                 </View>
-              </View>
-            </TouchableHighlight>
-          ))}
-        </ScrollView>
-      </>
+              </TouchableHighlight>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
     );
   };
 
@@ -2752,15 +2910,24 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   ) : (
     <>
       <View style={{ backgroundColor: theme.background, flex: 1 }}>
+        {/* Soft Ambient Light-Green Glow at Top */}
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.45)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.4)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.ambientGlow, { height: insets.top + 140 }]}
+          pointerEvents="none"
+        />
+
         <Animated.View
           pointerEvents="none"
           style={{
             position: "absolute",
-            // The header above the feed is 50 + insets.top tall (matches the
-            // FlatList's contentContainerStyle paddingTop below) - anchoring
-            // this to insets.top alone put it right under the status bar,
-            // overlapping the header instead of sitting below it.
-            top: insets.top + 50 + 6,
+            top: insets.top + 54,
             left: 0,
             right: 0,
             alignItems: "center",
@@ -2797,9 +2964,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
-            paddingTop: 50 + insets.top,
+            paddingTop: 0,
             paddingBottom: 110 + insets.bottom,
-            backgroundColor: theme.background,
+            backgroundColor: "transparent",
           }}
           renderItem={({ item, index }) => (
             item.type === "divider" ? (
@@ -3119,6 +3286,256 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 };
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
+  topHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    zIndex: 10,
+  },
+  headerLeftGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  mascotWrapper: {
+    position: "relative",
+    width: 44,
+    height: 44,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mascotLogo: {
+    width: 40,
+    height: 40,
+  },
+  actionLinesWrapper: {
+    position: "absolute",
+    top: -7,
+    left: 11,
+    width: 22,
+    height: 14,
+  },
+  actionLine: {
+    position: "absolute",
+    width: 2.5,
+    height: 6,
+    borderRadius: 1.5,
+    backgroundColor: "#EAB308",
+  },
+  actionLine1: {
+    top: 6,
+    left: 1,
+    transform: [{ rotate: "-40deg" }],
+  },
+  actionLine2: {
+    top: 0,
+    left: 8,
+    transform: [{ rotate: "0deg" }],
+  },
+  actionLine3: {
+    top: 5,
+    left: 15,
+    transform: [{ rotate: "35deg" }],
+  },
+  titleColumn: {
+    justifyContent: "center",
+  },
+  brandTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  sparkleStar: {
+    fontSize: 16,
+    color: "#EAB308",
+    marginLeft: 4,
+    marginTop: -8,
+  },
+  brandSubtitle: {
+    fontSize: 12.5,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+  headerRightGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  composerCardWrapper: {
+    paddingHorizontal: 15,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  composerCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  composerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  composerInputPill: {
+    flex: 1,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  composerPlaceholder: {
+    fontSize: 14,
+    flex: 1,
+  },
+  composerQuickRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  composerQuickBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
+  composerQuickIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  composerQuickLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  composerQuickDivider: {
+    width: 1,
+    height: 20,
+  },
+  feedModeScroll: {
+    paddingHorizontal: 15,
+    paddingTop: 8,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  storiesSectionWrap: {
+    paddingVertical: 8,
+  },
+  storiesScrollView: {
+    paddingVertical: 2,
+  },
+  storiesContentContainer: {
+    paddingHorizontal: 15,
+    gap: 10,
+  },
+  storyCard: {
+    position: "relative",
+    width: 100,
+    height: 160,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  createStoryAvatar: {
+    width: 100,
+    height: 112,
+  },
+  createStoryBottomArea: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 48,
+    paddingTop: 20,
+    paddingBottom: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createStoryLabel: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 4,
+  },
+  createStoryAddBadge: {
+    position: "absolute",
+    bottom: 30,
+    left: 32,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    overflow: "hidden",
+  },
+  createStoryAddGradient: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyTextPreviewWrap: {
+    width: 100,
+    height: 160,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  storyImagePreview: {
+    width: 100,
+    height: 160,
+  },
+  storyAvatarWrap: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+  },
+  storyAvatarBorder: {
+    borderRadius: 100,
+    padding: 2,
+    borderWidth: 2,
+  },
+  storyBottomOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 56,
+    justifyContent: "flex-end",
+  },
   replyBar: {
     flexDirection: "row",
     alignItems: "center",

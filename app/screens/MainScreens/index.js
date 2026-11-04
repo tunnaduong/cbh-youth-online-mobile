@@ -458,23 +458,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
             name="Home"
             options={{
               title: t('navigation.home'),
-              headerShown: true,
-              headerBackButtonMenuEnabled: false,
+              headerShown: false,
               tabBarIcon: tabIcon("house.fill", "house", "home"),
-              headerTitle: () => (
-                <View style={{ width: Dimensions.get("window").width }}>
-                  <SameHeader
-                    icon="search"
-                    action={() => stackNavigation.navigate("SearchScreen")}
-                    havingIcon
-                    leftIcon="people-outline"
-                    onLeftPress={openForum}
-                    onLogoPress={triggerHomeScrollOrReload}
-                    onLogoLongPress={openFeedback}
-                    providerId="Home"
-                  />
-                </View>
-              ),
             }}
             listeners={{
               tabPress: () => {
