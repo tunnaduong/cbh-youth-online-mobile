@@ -2205,7 +2205,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <TouchableOpacity
                 style={styles.composerQuickBtn}
                 activeOpacity={0.7}
-                onPress={() => navigation.navigate("CreatePostScreen")}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                  Toast.show({
+                    type: "info",
+                    text1: t("createPost.addImage", "Thêm ảnh"),
+                    text2: t("createPost.openingGallery", "Đang mở thư viện ảnh..."),
+                    autoHide: true,
+                    visibilityTime: 2000,
+                    topOffset: 60,
+                  });
+                  navigation.navigate("CreatePostScreen", { autoPickImage: true });
+                }}
               >
                 <View
                   style={[

@@ -285,6 +285,18 @@ const CreatePostScreen = ({ navigation, route }) => {
     }
   };
 
+  // Auto-open image picker if navigated with autoPickImage: true
+  const autoPickImageTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (route?.params?.autoPickImage && !autoPickImageTriggeredRef.current) {
+      autoPickImageTriggeredRef.current = true;
+      const timer = setTimeout(() => {
+        pickImage();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.autoPickImage]);
+
   const pickDocument = async () => {
     try {
       let result = await DocumentPicker.getDocumentAsync({

@@ -273,7 +273,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={styles.headerLeft}>
             {navigation?.canGoBack?.() && (
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -285,31 +285,48 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                 <Ionicons name="chevron-back" size={26} color={theme.primary} />
               </TouchableOpacity>
             )}
-            <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
+            <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
+              {t('forum.title')}
+            </Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
               onPress={() => navigation.navigate("MemberRankingScreen")}
               accessibilityRole="button"
               accessibilityLabel={t("sidebar.memberRanking")}
-              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(34, 197, 94, 0.16)"
+                    : "rgba(34, 197, 94, 0.12)",
+                },
+              ]}
             >
-              <Ionicons name="trophy-outline" size={22} color={theme.primary} />
+              <Ionicons
+                name="trophy-outline"
+                size={20}
+                color={isDarkMode ? "#4ADE80" : "#15803D"}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate("CreatePostScreen")}
               accessibilityRole="button"
               accessibilityLabel={t("createPost.title")}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: theme.iconBackground,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(34, 197, 94, 0.16)"
+                    : "rgba(34, 197, 94, 0.12)",
+                },
+              ]}
             >
-              <Ionicons name="add" size={22} color={theme.primary} />
+              <Ionicons
+                name="add"
+                size={22}
+                color={isDarkMode ? "#4ADE80" : "#15803D"}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -327,7 +344,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={styles.headerLeft}>
           {navigation?.canGoBack?.() && (
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -339,31 +356,48 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               <Ionicons name="chevron-back" size={26} color={theme.primary} />
             </TouchableOpacity>
           )}
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
+          <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
+            {t('forum.title')}
+          </Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => navigation.navigate("MemberRankingScreen")}
             accessibilityRole="button"
             accessibilityLabel={t("sidebar.memberRanking")}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+            style={[
+              styles.headerIconButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(34, 197, 94, 0.16)"
+                  : "rgba(34, 197, 94, 0.12)",
+              },
+            ]}
           >
-            <Ionicons name="trophy-outline" size={22} color={theme.primary} />
+            <Ionicons
+              name="trophy-outline"
+              size={20}
+              color={isDarkMode ? "#4ADE80" : "#15803D"}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate("CreatePostScreen")}
             accessibilityRole="button"
             accessibilityLabel={t("createPost.title")}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: theme.iconBackground,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={[
+              styles.headerIconButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(34, 197, 94, 0.16)"
+                  : "rgba(34, 197, 94, 0.12)",
+              },
+            ]}
           >
-            <Ionicons name="add" size={22} color={theme.primary} />
+            <Ionicons
+              name="add"
+              size={22}
+              color={isDarkMode ? "#4ADE80" : "#15803D"}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -514,15 +548,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
   },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 12,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    flex: 1,
+    flexShrink: 1,
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatar: {
     width: 36,

@@ -57,6 +57,18 @@ export function getRunningOtaBuildNumber() {
     return nativeBuild;
   }
   const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY);
+  const storedUpdateId = storage.getString(OTA_ACTIVE_UPDATE_ID_KEY);
+
+  // If native runtime provides a running updateId, verify that storedUpdateId
+  // actually matches the update that was successfully launched by native runtime.
+  // If native rolled back or hasn't applied the update yet, do not return a phantom build.
+  if (Updates.updateId && storedUpdateId && Updates.updateId !== storedUpdateId) {
+    console.warn(
+      `[OTA] Native running updateId (${Updates.updateId}) differs from stored active updateId (${storedUpdateId}). Falling back to native/embedded build.`
+    );
+    return nativeBuild;
+  }
+
   return storedBuild && storedBuild > 0 ? storedBuild : nativeBuild;
 }
 
@@ -486,17 +498,20 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
-        // Check timestamps against active/embedded update
-        const serverTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
-        const runningTime = Updates.createdAt ? new Date(Updates.createdAt).getTime() : 0;
-        const storedTime = storage.getNumber("ota_active_created_at") || 0;
-        const activeTime = Math.max(runningTime, storedTime);
+        // Check timestamps against active/embedded update ONLY if build numbers are equal
+        // (if upstream build number is strictly higher, it is always newer).
+        if (upstreamBuildNumber === effectiveCurrentBuild) {
+          const serverTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+          const runningTime = Updates.createdAt ? new Date(Updates.createdAt).getTime() : 0;
+          const storedTime = storage.getNumber("ota_active_created_at") || 0;
+          const activeTime = Math.max(runningTime, storedTime);
 
-        if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
-          console.log(
-            `[OTA] Server update time (${serverTime}) <= active update time (${activeTime}). Up to date.`
-          );
-          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+          if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
+            console.log(
+              `[OTA] Server update time (${serverTime}) <= active update time (${activeTime}) with same build. Up to date.`
+            );
+            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+          }
         }
 
         if (!Updates.isEnabled) {

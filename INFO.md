@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Forum Header Alignment, Home Photo Shortcut & Sequential OTA Upgrade Chaining** (`app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/HomeScreen/index.js`, `app/screens/MainScreens/CreatePostScreen/index.js`, `app/services/ota/otaService.js`, `app/i18n/locales/*.json`, `INFO.md`):
+  - **Forum Header Trophy Alignment**: Fixed the member ranking champion/trophy button and header action alignment in `ForumScreen/index.js`. Replaced unbounded row with `headerLeft` (`flex: 1`, `marginRight: 12`) and `headerTitle` (`flexShrink: 1`, `numberOfLines={1}`), alongside rounded 40x40 icon buttons (`headerIconButton`) with theme background tints, preventing the trophy icon from overflowing offscreen on narrow devices.
+  - **Auto-open Image Picker from Home**: Tapping "Thêm ảnh" (Add photo) in the modern composer card triggers light haptics, presents an informative toast ("Đang mở thư viện ảnh..."), and passes `autoPickImage: true` to `CreatePostScreen` which automatically launches the photo gallery picker after mounting. Localized across English, Vietnamese, and Russian.
+  - **Sequential OTA Chaining Fix**: Fixed an issue where sequential OTA bundles (e.g. 1034 native base APK -> OTA 1035 -> OTA 1036+) could fail to apply or report phantom build numbers. Restricted timestamp gating strictly to matching build numbers (`upstreamBuildNumber === effectiveCurrentBuild`) so strictly higher upstream builds are never blocked by timestamp jitter, and verified active update IDs to avoid recording phantom build numbers when the native runtime has not yet applied a new bundle.
+
 - **Fix chat main screen relative day indicator i18n** (`app/screens/MainScreens/ChatScreen/index.js`, `app/i18n/locales/*.json`):
   - Fixed hardcoded Vietnamese fallback `'Hôm qua'` in `ChatScreen/index.js`'s `formatMessageTime`.
   - Added localized `"yesterday"` and `"today"` to `"chat"` across `en.json`, `vi.json`, and `ru.json` and passed `t` to `formatMessageTime`, ensuring relative time labels properly respect user language settings.
