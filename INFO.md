@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Forum Screen Header: Restored classic static header** (`app/screens/MainScreens/ForumScreen/index.js`):
+  - Replaced floating glass buttons (`LiquidButton`) and fading scroll title with the classic static header (like webview/subforum screens).
+  - Preserves persistent title, back button, member ranking (`trophy-outline`), and new post button (`add`) without floating glass or scroll fading interfering with horizontal section and category tabs.
+
 - **Notification Screen Redesign & Auto-Read on Bell Tap** (`app/screens/MainScreens/NotificationScreen/index.js`, `app/screens/MainScreens/index.js`, `App.js`, `app/i18n/locales/*.json`):
   - **Auto-Read on Tab Tap**: The instant the user taps the notification bell in the bottom bar or enters the Notification screen, all notifications are immediately marked as read (`markAllNotificationsAsRead()`), and the unread count badge is cleared to 0 without requiring the user to press any "mark all as read" button in the top corner.
   - **Redesigned Mascot & Ambient Header**: Integrated a soft ambient light-green glow behind the status bar, featuring the CYO frog mascot with radiating action doodle marks, "Thông báo" bold title, subtitle ("Theo dõi các hoạt động mới nhất từ CYO"), green star sparkle doodle, and a circular equalizer filter/settings button (`options-outline`) routing to `NotificationSettingsScreen`.
