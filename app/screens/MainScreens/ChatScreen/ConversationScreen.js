@@ -374,6 +374,8 @@ const ConversationScreen = ({ navigation, route }) => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollContentHeightRef = useRef(0);
   const scrollViewHeightRef = useRef(0);
+  const [visibleViewport, setVisibleViewport] = useState(null);
+  const lastViewportYRef = useRef(0);
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -1520,6 +1522,17 @@ const ConversationScreen = ({ navigation, route }) => {
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
 
     scrollOffsetRef.current = offsetY;
+
+    const viewH = scrollViewHeightRef.current || 800;
+    const BUFFER = 1200;
+    if (Math.abs(offsetY - lastViewportYRef.current) > 250) {
+      lastViewportYRef.current = offsetY;
+      setVisibleViewport({
+        top: Math.max(0, offsetY - BUFFER),
+        bottom: offsetY + viewH + BUFFER,
+      });
+    }
+
     if (!autoplayVideos || !isFocused) {
       if (activeInlineVideoId) {
         activeInlineVideoIdRef.current = null;
@@ -3055,42 +3068,52 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        onSubmit={handleReportSubmit}
-      />
+      {reportModalVisible && (
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
+      )}
 
-      <ReportModal
-        visible={!!reportMessageTarget}
-        onClose={() => setReportMessageTarget(null)}
-        onSubmit={handleReportMessageSubmit}
-        title={t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
-      />
+      {Boolean(reportMessageTarget) && (
+        <ReportModal
+          visible={!!reportMessageTarget}
+          onClose={() => setReportMessageTarget(null)}
+          onSubmit={handleReportMessageSubmit}
+          title={t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
+        />
+      )}
 
-      <ChatBackgroundModal
-        visible={backgroundModalVisible}
-        conversationId={currentConversationId || conversationId}
-        onClose={() => setBackgroundModalVisible(false)}
-        onBackgroundChanged={(url) => {
-          setBackgroundOverride(url);
-          setCurrentConversation((prev) => (prev ? { ...prev, background_url: url } : prev));
-        }}
-      />
+      {backgroundModalVisible && (
+        <ChatBackgroundModal
+          visible={backgroundModalVisible}
+          conversationId={currentConversationId || conversationId}
+          onClose={() => setBackgroundModalVisible(false)}
+          onBackgroundChanged={(url) => {
+            setBackgroundOverride(url);
+            setCurrentConversation((prev) => (prev ? { ...prev, background_url: url } : prev));
+          }}
+        />
+      )}
 
-      <SeenByModal
-        participants={seenByModalParticipants}
-        onClose={uiActions.closeSeenBy}
-        onOpenProfile={uiActions.openSeenByProfile}
-      />
+      {Boolean(seenByModalParticipants) && (
+        <SeenByModal
+          participants={seenByModalParticipants}
+          onClose={uiActions.closeSeenBy}
+          onOpenProfile={uiActions.openSeenByProfile}
+        />
+      )}
 
-      <ImageView
-        images={imageViewerImages}
-        imageIndex={imageViewer.index}
-        visible={imageViewer.visible}
-        onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
-        HeaderComponent={ImageViewerHeader}
-      />
+      {imageViewer.visible && (
+        <ImageView
+          images={imageViewerImages}
+          imageIndex={imageViewer.index}
+          visible={imageViewer.visible}
+          onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
+          HeaderComponent={ImageViewerHeader}
+        />
+      )}
 
       {videoViewer.uri && (
         <VideoViewerModal
@@ -3187,11 +3210,13 @@ const ConversationScreen = ({ navigation, route }) => {
         onClose={closeReactionPicker}
       />
 
-      <ForwardMessageModal
-        visible={forwardModal.visible}
-        message={forwardModal.message}
-        onClose={closeForwardModal}
-      />
+      {forwardModal.visible && (
+        <ForwardMessageModal
+          visible={forwardModal.visible}
+          message={forwardModal.message}
+          onClose={closeForwardModal}
+        />
+      )}
 
       {/* (profile block and floating button moved into header) */}
 
@@ -3297,10 +3322,19 @@ const ConversationScreen = ({ navigation, route }) => {
             handleMessagesContentSizeChange(w, h);
           }}
           onLayout={(e) => {
-            scrollViewHeightRef.current = e.nativeEvent.layout.height;
+            const h = e.nativeEvent.layout.height;
+            scrollViewHeightRef.current = h;
+            if (!visibleViewport && h > 0) {
+              const currentY = scrollOffsetRef.current || 0;
+              setVisibleViewport({
+                top: Math.max(0, currentY - 1200),
+                bottom: currentY + h + 1200,
+              });
+            }
           }}
         >
           <MessagesListContent
+            visibleViewport={visibleViewport}
             messages={visibleMessages}
             isGroupChat={currentConversation?.type === "group"}
             theme={theme}

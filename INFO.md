@@ -356,6 +356,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **OTA Build 1030 in `app.json`, Strict Version Guard, Length Bounds & Chat/Feed Virtualization** (`app.json`, `app/services/ota/*`, `app/screens/MainScreens/ForumScreen/CategoryScreen.js`, `app/components/PostItem.js`, `app/screens/MainScreens/ChatScreen/conversation/MessagesListContent.js`, `app/screens/MainScreens/ChatScreen/ConversationScreen.js`):
+  - **Single config point for `minNativeBuild`**: Set to `1030` directly inside `app.json` (`expo.extra.minNativeBuild`), with all scripts, workflows (`ota-update.yml`), and runtime helpers (`otaConfig.js`, `UpdatePromptModal.js`) dynamically reading it from config.
+  - **Strict OTA upgrade rule**: Upstream OTA build numbers must be strictly higher than current active build (`Math.max(currentNativeBuild, currentActiveBuild)`). Upstream $\le$ active build is blocked, preventing unwanted downgrade loops when switching from preview to production channel.
+  - **CategoryScreen length bounds & FlatList**: Thread titles bounded to 2 lines (`numberOfLines={2}`), category description clamped to 3 lines with expand toggle, and list virtualized with `FlatList` to unmount offscreen topics.
+  - **PostItem feed bounds & modal unmounting**: Clamped feed post title to 3 lines, safe HTML bounding with instant "Xem thêm" / "Thu gọn" toggle, and conditionally mounted 5 hidden modals (`SharePostModal`, `ReportModal`, `GiftPointsModal`, `PostVotesModal`, `ImageView`) only when open.
+  - **Chat lag spike elimination**: Virtualized messages list in `KeyboardChatScrollView` using exact measured height placeholders (`<View style={{ height: layout.height }} />`) for rows outside a 1200px viewport buffer, unmounting dozens of PanResponders, media, and link cards while preserving zero scroll jumps.
+
 - **Forum Screen Header: Restored classic static header** (`app/screens/MainScreens/ForumScreen/index.js`):
   - Replaced floating glass buttons (`LiquidButton`) and fading scroll title with the classic static header (like webview/subforum screens).
   - Preserves persistent title, back button, member ranking (`trophy-outline`), and new post button (`add`) without floating glass or scroll fading interfering with horizontal section and category tabs.

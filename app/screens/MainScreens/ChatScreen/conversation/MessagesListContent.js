@@ -34,6 +34,7 @@ const MessageListItem = React.memo(({
   messageLayoutOffsetsRef,
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
+  visibleViewport,
 }) => {
   const handleLayout = (e) => {
     if (value.type === "message" && value.id != null) {
@@ -46,6 +47,23 @@ const MessageListItem = React.memo(({
       }
     }
   };
+
+  const layout = messageLayoutOffsetsRef.current[value.id];
+  const isOffscreen =
+    Boolean(visibleViewport) &&
+    value.type === "message" &&
+    value.id != null &&
+    !isHighlighted &&
+    String(pendingHighlightMessageIdRef.current) !== String(value.id) &&
+    layout &&
+    typeof layout.height === "number" &&
+    layout.height > 0 &&
+    typeof layout.y === "number" &&
+    (layout.y + layout.height < visibleViewport.top || layout.y > visibleViewport.bottom);
+
+  if (isOffscreen) {
+    return <View style={{ height: layout.height }} />;
+  }
 
   return (
     <View
@@ -169,6 +187,7 @@ const MessagesListContent = React.memo(({
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
   seenParticipants,
+  visibleViewport,
 }) => {
   // A flat "75%" bubble width reads fine on a phone, but on a tablet 75% of
   // the screen is still a very wide line of text - cap it in absolute pixels
@@ -247,6 +266,7 @@ const MessagesListContent = React.memo(({
       messageLayoutOffsetsRef={messageLayoutOffsetsRef}
       pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
       attemptScrollToHighlightRef={attemptScrollToHighlightRef}
+      visibleViewport={visibleViewport}
     />
   ));
 });

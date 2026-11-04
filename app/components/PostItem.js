@@ -927,17 +927,17 @@ const PostItem = ({
     }
   };
 
+  const isLongContent =
+    !single &&
+    Boolean(item.content) &&
+    (item.content.length > 280 || (item.content.match(/<br|<p/gi) || []).length > 3);
+
   const handleExpandPost = () => {
-    setIsExpanded(!isExpanded);
-    if (!single && isExpanded && onExpand && item.content?.length > 300) {
+    setIsExpanded((prev) => !prev);
+    if (!single && isExpanded && onExpand && isLongContent) {
       onExpand(); // Notify the FlatList to adjust the scroll position (only in feed mode)
     }
   };
-
-  const truncatedContent =
-    item.content && item.content.length > 300
-      ? `${item.content.substring(0, 300)}...`
-      : item.content || "";
 
   // Posts don't support "@all" broadcast mentions (that's a comment/chat-
   // only feature) - a real "all" username can never exist since it's
@@ -961,14 +961,12 @@ const PostItem = ({
     () => ({
       html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
         linkifyMentionsInHtml(
-          isExpanded || !item.content || item.content.length <= 300
-            ? item.content || ""
-            : truncatedContent,
+          item.content || "",
           validMentions
         )
       )),
     }),
-    [item.content, isExpanded, truncatedContent, validMentions]
+    [item.content, validMentions]
   );
   const postBaseStyle = useMemo(() => ({ fontSize: 16, color: theme.text }), [theme.text]);
   const postTagsStyles = useMemo(
@@ -1253,6 +1251,8 @@ const PostItem = ({
                       fontSize: 21,
                       color: theme.text,
                     }}
+                    numberOfLines={3}
+                    ellipsizeMode="tail"
                   >
                     {item.title}
                   </Text>
@@ -1311,7 +1311,9 @@ const PostItem = ({
                     setActiveCopyTarget(null);
                     return;
                   }
-                  handleExpandPost();
+                  if (isLongContent) {
+                    handleExpandPost();
+                  }
                 }}
                 onLongPress={handleLongPressCaption}
                 delayLongPress={350}
@@ -1321,6 +1323,10 @@ const PostItem = ({
                     backgroundColor: isDarkMode
                       ? "rgba(255, 255, 255, 0.18)"
                       : "rgba(50, 110, 240, 0.16)",
+                  },
+                  (!isExpanded && isLongContent) && {
+                    maxHeight: 180,
+                    overflow: "hidden",
                   },
                 ]}
               >
@@ -1345,6 +1351,17 @@ const PostItem = ({
                   tagsStyles={postTagsStyles}
                 />
               </Pressable>
+              {isLongContent && (
+                <TouchableOpacity
+                  onPress={handleExpandPost}
+                  style={{ marginTop: 4, alignSelf: "flex-start", paddingVertical: 4 }}
+                  hitSlop={8}
+                >
+                  <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 14 }}>
+                    {isExpanded ? t("common.collapse", "Thu gọn") : t("common.showMore", "Xem thêm")}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : null}
         </View>
@@ -1378,32 +1395,34 @@ const PostItem = ({
                 height={350}
                 width={contentWidth}
               />
-              <ImageView
-                images={item.image_urls.map((url) => ({
-                  uri: url,
-                }))}
-                imageIndex={visible}
-                visible={visible !== false}
-                onRequestClose={() => setIsVisible(false)}
-                HeaderComponent={() => (
-                  <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
-                    <TouchableOpacity
-                      onPress={() => setIsVisible(false)}
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: "#00000077",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
-                    >
-                      <Ionicons name="close" size={22} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
+              {visible !== false && (
+                <ImageView
+                  images={item.image_urls.map((url) => ({
+                    uri: url,
+                  }))}
+                  imageIndex={visible}
+                  visible={visible !== false}
+                  onRequestClose={() => setIsVisible(false)}
+                  HeaderComponent={() => (
+                    <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+                      <TouchableOpacity
+                        onPress={() => setIsVisible(false)}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          backgroundColor: "#00000077",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+                      >
+                        <Ionicons name="close" size={22} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              )}
             </>
           )}
           {videoUrls && videoUrls.length > 0 && (() => {
@@ -1697,28 +1716,36 @@ const PostItem = ({
           </View>
         </View>
       </View>
-      <SharePostModal
-        visible={shareModalVisible}
-        post={item}
-        onClose={() => setShareModalVisible(false)}
-      />
-      <ReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        onSubmit={handleReportSubmit}
-      />
-      <GiftPointsModal
-        visible={giftModalVisible}
-        onClose={() => setGiftModalVisible(false)}
-        post={item}
-      />
-      <PostVotesModal
-        visible={votesModalVisible}
-        onClose={() => setVotesModalVisible(false)}
-        postId={item.id}
-        postTitle={item.title || item?.topic?.title || t("voteModal.postTitleFallback")}
-        navigation={navigation}
-      />
+      {shareModalVisible && (
+        <SharePostModal
+          visible={shareModalVisible}
+          post={item}
+          onClose={() => setShareModalVisible(false)}
+        />
+      )}
+      {reportModalVisible && (
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
+      )}
+      {giftModalVisible && (
+        <GiftPointsModal
+          visible={giftModalVisible}
+          onClose={() => setGiftModalVisible(false)}
+          post={item}
+        />
+      )}
+      {votesModalVisible && (
+        <PostVotesModal
+          visible={votesModalVisible}
+          onClose={() => setVotesModalVisible(false)}
+          postId={item.id}
+          postTitle={item.title || item?.topic?.title || t("voteModal.postTitleFallback")}
+          navigation={navigation}
+        />
+      )}
     </View >
   );
 };
