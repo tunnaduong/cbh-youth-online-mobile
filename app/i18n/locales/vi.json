@@ -138,6 +138,8 @@
   },
   "chat": {
     "title": "Tin nhắn",
+    "yesterday": "Hôm qua",
+    "today": "Hôm nay",
     "you": "Bạn: ",
     "photo": "Hình ảnh",
     "video": "Video",

@@ -149,6 +149,8 @@
   },
   "chat": {
     "title": "Messages",
+    "yesterday": "Yesterday",
+    "today": "Today",
     "you": "You: ",
     "photo": "Photo",
     "video": "Video",

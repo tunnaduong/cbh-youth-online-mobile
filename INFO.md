@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Fix chat main screen relative day indicator i18n** (`app/screens/MainScreens/ChatScreen/index.js`, `app/i18n/locales/*.json`):
+  - Fixed hardcoded Vietnamese fallback `'Hôm qua'` in `ChatScreen/index.js`'s `formatMessageTime`.
+  - Added localized `"yesterday"` and `"today"` to `"chat"` across `en.json`, `vi.json`, and `ru.json` and passed `t` to `formatMessageTime`, ensuring relative time labels properly respect user language settings.
+
 - **OTA Build 1030 in `app.json`, Strict Version Guard, Length Bounds & Chat/Feed Virtualization** (`app.json`, `app/services/ota/*`, `app/screens/MainScreens/ForumScreen/CategoryScreen.js`, `app/components/PostItem.js`, `app/screens/MainScreens/ChatScreen/conversation/MessagesListContent.js`, `app/screens/MainScreens/ChatScreen/ConversationScreen.js`):
   - **Single config point for `minNativeBuild`**: Set to `1030` directly inside `app.json` (`expo.extra.minNativeBuild`), with all scripts, workflows (`ota-update.yml`), and runtime helpers (`otaConfig.js`, `UpdatePromptModal.js`) dynamically reading it from config.
   - **Strict OTA upgrade rule**: Upstream OTA build numbers must be strictly higher than current active build (`Math.max(currentNativeBuild, currentActiveBuild)`). Upstream $\le$ active build is blocked, preventing unwanted downgrade loops when switching from preview to production channel.

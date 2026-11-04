@@ -32,12 +32,15 @@ import UserNameRow from "../../../components/profile/UserNameRow";
 import AvatarFrame from "../../../components/profile/AvatarFrame";
 
 // Time of a conversation's last message
-const formatMessageTime = (timestamp, yesterdayText = "Hôm qua") => {
+const formatMessageTime = (timestamp, t) => {
   const time = dayjs(timestamp);
   if (!time.isValid()) return "";
   const now = dayjs();
   if (time.isSame(now, "day")) return time.format("HH:mm");
-  if (time.isSame(now.subtract(1, "day"), "day")) return yesterdayText;
+  const yesterdayLabel = typeof t === "function"
+    ? t("chat.yesterday")
+    : (t || "Yesterday");
+  if (time.isSame(now.subtract(1, "day"), "day")) return yesterdayLabel;
   return time.isSame(now, "year") ? time.format("DD/MM") : time.format("DD/MM/YY");
 };
 
@@ -461,7 +464,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             ]}
           >
             {item.latest_message?.created_at
-              ? formatMessageTime(item.latest_message.created_at, t('chat.yesterday', 'Hôm qua'))
+              ? formatMessageTime(item.latest_message.created_at, t)
               : ""}
           </Text>
 
