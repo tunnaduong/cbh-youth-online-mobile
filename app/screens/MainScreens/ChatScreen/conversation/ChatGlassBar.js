@@ -1,19 +1,9 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useTheme } from "../../../../contexts/ThemeContext";
-import {
-  LiquidGlassView,
-  glassTint,
-  flatSurface,
-  androidGlassPerfProps,
-} from "../../../../components/GlassModules";
 
-// Full-width liquid-glass bar docked to the top or bottom edge of the chat
-// (the header and the composer), Messenger style: flat, square across the
-// entire screen width, with a hairline on the side that faces the messages.
-// The content must be a real child of the glass view (a sibling over an
-// absolute glass layer gets swept into the captured backdrop and shows up
-// doubled). Without the native module it falls back to the flat opaque panel.
+// Full-width bar docked to the top or bottom edge of the chat (header/composer).
+// Solid/pattern-friendly panel without liquid glass effect, matching the new chat header and composer visual styling.
 const ChatGlassBar = ({ edge, style, tintColor, children }) => {
   const { theme, isDarkMode } = useTheme();
   const hairline = (
@@ -33,24 +23,9 @@ const ChatGlassBar = ({ edge, style, tintColor, children }) => {
   ];
 
   const defaultTint = isDarkMode
-    ? "rgba(15, 20, 18, 0.94)"
-    : "rgba(255, 255, 255, 0.94)";
+    ? "rgba(15, 20, 18, 0.96)"
+    : "rgba(255, 255, 255, 0.98)";
   const effectiveTint = tintColor ?? defaultTint;
-
-  if (LiquidGlassView) {
-    return (
-      <LiquidGlassView
-        variant="clear"
-        tintColor={effectiveTint}
-        borderRadius={0}
-        {...androidGlassPerfProps}
-        style={containerStyle}
-      >
-        {children}
-        {hairline}
-      </LiquidGlassView>
-    );
-  }
 
   return (
     <View style={[containerStyle, { backgroundColor: effectiveTint }]}>

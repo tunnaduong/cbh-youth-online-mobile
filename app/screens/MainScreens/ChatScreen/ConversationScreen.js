@@ -64,7 +64,6 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
   KeyboardChatScrollView,
   KeyboardGestureArea,
@@ -93,7 +92,6 @@ import ChatMascotBackground from "./conversation/ChatMascotBackground";
 import ChatComposer, { CHAT_COMPOSER_DEFAULT_HEIGHT } from "./conversation/ChatComposer";
 import SeenByModal from "./conversation/SeenByModal";
 import TypingIndicator from "./conversation/TypingIndicator";
-import ConversationLiteWebView from "./conversation/ConversationLiteWebView";
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -304,7 +302,7 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
-  const { theme, isDarkMode, autoplayVideos, chatLiteEnabled } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
@@ -3067,22 +3065,7 @@ const ConversationScreen = ({ navigation, route }) => {
       ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
       : "";
 
-  if (chatLiteEnabled && (currentConversationId || conversationId) && !isNewConversation) {
-    return (
-      <ConversationLiteWebView
-        conversationId={currentConversationId || conversationId}
-        initialConversation={currentConversation}
-        navigation={navigation}
-        insets={insets}
-        onCall={() => {
-          Alert.alert(
-            t("chatConversation.call", "Cuộc gọi"),
-            t("chatConversation.callNotice", "Tính năng gọi điện đang được cập nhật.")
-          );
-        }}
-      />
-    );
-  }
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -3271,7 +3254,7 @@ const ConversationScreen = ({ navigation, route }) => {
             ]}
           />
         ) : null}
-        <AndroidGlassBackdrop providerId="ConversationScreen" style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
         <KeyboardGestureArea
           interpolator="ios"
           style={{ flex: 1 }}
@@ -3376,7 +3359,7 @@ const ConversationScreen = ({ navigation, route }) => {
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
         </KeyboardGestureArea>
-        </AndroidGlassBackdrop>
+        </View>
       </View>
 
       <ConversationHeader

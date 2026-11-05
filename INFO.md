@@ -356,17 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
-- **Chat Lite mode for low-end devices & WebRTC call bridging** (`app/screens/MainScreens/ChatScreen/conversation/ConversationLiteWebView.js`, `app/screens/MainScreens/ChatScreen/ConversationScreen.js`, `app/contexts/ThemeContext.js`, `app/screens/FirstLaunchSettingsScreen/index.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/i18n/locales/*.json`):
-  - **Chat Lite WebView Mode**: Added setting (default OFF) in ThemeContext (`chatLiteEnabled`), accessible in both "Customize your experience" (`FirstLaunchSettingsScreen`) and Application settings (`SettingsScreen`).
-  - **ConversationLiteWebView**: When enabled, `ConversationScreen` renders the web chat conversation full-screen in a WebView via `https://chuyenbienhoa.com/chat?chat_lite=true&conversationId={id}` using `sessionEntryUrl` for secure single sign-on handoff without splash screen.
-  - **Native Header Synchronization**: Retains the native `ConversationHeader` with smooth fading / wave styling, synchronized via `CONVERSATION_UPDATE` postMessage from the web view.
-  - **Navigation Guard**: Restricts WebView navigation strictly to `/chat`; profile clicks redirect directly to native `ProfileDetailScreen`, and external URLs open in the native in-app browser (`openInAppBrowser`).
-  - **Call Bridge**: Intercepts `START_CALL` bridge message from web and preserves native call handling.
-  - **Localization**: Added `firstLaunchSettings.chatLiteDescription` and `settings.chatLite` in `en.json`, `vi.json`, and `ru.json`.
-
-- **OTA Updates: Bump minimum native binary build required to 1040** (`app.json`):
-  - Bumped `expo.extra.minNativeBuild` in `app.json` to `1040`.
-  - Ensures devices on older native base builds below 1040 cleanly prompt the user to download the updated base APK rather than running incompatible OTA bundles.
+- **OTA Updates: Bump minimum native binary build required to 1045 & Remove liquid glass from chat**:
+  - Bumped `expo.extra.minNativeBuild` in `app.json` to `1045`.
+  - Removed liquid glass effect (`LiquidGlassView` and `AndroidGlassBackdrop`) from chat header and composer bar in `ChatGlassBar.js` and `ConversationScreen.js`, utilizing the clean solid and SVG wave patterns without refraction distortion or performance overhead.
+  - Completely removed Chat Lite webview mode and related settings toggles across all locales.
 
 - **Forum Header Alignment, Home Photo Shortcut & Sequential OTA Upgrade Chaining** (`app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/HomeScreen/index.js`, `app/screens/MainScreens/CreatePostScreen/index.js`, `app/services/ota/otaService.js`, `app/i18n/locales/*.json`, `INFO.md`):
   - **Forum Header Trophy Alignment**: Fixed the member ranking champion/trophy button and header action alignment in `ForumScreen/index.js`. Replaced unbounded row with `headerLeft` (`flex: 1`, `marginRight: 12`) and `headerTitle` (`flexShrink: 1`, `numberOfLines={1}`), alongside rounded 40x40 icon buttons (`headerIconButton`) with theme background tints, preventing the trophy icon from overflowing offscreen on narrow devices.
@@ -499,11 +492,6 @@ Every new or changed screen must follow this section. If a screen you touch does
   - `CommentBar` (comment bar and chat input) now draws its input through `PasteInput`, so images from Gboard / iOS keyboard stickers, GIFs and the paste menu arrive in `onPasteImages` (`app/utils/pastedImages.js`: loaded in a `try`, so an older binary keeps the plain input). They show as a preview in the bar (`selectedImages`) and are sent with **Send**: comments through `commentPostWithImages`, chat through `sendImageMessage` before the text. PNG / GIF / WebP are kept as they are (transparent stickers, animation).
   - The @mention colouring stays: `patches/@expensify+react-native-live-markdown+0.1.334.patch` adds an `inputComponent` prop to `MarkdownTextInput` (default `TextInput`), which `CommentBar` sets to `PasteInput`. **Regenerate the patch when upgrading live-markdown.**
   - iOS needs `PasteInputModule.setup(factory.rootViewFactory)` in `AppDelegate.swift`: `plugins/withNativeTweaks.js` (`withPasteInputSetup`) adds it, through `NSClassFromString` + `perform` (a Swift `import react_native_paste_input` fails to build: the pod has no Clang module). To check on a device first: that the mention highlighting still works inside `PasteInput` (the decorator expects a `ReactEditText` / `RCTTextInputComponentView` child), and that the iOS sticker keyboard's images are delivered.
-
-- **Chat Lite mode for low-end devices with settings toggle**:
-  - Added "Chat Lite" WebView mode (`ChatLiteScreen.js`), allowing low-end devices or users desiring identical web features to run the web conversation interface directly in an optimized full-screen WebView with synchronized native header controls, file/media attachment support, and WebRTC capability.
-  - Setting is toggleable in `FirstLaunchSettingsScreen` ("Customize your experience") and defaults to `false` (native chat).
-  - Wired into `ConversationScreen` and `App.js` routes, ensuring seamless transition between native chat and Chat Lite based on preference.
 
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.

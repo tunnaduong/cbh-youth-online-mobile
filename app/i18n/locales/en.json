@@ -1197,7 +1197,6 @@
     "autoplayDescription": "Automatically play videos as you scroll through chats and posts, without needing to tap them first.",
     "liquidGlassDescription": "A fluid, see-through glass look for buttons and bars that bends and reflects what's behind it. May lag on lower-end devices - turn it off if the app doesn't feel smooth.",
     "shakeDescription": "Shake your phone to quickly report a bug or send a suggestion from any screen.",
-    "chatLiteDescription": "Loads chat in a lightweight WebView to save memory on lower-end devices. Off by default.",
     "continue": "Continue"
   },
   "settings": {
@@ -1210,7 +1209,6 @@
     "autoplayVideos": "Autoplay videos",
     "liquidGlassEffect": "Liquid glass effect",
     "shakeToReport": "Shake phone to report a problem",
-    "chatLite": "Chat Lite mode",
     "blockedUsers": "Blocked Users",
     "appUpdates": "App Updates",
     "about": "About",
