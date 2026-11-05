@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **OTA Updates: Bump minimum native binary build required to 1040** (`app.json`):
+  - Bumped `expo.extra.minNativeBuild` in `app.json` to `1040`.
+  - Ensures devices on older native base builds below 1040 cleanly prompt the user to download the updated base APK rather than running incompatible OTA bundles.
+
 - **Forum Header Alignment, Home Photo Shortcut & Sequential OTA Upgrade Chaining** (`app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/HomeScreen/index.js`, `app/screens/MainScreens/CreatePostScreen/index.js`, `app/services/ota/otaService.js`, `app/i18n/locales/*.json`, `INFO.md`):
   - **Forum Header Trophy Alignment**: Fixed the member ranking champion/trophy button and header action alignment in `ForumScreen/index.js`. Replaced unbounded row with `headerLeft` (`flex: 1`, `marginRight: 12`) and `headerTitle` (`flexShrink: 1`, `numberOfLines={1}`), alongside rounded 40x40 icon buttons (`headerIconButton`) with theme background tints, preventing the trophy icon from overflowing offscreen on narrow devices.
   - **Auto-open Image Picker from Home**: Tapping "Thêm ảnh" (Add photo) in the modern composer card triggers light haptics, presents an informative toast ("Đang mở thư viện ảnh..."), and passes `autoPickImage: true` to `CreatePostScreen` which automatically launches the photo gallery picker after mounting. Localized across English, Vietnamese, and Russian.
