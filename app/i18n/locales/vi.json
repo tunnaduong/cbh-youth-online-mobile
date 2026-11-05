@@ -1185,6 +1185,7 @@
     "autoplayDescription": "Tự động phát video khi bạn cuộn qua trong các đoạn chat và bài viết, không cần nhấn để phát.",
     "liquidGlassDescription": "Hiệu ứng kính lỏng trong suốt cho các nút và thanh điều hướng, uốn cong và phản chiếu nội dung phía sau. Có thể gây giật/lag trên các thiết bị cấu hình thấp - có thể tắt nếu ứng dụng chạy không mượt.",
     "shakeDescription": "Lắc điện thoại để báo lỗi hoặc gửi góp ý nhanh từ bất kỳ màn hình nào.",
+    "chatLiteDescription": "Tải đoạn chat dạng WebView nhẹ hơn, tiết kiệm RAM cho thiết bị cấu hình thấp. Mặc định tắt.",
     "continue": "Tiếp tục"
   },
   "settings": {
@@ -1197,6 +1198,7 @@
     "autoplayVideos": "Tự động phát video",
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
     "shakeToReport": "Lắc điện thoại để báo cáo sự cố",
+    "chatLite": "Chế độ Chat Lite",
     "blockedUsers": "Người dùng đã chặn",
     "appUpdates": "Cập nhật ứng dụng",
     "about": "Giới thiệu",

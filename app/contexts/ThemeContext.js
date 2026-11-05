@@ -78,6 +78,10 @@ export const ThemeProvider = ({ children }) => {
     return storage.getBoolean("shakeToReportEnabled") ?? true;
   });
 
+  const [chatLiteEnabled, setChatLiteEnabledState] = useState(() => {
+    return storage.getBoolean("chatLiteEnabled") ?? false;
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
@@ -136,6 +140,11 @@ export const ThemeProvider = ({ children }) => {
     storage.set("shakeToReportEnabled", value);
   }, []);
 
+  const setChatLiteEnabled = useCallback((value) => {
+    setChatLiteEnabledState(value);
+    storage.set("chatLiteEnabled", value);
+  }, []);
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   const value = useMemo(
@@ -153,6 +162,8 @@ export const ThemeProvider = ({ children }) => {
       setLiquidGlassEnabled,
       shakeToReportEnabled,
       setShakeToReportEnabled,
+      chatLiteEnabled,
+      setChatLiteEnabled,
     }),
     [
       isDarkMode,
@@ -167,6 +178,8 @@ export const ThemeProvider = ({ children }) => {
       setLiquidGlassEnabled,
       shakeToReportEnabled,
       setShakeToReportEnabled,
+      chatLiteEnabled,
+      setChatLiteEnabled,
     ]
   );
 

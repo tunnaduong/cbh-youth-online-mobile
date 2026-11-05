@@ -356,6 +356,14 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Chat Lite mode for low-end devices & WebRTC call bridging** (`app/screens/MainScreens/ChatScreen/conversation/ConversationLiteWebView.js`, `app/screens/MainScreens/ChatScreen/ConversationScreen.js`, `app/contexts/ThemeContext.js`, `app/screens/FirstLaunchSettingsScreen/index.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/i18n/locales/*.json`):
+  - **Chat Lite WebView Mode**: Added setting (default OFF) in ThemeContext (`chatLiteEnabled`), accessible in both "Customize your experience" (`FirstLaunchSettingsScreen`) and Application settings (`SettingsScreen`).
+  - **ConversationLiteWebView**: When enabled, `ConversationScreen` renders the web chat conversation full-screen in a WebView via `https://chuyenbienhoa.com/chat?chat_lite=true&conversationId={id}` using `sessionEntryUrl` for secure single sign-on handoff without splash screen.
+  - **Native Header Synchronization**: Retains the native `ConversationHeader` with smooth fading / wave styling, synchronized via `CONVERSATION_UPDATE` postMessage from the web view.
+  - **Navigation Guard**: Restricts WebView navigation strictly to `/chat`; profile clicks redirect directly to native `ProfileDetailScreen`, and external URLs open in the native in-app browser (`openInAppBrowser`).
+  - **Call Bridge**: Intercepts `START_CALL` bridge message from web and preserves native call handling.
+  - **Localization**: Added `firstLaunchSettings.chatLiteDescription` and `settings.chatLite` in `en.json`, `vi.json`, and `ru.json`.
+
 - **OTA Updates: Bump minimum native binary build required to 1040** (`app.json`):
   - Bumped `expo.extra.minNativeBuild` in `app.json` to `1040`.
   - Ensures devices on older native base builds below 1040 cleanly prompt the user to download the updated base APK rather than running incompatible OTA bundles.

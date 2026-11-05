@@ -94,7 +94,7 @@ const SettingSection = ({ title, children, theme }) => {
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
   const runningUpdate = getRunningUpdateInfo();
-  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
+  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled, chatLiteEnabled, setChatLiteEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
 
@@ -315,6 +315,13 @@ export default function SettingsScreen({ navigation }) {
             isSwitch
             value={shakeToReportEnabled}
             onPress={setShakeToReportEnabled}
+          />
+          <SettingItem
+            icon="flash-outline"
+            title={t("settings.chatLite")}
+            isSwitch
+            value={chatLiteEnabled}
+            onPress={setChatLiteEnabled}
           />
           <SettingItem
             icon="ban-outline"

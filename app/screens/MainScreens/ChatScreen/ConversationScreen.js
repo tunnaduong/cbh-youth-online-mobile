@@ -93,6 +93,7 @@ import ChatMascotBackground from "./conversation/ChatMascotBackground";
 import ChatComposer, { CHAT_COMPOSER_DEFAULT_HEIGHT } from "./conversation/ChatComposer";
 import SeenByModal from "./conversation/SeenByModal";
 import TypingIndicator from "./conversation/TypingIndicator";
+import ConversationLiteWebView from "./conversation/ConversationLiteWebView";
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -303,7 +304,7 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
-  const { theme, isDarkMode, autoplayVideos } = useTheme();
+  const { theme, isDarkMode, autoplayVideos, chatLiteEnabled } = useTheme();
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
@@ -3065,6 +3066,23 @@ const ConversationScreen = ({ navigation, route }) => {
     currentConversation?.type === "group"
       ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
       : "";
+
+  if (chatLiteEnabled && (currentConversationId || conversationId) && !isNewConversation) {
+    return (
+      <ConversationLiteWebView
+        conversationId={currentConversationId || conversationId}
+        initialConversation={currentConversation}
+        navigation={navigation}
+        insets={insets}
+        onCall={() => {
+          Alert.alert(
+            t("chatConversation.call", "Cuộc gọi"),
+            t("chatConversation.callNotice", "Tính năng gọi điện đang được cập nhật.")
+          );
+        }}
+      />
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

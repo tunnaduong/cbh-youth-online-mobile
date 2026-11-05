@@ -25,6 +25,8 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
     setLiquidGlassEnabled,
     shakeToReportEnabled,
     setShakeToReportEnabled,
+    chatLiteEnabled,
+    setChatLiteEnabled,
   } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -122,6 +124,25 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
               </View>
               <Text style={[styles.optionDescription, { color: theme.subText }]}>
                 {t("firstLaunchSettings.liquidGlassDescription")}
+              </Text>
+            </View>
+
+            <View style={[styles.optionRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
+              <View style={styles.optionHeaderRow}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.iconBackground }]}>
+                  <Ionicons name="flash-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.optionLabel, { color: theme.text }]}>
+                  {t("settings.chatLite")}
+                </Text>
+                <Switch
+                  value={chatLiteEnabled}
+                  onValueChange={setChatLiteEnabled}
+                  trackColor={{ true: theme.primary }}
+                />
+              </View>
+              <Text style={[styles.optionDescription, { color: theme.subText }]}>
+                {t("firstLaunchSettings.chatLiteDescription")}
               </Text>
             </View>
 
