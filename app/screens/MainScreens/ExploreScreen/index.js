@@ -184,7 +184,7 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
           pointerEvents="box-none"
         >
           <LinearGradient
-            colors={headerBgColors}
+            colors={isDarkMode ? ["rgba(20, 83, 45, 0.45)", "rgba(15, 23, 42, 0)"] : ["#E8F8EA", "rgba(240, 253, 244, 0.4)", "transparent"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={[
@@ -195,12 +195,6 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
               },
             ]}
           >
-            {/* Background school architectural watermark */}
-            <Image
-              source={require("../../../assets/school-logo.jpg")}
-              style={styles.headerWatermark}
-              resizeMode="cover"
-            />
 
             {/* Header Title Row - smoothly collapses on scroll */}
             <Animated.View
@@ -212,9 +206,10 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
                 },
               ]}
             >
-              <Text style={styles.headerTitleText}>
+              <Text style={[styles.headerTitleText, { color: theme.text }]}>
                 {t("sidebar.explore", "Khám phá")}
               </Text>
+              <Text style={{ fontSize: 16, color: "#EAB308", marginLeft: 6 }}>✦</Text>
             </Animated.View>
 
             {/* Search Bar - remains sticky at the top when scrolling */}

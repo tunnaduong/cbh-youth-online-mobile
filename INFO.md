@@ -38,7 +38,7 @@ How they connect:
 - **Feed & posts**: infinite home feed, create/edit post (rich text, images, video upload, YouTube/SoundCloud share), votes with voter lists, comments with mentions and slash commands, saved/liked posts, share/forward, OG link preview cards (`LinkPreviewCard`, `utils/linkPreview.js`), link-safety interstitial for external URLs (`LinkSafetyScreen`).
 - **Forum**: categories/subforums (`ForumScreen`, `CategoryScreen`), Youth Union news category.
 - **Stories**: Instagram-style stories (create with overlays/music, react, reply, viewers sheet, archive).
-- **Chat**: 1-1 and group conversations, realtime via Laravel Echo + Reverb (`ChatSocketContext`, `services/echo`), typing, reactions, replies, forwarding, media gallery, chat backgrounds, group info / invites.
+- **Chat**: 1-1 and group conversations, realtime via Laravel Echo + Reverb (`ChatSocketContext`, `services/echo`), WebRTC voice and video calls (`CallContext`, `services/call`), typing, reactions, replies, forwarding, media gallery, chat backgrounds, group info / invites.
 - **Notifications**: moderation notices (`content_warning` opens the content, `content_deleted` only informs), Expo push (`services/notifications/ExpoNotificationService.js`, `NotificationContext`), unread badges (`UnreadCountsContext`), tap routing (`utils/notificationRouting.js`).
 - **Profile**: profile/detail screens, edit profile, photo gallery (a "Photos" view of the Posts tab: `components/profile/ProfilePhotoGallery.js`, `GET /v1.0/users/{username}/photos`), Discord-style customization (avatar frames, name fonts/effects, profile effects, and at the Pro tier a name icon and a `@username` styled like the name; `ProfileCustomizerScreen`, `components/profile` - `UserNameRow` / `NameIcon` / `StyledUsername` draw a user's name everywhere, `utils/profileTheme.js`), points milestones, member ranking.
 - **Points**: point wallet, deposit/withdraw, gift points (`GiftPointsModal`).
@@ -355,6 +355,28 @@ Every new or changed screen must follow this section. If a screen you touch does
 ---
 
 ## 6. Recent work (newest first, as of 2026-10)
+
+- **WebRTC Call on Mobile, Category Icons in Post Editor & App-wide Screen Ambient Redesign**:
+  - **WebRTC Call functionality**:
+    - Created `app/services/call/callService.js` connecting to `/v1.0/chat/conversations/{id}/call/initiate`, `/v1.0/chat/calls/{id}/answer`, `/reject`, `/end`, `/signal`, and `/ice-servers`.
+    - Created `app/components/call/WebRtcBridge.js` running headless WebRTC engine inside WebView, supporting real-time audio streams, hardware Acoustic Echo Cancellation (AEC), and Web Audio telephone ring/connecting/busy tones.
+    - Created `app/components/call/IncomingCallModal.js` with caller avatar, `AvatarFrame`, pulsating wave animation, and accept/reject actions.
+    - Created `app/components/call/ActiveCallModal.js` with call duration timer, remote participant avatar/info, Mute mic toggle, Speaker toggle, and minimized floating pill overlay for multitasking.
+    - Created `app/contexts/CallContext.js` (`CallProvider`) wired into Echo private channel `App.Models.User.{id}` for incoming calls and `chat.{conversationId}` presence channel for call progression.
+    - Wired `ConversationHeader.js` call button in `ConversationScreen.js` to trigger voice/video calls.
+  - **Category icons in Create & Edit Post**:
+    - Completely expanded `CATEGORY_KEY_MAP`, `SECTION_ICON_MAP`, and `SUBFORUM_ICON_MAP` in `app/utils/forumUtils.js` to map 100% of all categories and subforums to distinctive Ionicons.
+    - Updated `getCategoryKey` with normalized, slug, and English translation reverse-lookups.
+    - Preserved `rawName`, `rawCategory`, and pre-resolved `icon` in `CreatePostScreen/index.js` and `PostEditScreen/index.js`.
+    - Updated `PostComposerLayout.js` to dynamically display the selected category icon in `SettingRow` instead of hardcoded `albums-outline`.
+    - Updated `Dropdown.js` trigger button to display the chosen category icon.
+  - **Media picker outside composer in HomeScreen**:
+    - Updated "Thêm ảnh" button on HomeScreen feed composer card to "Ảnh/Video" (`createPost.addMedia`), opening library with `mediaTypes: ["images", "videos"]` (`autoPickMedia: true`), allowing simultaneous image and video selection.
+  - **App-wide Screen Ambient Redesign**:
+    - Added CYO ambient green gradient glow (`LinearGradient` `#E8F8EA` / `rgba(20, 83, 45, 0.40)`) across all screens (`ExploreScreen`, `SearchScreen`, `PointWalletScreen`, `MemberRankingScreen`, `ActivityScreen`, `SettingsScreen`, `LikedPostsScreen`, `SavedPostsScreen`, `ArchiveScreen`, `FeedbackScreen`, `PostComposerLayout`).
+    - Modernized `ExploreScreen`: removed dark opaque block and school-logo watermark, added ambient glow and sparkle star `✦`.
+    - Strictly preserved the floating `LiquidButton` + fading title header architecture according to the design system.
+  - **i18n**: Added `call.*` and `createPost.addMedia` to `vi.json`, `en.json`, and `ru.json`.
 
 - **OTA Updates: Bump minimum native binary build required to 1045 & Remove liquid glass from chat**:
   - Bumped `expo.extra.minNativeBuild` in `app.json` to `1045`.

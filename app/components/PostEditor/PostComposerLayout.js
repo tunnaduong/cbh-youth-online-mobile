@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -21,6 +22,7 @@ import CustomLoading from "../CustomLoading";
 import Dropdown from "../Dropdown";
 import FastImage from "../FastImage";
 import VideoThumbnail from "../VideoThumbnail";
+import { getSubforumIcon } from "../../utils/forumUtils";
 import { TOOLBAR_HEIGHT } from "./MarkdownToolbar";
 import {
   PostEditorField,
@@ -173,6 +175,17 @@ export default function PostComposerLayout({
       </View>
 
       <AndroidGlassBackdrop providerId="PostComposer" style={{ flex: 1 }}>
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+          pointerEvents="none"
+        />
         {loading ? (
           <View style={[styles.loading, { paddingTop: headerHeight }]}>
             <CustomLoading size={56} />
@@ -261,7 +274,14 @@ export default function PostComposerLayout({
             {/* Where it goes and who sees it */}
             <Text style={[styles.sectionTitle, { color: theme.subText }]}>{t("createPost.sectionSettings")}</Text>
             <View style={cardStyle}>
-              <SettingRow icon="albums-outline" title={t("createPost.categoryLabel")} theme={theme}>
+              <SettingRow
+                icon={
+                  category?.icon ||
+                  (category ? getSubforumIcon(category.label, category.rawName || category.name) : "albums-outline")
+                }
+                title={t("createPost.categoryLabel")}
+                theme={theme}
+              >
                 <Dropdown
                   options={categoryOptions}
                   placeholder={t("createPost.categoryShort")}

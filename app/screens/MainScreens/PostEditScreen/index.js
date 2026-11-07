@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getCategoryName } from "../../../utils/forumUtils";
+import { getCategoryName, getSubforumIcon } from "../../../utils/forumUtils";
 import {
   updatePost,
   getSubforums,
@@ -100,7 +100,10 @@ const PostEditScreen = ({ navigation, route }) => {
             label: getCategoryName(name, t),
             // The dropdown groups options under `category` (the parent section,
             // e.g. "Thông báo", "Học tập") - translate that header too.
+            rawName: name,
+            rawCategory: item.category,
             category: item.category ? getCategoryName(item.category, t) : item.category,
+            icon: item.icon || getSubforumIcon(name, name),
           };
         });
         setSubforums(translatedSubforums);
@@ -142,7 +145,10 @@ const PostEditScreen = ({ navigation, route }) => {
             matched = {
               value: subforumId,
               label: syntheticLabel,
+              rawName: sf.name || sf.title || String(subforumId),
+              rawCategory: sf.category?.name || sf.parent?.name || '',
               category: getCategoryName(sf.category?.name || sf.parent?.name || '', t),
+              icon: getSubforumIcon(sf.name || sf.title || String(subforumId), sf.name || sf.title || String(subforumId)),
             };
             // Prepend so it's visible at the top of the dropdown
             setSubforums(prev => {

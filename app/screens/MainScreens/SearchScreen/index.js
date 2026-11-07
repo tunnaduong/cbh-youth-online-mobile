@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { LinearGradient } from "expo-linear-gradient";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
@@ -239,6 +240,17 @@ export default function SearchScreen({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.ambientGlow, { height: inset.top + 140 }]}
+          pointerEvents="none"
+        />
       <Animated.View
         style={[
           styles.headerShell,
@@ -423,6 +435,13 @@ export default function SearchScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
   headerShell: {
     position: "absolute",
     top: 0,

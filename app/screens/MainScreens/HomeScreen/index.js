@@ -2209,13 +2209,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                   Toast.show({
                     type: "info",
-                    text1: t("createPost.addImage", "Thêm ảnh"),
-                    text2: t("createPost.openingGallery", "Đang mở thư viện ảnh..."),
+                    text1: t("createPost.addMedia", "Ảnh/Video"),
+                    text2: t("createPost.openingMediaGallery", "Đang mở thư viện..."),
                     autoHide: true,
                     visibilityTime: 2000,
                     topOffset: 60,
                   });
-                  navigation.navigate("CreatePostScreen", { autoPickImage: true });
+                  navigation.navigate("CreatePostScreen", { autoPickMedia: true });
                 }}
               >
                 <View
@@ -2227,7 +2227,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   <Ionicons name="images-outline" size={17} color="#22C55E" />
                 </View>
                 <Text style={[styles.composerQuickLabel, { color: theme.text }]}>
-                  {t("createPost.addImage", "Thêm ảnh")}
+                  {t("createPost.addMedia", "Ảnh/Video")}
                 </Text>
               </TouchableOpacity>
 

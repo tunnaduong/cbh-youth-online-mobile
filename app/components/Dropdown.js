@@ -120,7 +120,7 @@ const Dropdown = ({
 
     let itemIcon = item.icon;
     if (!itemIcon && isCategoryOrGrouped) {
-      itemIcon = getSubforumIcon(item.label, item.rawName || item.name);
+      itemIcon = item.icon || getSubforumIcon(item.label, item.rawName || item.name || item.slug || item.value);
     }
 
     return (
@@ -214,7 +214,20 @@ const Dropdown = ({
             flex: isFitContent ? 0 : 1,
           }}
         >
-          {leftIcon && <View style={{ marginRight: 8 }}>{leftIcon}</View>}
+          {leftIcon ? (
+            <View style={{ marginRight: 8 }}>{leftIcon}</View>
+          ) : isCategoryOrGrouped && selectedValue ? (
+            <View style={{ marginRight: 8 }}>
+              <Ionicons
+                name={
+                  selectedValue.icon ||
+                  getSubforumIcon(selectedValue.label, selectedValue.rawName || selectedValue.name)
+                }
+                size={16}
+                color={theme.primary}
+              />
+            </View>
+          ) : null}
           <Text
             style={[
               styles.dropdownText,

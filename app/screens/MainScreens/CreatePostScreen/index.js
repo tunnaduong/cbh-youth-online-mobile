@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getCategoryName } from "../../../utils/forumUtils";
+import { getCategoryName, getSubforumIcon } from "../../../utils/forumUtils";
 import {
   createPost,
   getSubforums,
@@ -238,7 +238,10 @@ const CreatePostScreen = ({ navigation, route }) => {
             ...item,
             value: id,
             label: getCategoryName(name, t),
+            rawName: name,
+            rawCategory: item.category,
             category: item.category ? getCategoryName(item.category, t) : item.category,
+            icon: item.icon || getSubforumIcon(name, name),
           };
         });
         setSubforums(translated);
@@ -287,15 +290,85 @@ const CreatePostScreen = ({ navigation, route }) => {
 
   // Auto-open image picker if navigated with autoPickImage: true
   const autoPickImageTriggeredRef = useRef(false);
+  const pickMedia = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images", "videos"],
+        allowsMultipleSelection: true,
+        quality: 0.7,
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+      });
+
+      if (result.canceled || !result.assets) return;
+
+      const newImages = [];
+      const newVideos = [];
+      let hadTypeRejection = false;
+      let hadSizeRejection = false;
+
+      for (const asset of result.assets) {
+        if (asset.type === "video" || asset.duration) {
+          const validation = await validateVideoAsset(asset);
+          if (!validation.ok) {
+            if (validation.reason === "type") hadTypeRejection = true;
+            if (validation.reason === "size") hadSizeRejection = true;
+            continue;
+          }
+          newVideos.push({
+            uri: asset.uri,
+            fileName: asset.fileName || `video_${Date.now()}.${validation.extension}`,
+            mimeType: asset.mimeType || getVideoMimeType(validation.extension),
+            fileSize: validation.size,
+          });
+        } else {
+          newImages.push(asset.uri);
+        }
+      }
+
+      if (hadTypeRejection) {
+        Toast.show({
+          type: "error",
+          text1: t("createPost.pickVideoError"),
+          text2: t("createPost.videoTypeUnsupported"),
+          autoHide: true,
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+      }
+      if (hadSizeRejection) {
+        Toast.show({
+          type: "error",
+          text1: t("createPost.pickVideoError"),
+          text2: t("createPost.videoTooLarge"),
+          autoHide: true,
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+      }
+
+      if (newImages.length > 0) {
+        setSelectedImages((prev) => [...prev, ...newImages]);
+      }
+      if (newVideos.length > 0) {
+        setSelectedVideos((prev) => [...prev, ...newVideos]);
+      }
+    } catch (error) {
+      console.log("Error picking media:", error);
+    }
+  };
   useEffect(() => {
-    if (route?.params?.autoPickImage && !autoPickImageTriggeredRef.current) {
+    if ((route?.params?.autoPickMedia || route?.params?.autoPickImage) && !autoPickImageTriggeredRef.current) {
       autoPickImageTriggeredRef.current = true;
       const timer = setTimeout(() => {
-        pickImage();
+        if (route?.params?.autoPickMedia) {
+          pickMedia();
+        } else {
+          pickImage();
+        }
       }, 350);
       return () => clearTimeout(timer);
     }
-  }, [route?.params?.autoPickImage]);
+  }, [route?.params?.autoPickMedia, route?.params?.autoPickImage]);
 
   const pickDocument = async () => {
     try {

@@ -13,6 +13,7 @@ import { getMemberRanking } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "../../../components/FastImage";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
@@ -258,6 +259,13 @@ export default function MemberRankingScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
   container: {
     flex: 1,
   },

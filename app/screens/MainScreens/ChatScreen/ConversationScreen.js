@@ -52,6 +52,7 @@ import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
+import { useCall } from "../../../contexts/CallContext";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -287,6 +288,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
   const { username, profileName, blockUserInContext } = useContext(AuthContext);
+  const { startCall } = useCall();
   // The socket effect below (tryAppendPushedMessage) doesn't list `username`
   // in its dependency array - by design, so it doesn't resubscribe socket
   // listeners on every render. But that means it was capturing whatever
@@ -3009,6 +3011,9 @@ const ConversationScreen = ({ navigation, route }) => {
   const uiHandlersRef = useRef({});
   uiHandlersRef.current = {
     goBack: safeGoBack,
+    callVoice: () => {
+      startCall(currentConversationId || conversationId, "audio", otherUser);
+    },
     showOptions,
     openTitle: () => {
       if (currentConversation?.type === "group") {
@@ -3374,6 +3379,7 @@ const ConversationScreen = ({ navigation, route }) => {
         onBack={uiActions.goBack}
         onPressTitle={uiActions.openTitle}
         onOptions={uiActions.showOptions}
+        onCall={uiActions.callVoice}
         hasCustomBackground={Boolean(chatBackgroundUrl)}
       />
 

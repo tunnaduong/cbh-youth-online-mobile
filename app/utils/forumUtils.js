@@ -2,9 +2,11 @@ export const CATEGORY_KEY_MAP = {
   "thông báo": "announcements",
   "thông báo chung": "generalAnnouncements",
   "chung": "general",
+  "thảo luận chung": "general",
   "đoàn - hội": "unionAssociation",
   "đoàn-hội": "unionAssociation",
   "học tập": "academics",
+  "hoạt động": "events",
   "sự kiện": "events",
   "câu lạc bộ": "clubs",
   "góc chia sẻ": "sharingCorner",
@@ -72,13 +74,81 @@ export const CATEGORY_KEY_MAP = {
   "đồ dùng học tập": "schoolSupplies",
   "trao đổi vật dụng cá nhân": "personalItemsExchange",
   "báo lỗi kỹ thuật": "technicalBugReport",
-  "góc yêu bếp": "kitchenCorner"
+  "góc yêu bếp": "kitchenCorner",
+  // English mappings
+  "announcements": "announcements",
+  "general": "general",
+  "general announcements": "generalAnnouncements",
+  "union - association": "unionAssociation",
+  "union association": "unionAssociation",
+  "academics": "academics",
+  "events": "events",
+  "clubs": "clubs",
+  "sharing corner": "sharingCorner",
+  "casual": "casual",
+  "q&a": "qa",
+  "qa": "qa",
+  "feedback": "feedback",
+  "discussion": "discussion",
+  "reports": "reports",
+  "forum feedback": "forumFeedback",
+  "rules": "rules",
+  "forum rules": "forumRules",
+  "news": "news",
+  "entertainment": "entertainment",
+  "documents": "documents",
+  "academic documents": "academicDocuments",
+  "confessions": "confessions",
+  "school stories": "schoolStories",
+  "extracurricular": "extracurricular",
+  "technical support": "technicalSupport",
+  "entertainment & social": "entertainmentSocial",
+  "life skills corner": "lifeSkillsCorner",
+  "social exchange": "socialExchange",
+  "trade & exchange": "tradeExchange",
+  "feedback & bug report": "feedbackBugReport",
+  "admin news": "adminNews",
+  "life skills": "lifeSkills",
+  "socializing": "socializing",
+  "buy & sell": "buySell",
+  "bug reports": "bugReports",
+  "suggestions": "suggestions",
+  "news from admin": "newsFromAdmin",
+  "regulations & guidelines": "regulationsGuidelines",
+  "union news": "unionNews",
+  "high school": "highSchool",
+  "middle school": "middleSchool",
+  "english": "english",
+  "ebook & textbooks": "ebookTextbooks",
+  "learn languages": "learnLanguages",
+  "literature & arts": "literatureArts",
+  "music": "music",
+  "beautiful images": "beautifulImages",
+  "relaxation & puzzles": "relaxationPuzzles",
+  "gaming world": "gamingWorld",
+  "interesting knowledge": "interestingKnowledge",
+  "showbiz stories": "showbizStories",
+  "school events": "schoolEvents",
+  "volunteer & community": "volunteerCommunity",
+  "sports & health": "sportsHealth",
+  "soft skills": "softSkills",
+  "career orientation": "careerOrientation",
+  "health & psychology": "healthPsychology",
+  "dorm life": "dormLife",
+  "alumni connection": "alumniConnection",
+  "confessions corner": "confessionsCorner",
+  "lost and found": "lostAndFound",
+  "old books trade": "oldBooksTrade",
+  "school supplies": "schoolSupplies",
+  "personal items exchange": "personalItemsExchange",
+  "technical bug report": "technicalBugReport",
+  "kitchen corner": "kitchenCorner",
 };
 
 export const SECTION_ICON_MAP = {
   announcements: "information-circle",
   generalAnnouncements: "information-circle",
-  general: "information-circle",
+  general: "globe",
   academics: "school",
   entertainmentSocial: "game-controller",
   entertainment: "game-controller",
@@ -99,25 +169,36 @@ export const SECTION_ICON_MAP = {
   technicalSupport: "build",
   socialExchange: "people",
   tradeExchange: "cart",
+  sportsHealth: "fitness",
+  dormLife: "home",
+  alumniConnection: "people-circle",
+  lifeSkillsCorner: "bulb",
+  lifeSkills: "bulb",
 };
 
 export const SUBFORUM_ICON_MAP = {
+  general: "globe-outline",
+  announcements: "megaphone-outline",
+  generalAnnouncements: "megaphone-outline",
   newsFromAdmin: "megaphone-outline",
-  regulationsGuidelines: "calendar-outline",
+  regulationsGuidelines: "shield-checkmark-outline",
   unionNews: "newspaper-outline",
+  unionAssociation: "flag-outline",
   highSchool: "trophy-outline",
   middleSchool: "book-outline",
+  academics: "school-outline",
   english: "star-outline",
   ebookTextbooks: "book-outline",
   learnLanguages: "globe-outline",
-  literatureArts: "film-outline",
-  music: "happy-outline",
-  beautifulImages: "film-outline",
+  literatureArts: "color-palette-outline",
+  music: "musical-notes-outline",
+  beautifulImages: "images-outline",
   relaxationPuzzles: "bulb-outline",
   gamingWorld: "game-controller-outline",
   interestingKnowledge: "sparkles-outline",
   showbizStories: "sparkles-outline",
   schoolEvents: "calendar-outline",
+  events: "calendar-outline",
   clubs: "people-outline",
   volunteerCommunity: "heart-outline",
   sportsHealth: "fitness-outline",
@@ -128,18 +209,39 @@ export const SUBFORUM_ICON_MAP = {
   alumniConnection: "people-outline",
   confessionsCorner: "chatbubble-ellipses-outline",
   confessions: "chatbubble-ellipses-outline",
+  sharingCorner: "heart-half-outline",
+  casual: "chatbubbles-outline",
   lostAndFound: "search-outline",
   oldBooksTrade: "library-outline",
   schoolSupplies: "pencil-outline",
   personalItemsExchange: "swap-horizontal-outline",
   technicalBugReport: "bug-outline",
+  feedbackBugReport: "bug-outline",
+  bugReports: "bug-outline",
   kitchenCorner: "restaurant-outline",
-  announcements: "megaphone-outline",
-  generalAnnouncements: "megaphone-outline",
   qa: "help-circle-outline",
   discussion: "chatbubbles-outline",
   feedback: "chatbox-ellipses-outline",
   forumFeedback: "chatbox-ellipses-outline",
+  suggestions: "chatbox-ellipses-outline",
+  rules: "shield-checkmark-outline",
+  forumRules: "shield-checkmark-outline",
+  news: "newspaper-outline",
+  adminNews: "newspaper-outline",
+  entertainment: "game-controller-outline",
+  entertainmentSocial: "game-controller-outline",
+  documents: "document-text-outline",
+  academicDocuments: "document-text-outline",
+  schoolStories: "school-outline",
+  extracurricular: "bicycle-outline",
+  technicalSupport: "build-outline",
+  socialExchange: "people-outline",
+  socializing: "people-outline",
+  tradeExchange: "cart-outline",
+  buySell: "cart-outline",
+  reports: "alert-circle-outline",
+  lifeSkills: "bulb-outline",
+  lifeSkillsCorner: "bulb-outline",
 };
 
 export const getCategoryKey = (name) => {
@@ -147,9 +249,14 @@ export const getCategoryKey = (name) => {
   const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
   if (CATEGORY_KEY_MAP[normalized]) return CATEGORY_KEY_MAP[normalized];
   if (Object.values(CATEGORY_KEY_MAP).includes(normalized)) return normalized;
+
+  // Slugified match (e.g. "tin-tuc-doan" -> "tin tuc doan")
+  const unhyphenated = normalized.replace(/[-_]/g, " ");
+  if (CATEGORY_KEY_MAP[unhyphenated]) return CATEGORY_KEY_MAP[unhyphenated];
+
   if (normalized.includes("thông báo") || normalized.includes("announce")) return "announcements";
   if (normalized.includes("học tập") || normalized.includes("academic") || normalized.includes("học sinh")) return "academics";
-  if (normalized.includes("giải trí") || normalized.includes("entertain")) return "entertainmentSocial";
+  if (normalized.includes("giải trí") || normalized.includes("entertain") || normalized.includes("game")) return "gamingWorld";
   if (normalized.includes("đoàn") || normalized.includes("union")) return "unionNews";
   if (normalized.includes("tin tức") || normalized.includes("news")) return "newsFromAdmin";
   if (normalized.includes("quy định") || normalized.includes("hướng dẫn") || normalized.includes("rule")) return "regulationsGuidelines";
@@ -158,6 +265,16 @@ export const getCategoryKey = (name) => {
   if (normalized.includes("văn học") || normalized.includes("nghệ thuật") || normalized.includes("art")) return "literatureArts";
   if (normalized.includes("âm nhạc") || normalized.includes("music")) return "music";
   if (normalized.includes("hình ảnh") || normalized.includes("image")) return "beautifulImages";
+  if (normalized.includes("thể thao") || normalized.includes("sport") || normalized.includes("sức khỏe")) return "sportsHealth";
+  if (normalized.includes("tâm sự") || normalized.includes("confession")) return "confessionsCorner";
+  if (normalized.includes("mua bán") || normalized.includes("trao đổi") || normalized.includes("trade") || normalized.includes("buy")) return "tradeExchange";
+  if (normalized.includes("bếp") || normalized.includes("nấu") || normalized.includes("kitchen")) return "kitchenCorner";
+  if (normalized.includes("tài liệu") || normalized.includes("document") || normalized.includes("sách")) return "documents";
+  if (normalized.includes("sự kiện") || normalized.includes("event")) return "events";
+  if (normalized.includes("hỏi đáp") || normalized.includes("qa") || normalized.includes("q&a")) return "qa";
+  if (normalized.includes("góp ý") || normalized.includes("phản hồi") || normalized.includes("feedback")) return "feedback";
+  if (normalized.includes("lỗi") || normalized.includes("bug")) return "technicalBugReport";
+  if (normalized.includes("kỹ năng") || normalized.includes("skill")) return "softSkills";
   return null;
 };
 
