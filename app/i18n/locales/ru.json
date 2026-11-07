@@ -504,6 +504,10 @@
   },
   "sidebar": {
     "menu": "Меню",
+    "subtitle": "Аккаунт и утилиты",
+    "searchPlaceholder": "Поиск утилит, настроек...",
+    "shortcuts": "Быстрый доступ",
+    "noResults": "Подходящие утилиты не найдены",
     "viewProfile": "Посмотреть профиль",
     "utilities": "Утилиты",
     "community": "Сообщество",

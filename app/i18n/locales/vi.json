@@ -483,6 +483,10 @@
   },
   "sidebar": {
     "menu": "Menu",
+    "subtitle": "Tài khoản & Tiện ích",
+    "searchPlaceholder": "Tìm kiếm tiện ích, cài đặt...",
+    "shortcuts": "Lối tắt",
+    "noResults": "Không tìm thấy tiện ích phù hợp",
     "viewProfile": "Xem trang cá nhân của bạn",
     "utilities": "Tiện ích",
     "community": "Cộng đồng",

@@ -494,6 +494,10 @@
   },
   "sidebar": {
     "menu": "Menu",
+    "subtitle": "Account & Utilities",
+    "searchPlaceholder": "Search utilities, settings...",
+    "shortcuts": "Shortcuts",
+    "noResults": "No matching utilities found",
     "viewProfile": "View your profile",
     "utilities": "Utilities",
     "community": "Community",

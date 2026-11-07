@@ -356,6 +356,17 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Menu Screen Redesign Matching Home, Explore, Chat & Notifications & Revert Blanket Screen Ambient**:
+  - Reverted commit `c6885d6a6983e117615db0ce29f8e91c5f19f510` (the blanket screen redesign across 42+ screens) cleanly resolving merge conflicts.
+  - Comprehensive redesign of `Sidebar.js` (Menu / Me tab) to match the visual language of `HomeScreen`, `ExploreScreen`, `ChatScreen`, and `NotificationScreen`:
+    - **Unified Brand Header**: Frog mascot (`logo.png`) with radiating action doodle lines, large bold title ("Menu"), sparkle star `✦` (`#EAB308`), subtitle ("Tài khoản & Tiện ích"), and circular translucent action buttons (`search-outline` -> `SearchScreen`, `settings-outline` -> `Settings`).
+    - **Top Ambient Glow**: Soft light-green ambient glow (`LinearGradient`) at top of screen.
+    - **Quick Search Bar**: Modern search bar pill filtering shortcuts, support items, reports, and settings with live matching and sad frog empty state.
+    - **Facebook-style Profile Card**: Elevated profile card displaying avatar with `AvatarFrameWrap`, `UserNameRow`, `StyledUsername`, and "Xem trang cá nhân của bạn" action link.
+    - **2-Column Grid Shortcuts**: Primary utilities displayed as modern 2-column tiles with vibrant theme colors and tinted icon containers (Bảng tin, Khám phá, Diễn đàn, Chợ quà tặng, Ví điểm, Bài viết đã lưu, Tin tức Đoàn, Bảng xếp hạng, Quản trị viên).
+    - **Grouped Section Cards**: Standardized card surfaces with hairline borders and colorful icon badges for Báo cáo (Reports), Hỗ trợ (Support), and Thiết lập & Tài khoản (Settings & Account).
+    - **i18n Localization**: Added `subtitle`, `searchPlaceholder`, `shortcuts`, and `noResults` keys to `vi.json`, `en.json`, and `ru.json`.
+
 - **Call Message Card in Chat (Distinguished from Normal Messages like Web)**:
   - Created `app/components/call/CallMessageCard.js` for mobile chat rendering call events (completed calls, missed calls, rejected, cancelled) as elegant centered cards matching the Next.js web client.
   - Included call type icon (phone / video / missed), color-coded badge (red for missed, green for completed), call duration formatting (`mm:ss`), and a one-tap callback button (`startCall`).
