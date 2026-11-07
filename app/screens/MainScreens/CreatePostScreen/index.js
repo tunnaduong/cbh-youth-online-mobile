@@ -354,17 +354,21 @@ const CreatePostScreen = ({ navigation, route }) => {
       }
     } catch (error) {
       console.log("Error picking media:", error);
+      Toast.show({
+        type: "error",
+        text1: t("createPost.pickImageError"),
+        text2: t("createPost.retry"),
+        autoHide: true,
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
     }
   };
   useEffect(() => {
     if ((route?.params?.autoPickMedia || route?.params?.autoPickImage) && !autoPickImageTriggeredRef.current) {
       autoPickImageTriggeredRef.current = true;
       const timer = setTimeout(() => {
-        if (route?.params?.autoPickMedia) {
-          pickMedia();
-        } else {
-          pickImage();
-        }
+        pickMedia();
       }, 350);
       return () => clearTimeout(timer);
     }
@@ -751,8 +755,7 @@ const CreatePostScreen = ({ navigation, route }) => {
         images={selectedImages.map((uri) => ({ uri }))}
         videos={selectedVideos}
         documents={selectedDocuments}
-        onPickImage={pickImage}
-        onPickVideo={pickVideo}
+        onPickMedia={pickMedia}
         onPickDocument={pickDocument}
         onRemoveImage={removeImage}
         onRemoveVideo={removeVideo}

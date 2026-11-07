@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Post Composer: Merge add photo and add video into a unified Photo/Video button**:
+  - Combined separate image and video picker actions in `PostComposerLayout.js` into a unified `onPickMedia` action ("Ảnh/Video" / `createPost.addMedia` with `images-outline` icon).
+  - Wired `pickMedia` in both `CreatePostScreen` and `PostEditScreen` supporting simultaneous photo and video selection with video duration and format validation.
+
 - **Fix ReferenceError: Property 'isDarkMode' doesn't exist across 16 screens/components**:
   - Destructured `isDarkMode` from `useTheme()` in components using ambient glow `LinearGradient` colors (`PostComposerLayout.js`, `WelcomeScreen`, `LanguageSelectScreen`, `FirstLaunchSettingsScreen`, `ForgotPasswordScreen`, `TwoFactorChallengeScreen`, `ActivityScreen`, `ArchiveScreen`, `AddGroupMembersScreen`, `CreateGroupScreen`, `GroupInfoScreen`, `QuizScreen`, `CustomQuizCreateScreen`, `AppUpdatesScreen`, `DevicesScreen`, `PasskeysScreen`).
   - Added missing `insets` definition from `useSafeAreaInsets()` in `WelcomeScreen`.

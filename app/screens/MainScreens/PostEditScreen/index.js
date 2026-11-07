@@ -205,6 +205,81 @@ const PostEditScreen = ({ navigation, route }) => {
     }
   }, [route.params?.postId]);
 
+  const pickMedia = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images", "videos"],
+        allowsMultipleSelection: true,
+        quality: 0.7,
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+      });
+
+      if (result.canceled || !result.assets) return;
+
+      const newImages = [];
+      const newVideos = [];
+      let hadTypeRejection = false;
+      let hadSizeRejection = false;
+
+      for (const asset of result.assets) {
+        if (asset.type === "video" || asset.duration) {
+          const validation = await validateVideoAsset(asset);
+          if (!validation.ok) {
+            if (validation.reason === "type") hadTypeRejection = true;
+            if (validation.reason === "size") hadSizeRejection = true;
+            continue;
+          }
+          newVideos.push({
+            uri: asset.uri,
+            fileName: asset.fileName || `video_${Date.now()}.${validation.extension}`,
+            mimeType: asset.mimeType || getVideoMimeType(validation.extension),
+            fileSize: validation.size,
+          });
+        } else {
+          newImages.push({ uri: asset.uri });
+        }
+      }
+
+      if (hadTypeRejection) {
+        Toast.show({
+          type: "error",
+          text1: t('editPost.errorVideoTitle') || t('createPost.pickVideoError'),
+          text2: t('editPost.videoTypeUnsupported') || t('createPost.videoTypeUnsupported'),
+          autoHide: true,
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+      }
+      if (hadSizeRejection) {
+        Toast.show({
+          type: "error",
+          text1: t('editPost.errorVideoTitle') || t('createPost.pickVideoError'),
+          text2: t('editPost.videoTooLarge') || t('createPost.videoTooLarge'),
+          autoHide: true,
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+      }
+
+      if (newImages.length > 0) {
+        setSelectedImages((prev) => [...prev, ...newImages]);
+      }
+      if (newVideos.length > 0) {
+        setSelectedVideos((prev) => [...prev, ...newVideos]);
+      }
+    } catch (error) {
+      console.log("Error picking media:", error);
+      Toast.show({
+        type: "error",
+        text1: t('editPost.errorImageTitle'),
+        text2: t('editPost.errorImageDesc'),
+        autoHide: true,
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
+    }
+  };
+
   const pickImage = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
@@ -604,8 +679,7 @@ const PostEditScreen = ({ navigation, route }) => {
       images={selectedImages}
       videos={selectedVideos}
       documents={selectedDocuments}
-      onPickImage={pickImage}
-      onPickVideo={pickVideo}
+      onPickMedia={pickMedia}
       onPickDocument={pickDocument}
       onRemoveImage={removeImage}
       onRemoveVideo={removeVideo}

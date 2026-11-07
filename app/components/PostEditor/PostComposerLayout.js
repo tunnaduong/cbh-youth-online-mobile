@@ -101,6 +101,7 @@ export default function PostComposerLayout({
   images = [],
   videos = [],
   documents = [],
+  onPickMedia,
   onPickImage,
   onPickVideo,
   onPickDocument,
@@ -132,11 +133,40 @@ export default function PostComposerLayout({
   const hasMedia = images.length > 0 || videos.length > 0;
   const actionDisabled = submitDisabled || loading;
 
-  const attachActions = [
-    { key: "image", icon: "image-outline", label: t("createPost.addImage"), onPress: onPickImage },
-    { key: "video", icon: "videocam-outline", label: t("createPost.addVideo"), onPress: onPickVideo },
-    { key: "document", icon: "document-attach-outline", label: t("createPost.addDocument"), onPress: onPickDocument },
-  ];
+  const attachActions = [];
+  if (onPickMedia) {
+    attachActions.push({
+      key: "media",
+      icon: "images-outline",
+      label: t("createPost.addMedia", "Ảnh/Video"),
+      onPress: onPickMedia,
+    });
+  } else {
+    if (onPickImage) {
+      attachActions.push({
+        key: "image",
+        icon: "image-outline",
+        label: t("createPost.addImage"),
+        onPress: onPickImage,
+      });
+    }
+    if (onPickVideo) {
+      attachActions.push({
+        key: "video",
+        icon: "videocam-outline",
+        label: t("createPost.addVideo"),
+        onPress: onPickVideo,
+      });
+    }
+  }
+  if (onPickDocument) {
+    attachActions.push({
+      key: "document",
+      icon: "document-attach-outline",
+      label: t("createPost.addDocument"),
+      onPress: onPickDocument,
+    });
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
