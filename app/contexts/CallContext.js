@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { AppState, DeviceEventEmitter } from "react-native";
+import * as Notifications from "expo-notifications";
 import { AuthContext } from "./AuthContext";
 import { getEcho } from "../services/echo/echo";
 import {
@@ -55,6 +56,19 @@ export const CallProvider = ({ children }) => {
   const activeCallRef = useRef(null);
   const conversationChannelRef = useRef(null);
   const pendingRemoteOfferRef = useRef(null);
+  const callStatusRef = useRef("idle");
+  const ringingTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    callStatusRef.current = callStatus;
+  }, [callStatus]);
+
+  const clearRingingTimeout = useCallback(() => {
+    if (ringingTimeoutRef.current) {
+      clearTimeout(ringingTimeoutRef.current);
+      ringingTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     activeCallRef.current = activeCall;
@@ -92,6 +106,7 @@ export const CallProvider = ({ children }) => {
 
   // Cleanup helper
   const cleanupCallState = useCallback(() => {
+    clearRingingTimeout();
     pendingRemoteOfferRef.current = null;
     stopTimer();
     stopRingtoneVibration();
@@ -131,6 +146,15 @@ export const CallProvider = ({ children }) => {
       startRingtoneVibration();
       bridgeRef.current?.sendMessage("START_INCOMING_RING");
 
+      // Auto-disconnect callee after 60s if not answered
+      clearRingingTimeout();
+      ringingTimeoutRef.current = setTimeout(() => {
+        if (activeCallRef.current && callStatusRef.current === "ringing") {
+          console.log("[CallContext] Callee 60s timeout without answer -> stop ringing");
+          cleanupCallState();
+        }
+      }, 60000);
+
       // Join conversation presence channel to listen for call progression
       if (call.conversation_id) {
         joinConversationPresence(call.conversation_id, call.id);
@@ -153,6 +177,7 @@ export const CallProvider = ({ children }) => {
     conversationChannelRef.current = channel;
 
     channel.listen(".call.answered", (data) => {
+      clearRingingTimeout();
       stopRingtoneVibration();
       playCallConnectedHaptic();
       setCallStatus("connected");
@@ -200,6 +225,15 @@ export const CallProvider = ({ children }) => {
       startRingtoneVibration();
       bridgeRef.current?.sendMessage("START_INCOMING_RING");
 
+      // Auto-disconnect callee after 60s if not answered
+      clearRingingTimeout();
+      ringingTimeoutRef.current = setTimeout(() => {
+        if (activeCallRef.current && callStatusRef.current === "ringing") {
+          console.log("[CallContext] Callee 60s timeout without answer -> stop ringing");
+          cleanupCallState();
+        }
+      }, 60000);
+
       if (call.conversation_id) {
         joinConversationPresence(call.conversation_id, call.id);
       }
@@ -224,6 +258,15 @@ export const CallProvider = ({ children }) => {
           if (call.status === "ringing") {
             startRingtoneVibration();
             bridgeRef.current?.sendMessage("START_INCOMING_RING");
+
+      // Auto-disconnect callee after 60s if not answered
+      clearRingingTimeout();
+      ringingTimeoutRef.current = setTimeout(() => {
+        if (activeCallRef.current && callStatusRef.current === "ringing") {
+          console.log("[CallContext] Callee 60s timeout without answer -> stop ringing");
+          cleanupCallState();
+        }
+      }, 60000);
           } else {
             startTimer();
           }
@@ -270,6 +313,20 @@ export const CallProvider = ({ children }) => {
           setActiveCall(updatedCall);
           joinConversationPresence(conversationId, callId);
           bridgeRef.current?.sendMessage("START_OUTGOING_CALL", { callId, callType: type });
+
+          // Auto-disconnect caller after 60s if receiver does not answer
+          clearRingingTimeout();
+          ringingTimeoutRef.current = setTimeout(() => {
+            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing")) {
+              console.log("[CallContext] 60s timeout without answer -> auto end call");
+              Toast.show({
+                type: "info",
+                text1: "Người nhận không trả lời",
+                visibilityTime: 2500,
+              });
+              endCall();
+            }
+          }, 60000);
         }
       } catch (err) {
         console.error("[CallContext] initiateCall error:", err);
@@ -285,6 +342,7 @@ export const CallProvider = ({ children }) => {
   );
 
   const answerCall = useCallback(async () => {
+    clearRingingTimeout();
     try {
       stopRingtoneVibration();
       const call = activeCallRef.current;

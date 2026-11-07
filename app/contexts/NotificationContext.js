@@ -183,7 +183,14 @@ export const NotificationProvider = ({ children }) => {
     if (!data) return;
 
     if (data?.type === 'incoming_call') {
-      DeviceEventEmitter.emit('INCOMING_CALL_PUSH', data);
+      const action = response?.actionIdentifier;
+      if (action === 'decline') {
+        DeviceEventEmitter.emit('INCOMING_CALL_DECLINE_ACTION', data);
+      } else if (action === 'answer') {
+        DeviceEventEmitter.emit('INCOMING_CALL_ANSWER_ACTION', data);
+      } else {
+        DeviceEventEmitter.emit('INCOMING_CALL_PUSH', data);
+      }
       return;
     }
 

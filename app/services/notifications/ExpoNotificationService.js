@@ -72,11 +72,33 @@ export async function requestNotificationPermissions() {
       console.log("[Push] Android: notification channel result:", channel);
 
       // Dedicated high-priority channel for incoming voice and video calls
+      await Notifications.setNotificationCategoryAsync("incoming_call", [
+        {
+          identifier: "answer",
+          buttonTitle: "Trả lời",
+          options: {
+            opensAppToForeground: true,
+          },
+        },
+        {
+          identifier: "decline",
+          buttonTitle: "Từ chối",
+          options: {
+            isDestructive: true,
+            opensAppToForeground: false,
+          },
+        },
+      ]);
+
       await Notifications.setNotificationChannelAsync("calls", {
         name: "Cuộc gọi đến",
         description: "Thông báo cuộc gọi thoại và video đến",
         importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 500, 500, 500],
+        vibrationPattern: [0, 600, 400, 600, 400, 800],
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_COMMUNICATION_REQUEST,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
         lightColor: "#22c55e",
         sound: "default",
         bypassDnd: true,

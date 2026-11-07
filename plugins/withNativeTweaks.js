@@ -78,6 +78,25 @@ const withResizeableActivity = (config) =>
 // build - whichever machine prebuilt the project - has the same signature;
 // with a different one, Android refuses to install the APK over an existing
 // install.
+// Incoming calls (Zalo / Messenger style lockscreen popup): allow MainActivity
+// to wake the screen and display over the lockscreen when a full-screen intent
+// or call push arrives.
+const withIncomingCallLockscreenFlags = (config) =>
+  withAndroidManifest(config, (cfg) => {
+    const activity = AndroidConfig.Manifest.getMainActivityOrThrow(cfg.modResults);
+    activity.$["android:showWhenLocked"] = "true";
+    activity.$["android:turnScreenOn"] = "true";
+    activity.$["android:showOnLockScreen"] = "true";
+    activity.$["android:inheritShowWhenLocked"] = "true";
+
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.USE_FULL_SCREEN_INTENT");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.WAKE_LOCK");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.VIBRATE");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.FOREGROUND_SERVICE");
+
+    return cfg;
+  });
+
 const withStableDebugKeystore = (config) =>
   withDangerousMod(config, [
     "android",
@@ -136,5 +155,7 @@ const withImageModuleClasses = (config) =>
 
 module.exports = (config) =>
   withImageModuleClasses(
-    withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+    withIncomingCallLockscreenFlags(
+      withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+    )
   );

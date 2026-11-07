@@ -51,7 +51,11 @@
     },
     "android": {
       "permissions": [
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "USE_FULL_SCREEN_INTENT",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "FOREGROUND_SERVICE"
       ],
       "intentFilters": [
         {
