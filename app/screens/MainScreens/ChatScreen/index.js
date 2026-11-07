@@ -312,6 +312,25 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
     const type = latestMessage.type || latestMessage.content_type;
 
+    if (type === "call" || latestMessage.metadata?.call_id) {
+      const isVideo = latestMessage.metadata?.call_type === "video";
+      const isMissed =
+        latestMessage.metadata?.status === "missed" ||
+        latestMessage.metadata?.end_reason === "missed" ||
+        latestMessage.metadata?.end_reason === "cancelled";
+      return (
+        <>
+          <Ionicons
+            name={isMissed ? "call-outline" : isVideo ? "videocam-outline" : "call-outline"}
+            size={14}
+            color={isMissed ? "#EF4444" : theme.subText}
+            style={isMissed ? { transform: [{ rotate: "135deg" }] } : undefined}
+          />{" "}
+          {latestMessage.content || (isMissed ? t("call.missedAudio", "Cuộc gọi nhỡ") : t("call.voiceCall", "Cuộc gọi"))}
+        </>
+      );
+    }
+
     if (type === "system") {
       return getSystemMessageText(latestMessage, t);
     }

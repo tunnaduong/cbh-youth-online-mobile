@@ -3340,6 +3340,7 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
         >
           <MessagesListContent
+            conversationId={currentConversationId || conversationId}
             visibleViewport={visibleViewport}
             messages={visibleMessages}
             isGroupChat={currentConversation?.type === "group"}

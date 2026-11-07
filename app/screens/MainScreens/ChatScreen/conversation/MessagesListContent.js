@@ -4,8 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { getSystemMessageText } from "../../../../utils/systemMessageText";
 import { styles } from "./styles";
 import { MessageRow } from "./MessageRow";
+import CallMessageCard, { isCallMessage } from "../../../../components/call/CallMessageCard";
 
-const isRealMessage = (m) => m.type !== "date" && m.type !== "time" && m.content_type !== "system";
+const isRealMessage = (m) =>
+  m.type !== "date" &&
+  m.type !== "time" &&
+  m.content_type !== "system" &&
+  !isCallMessage(m);
 
 // One entry of the list: the wrapper that records the row's position (for
 // jump-to-message and video autoplay) and either a date / time header, a
@@ -28,6 +33,7 @@ const MessageListItem = React.memo(({
   messageHandlersRef,
   onImageError,
   seenAvatars,
+  conversationId,
   activeInlineVideoId,
   autoplayVideos,
   bubbleMaxWidth,
@@ -35,6 +41,7 @@ const MessageListItem = React.memo(({
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
   visibleViewport,
+  conversationId,
 }) => {
   const handleLayout = (e) => {
     if (value.type === "message" && value.id != null) {
@@ -127,6 +134,14 @@ const MessageListItem = React.memo(({
             </Text>
           </View>
         </View>
+      ) : isCallMessage(value) ? (
+        <CallMessageCard
+          message={value}
+          conversationId={conversationId}
+          theme={theme}
+          isDarkMode={isDarkMode}
+          t={t}
+        />
       ) : value.content_type === "system" ? (
         <View style={styles.systemMessageContainer}>
           <Text
@@ -188,6 +203,7 @@ const MessagesListContent = React.memo(({
   attemptScrollToHighlightRef,
   seenParticipants,
   visibleViewport,
+  conversationId,
 }) => {
   // A flat "75%" bubble width reads fine on a phone, but on a tablet 75% of
   // the screen is still a very wide line of text - cap it in absolute pixels
@@ -267,6 +283,7 @@ const MessagesListContent = React.memo(({
       pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
       attemptScrollToHighlightRef={attemptScrollToHighlightRef}
       visibleViewport={visibleViewport}
+      conversationId={conversationId}
     />
   ));
 });

@@ -356,6 +356,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Call Message Card in Chat (Distinguished from Normal Messages like Web)**:
+  - Created `app/components/call/CallMessageCard.js` for mobile chat rendering call events (completed calls, missed calls, rejected, cancelled) as elegant centered cards matching the Next.js web client.
+  - Included call type icon (phone / video / missed), color-coded badge (red for missed, green for completed), call duration formatting (`mm:ss`), and a one-tap callback button (`startCall`).
+  - Integrated into `MessagesListContent.js` via `isCallMessage()` check, excluding call messages from normal message clustering and date separation.
+  - Updated conversation list preview in `ChatScreen/index.js` to render call icons and localized call event text.
+  - Added translation keys (`call.missedAudio`, `call.missedVideo`, `call.noAnswer`, `call.missed`, `call.ended`, `call.callBack`) to `vi.json`, `en.json`, and `ru.json`.
+
 - **OTA Updates: Bump minimum native binary build required to 1050** (`app.json`, `INFO.md`):
   - Bumped `expo.extra.minNativeBuild` in `app.json` from `1045` to `1050`. Base APK installations older than build 1050 will be required to install the new APK before receiving subsequent OTA bundles.
 

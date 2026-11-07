@@ -181,7 +181,13 @@
     "unmute": "Unmute",
     "speaker": "Speaker",
     "speakerOn": "Speaker on",
-    "end": "End"
+    "end": "End",
+    "missedAudio": "Missed call",
+    "missedVideo": "Missed video call",
+    "noAnswer": "No answer",
+    "missed": "Missed call",
+    "ended": "Ended",
+    "callBack": "Call back"
   },
   "search": {
     "all": "All",

@@ -170,7 +170,13 @@
     "unmute": "Bật mic",
     "speaker": "Loa",
     "speakerOn": "Loa ngoài",
-    "end": "Kết thúc"
+    "end": "Kết thúc",
+    "missedAudio": "Cuộc gọi nhỡ",
+    "missedVideo": "Cuộc gọi video nhỡ",
+    "noAnswer": "Không có câu trả lời",
+    "missed": "Cuộc gọi nhỡ",
+    "ended": "Đã kết thúc",
+    "callBack": "Gọi lại"
   },
   "search": {
     "all": "Tất cả",
