@@ -356,6 +356,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **OS Launcher Alternate App Icons (`expo-alternate-app-icons`) & Min Native OTA Build 1062 Bump**:
+  - **OS Launcher Icon Switching**: Configured `expo-alternate-app-icons` in `app.json` plugins for Android `activity-alias` and iOS `CFBundleAlternateIcons`. Supports 5 launcher icons: Default CYO Frog, Classic Edition (`ios-light.png` / `adaptive-icon.png`), Christmas Edition (`christmas-ios.png` / `christmas-android.png`), New Year 2026 Edition (`2026-ios.png` / `2026-android.png`), and School Crest (`school-logo-removebg.png`).
+  - **App Icon Settings Screen**: Built dedicated launcher icon switcher in `AppIconScreen.js` with instant "Đặt lại mặc định" (Reset to Default) button, active icon hero card, and clean `FastImage` rendering for all thumbnails.
+  - **Revert In-App Icon Overrides**: Preserved all internal app mascots and headers with official `logo.png`.
+  - **Bump Min Native Build**: Updated `minNativeBuild` to `1062` in `app.json`.
+  - **i18n & Metro Validation**: Localized strings in `vi.json`, `en.json`, and `ru.json`; validated Metro bundling and Babel parse.
+
 - **Fix OTA Channel Downgrade Bug & Metro Asset Resolution**:
   - **OTA Channel Downgrade Bug**: Fixed update availability check in `otaService.js` (`checkUpdateAvailable` and `downloadAndApplyUpdate`). Enforced that upstream build numbers must be strictly higher (`upstreamBuildNumber > currentActiveBuild`) to be eligible for update. Prevents clients on a higher build (e.g. preview) switching to an older production build from seeing a false "equal build" update prompt.
   - **Asset Resolution Fix**: Resolved Metro bundling error in `appIcons.js` by dropping explicit `@1x` scale suffix from image require paths (`cbh-youth-iOS-Default-1024x1024.png`, `cbh-youth-iOS-Dark-1024x1024.png`, etc.) allowing Metro's asset resolver to match physical files properly.

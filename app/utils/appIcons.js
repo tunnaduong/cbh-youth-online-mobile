@@ -1,54 +1,51 @@
-import * as FileSystem from "expo-file-system/legacy";
-import * as ImageManipulator from "expo-image-manipulator";
+import { storage } from "../global/storage";
+
+// Dynamic import or optional require for native module
+let AlternateAppIcons = null;
+try {
+  AlternateAppIcons = require("expo-alternate-app-icons");
+} catch (e) {
+  // Gracefully handles environments where native module isn't linked yet
+}
+
+export const LAUNCHER_STORAGE_KEY = "launcher_app_icon_name";
 
 /**
- * Predefined list of application icons sourced from app/assets.
+ * Curated list of launcher icons configured in app.json for Android activity-alias
+ * and iOS CFBundleAlternateIcons.
  */
-export const PRESET_APP_ICONS = [
+export const LAUNCHER_APP_ICONS = [
   {
     key: "default",
+    nativeName: null,
     nameKey: "appIcon.preset.default",
     source: require("../assets/icon.png"),
     tag: "Original",
   },
   {
-    key: "ios_default",
-    nameKey: "appIcon.preset.ios_default",
-    source: require("../assets/cbh-youth-iOS-Default-1024x1024.png"),
-    tag: "Light",
+    key: "Classic",
+    nativeName: "Classic",
+    nameKey: "appIcon.preset.classic",
+    source: require("../assets/ios-light.png"),
+    tag: "Classic",
   },
   {
-    key: "ios_dark",
-    nameKey: "appIcon.preset.ios_dark",
-    source: require("../assets/cbh-youth-iOS-Dark-1024x1024.png"),
-    tag: "Dark",
-  },
-  {
-    key: "ios_clearlight",
-    nameKey: "appIcon.preset.ios_clearlight",
-    source: require("../assets/cbh-youth-iOS-ClearLight-1024x1024.png"),
-    tag: "Clear",
-  },
-  {
-    key: "ios_cleardark",
-    nameKey: "appIcon.preset.ios_cleardark",
-    source: require("../assets/cbh-youth-iOS-ClearDark-1024x1024.png"),
-    tag: "Clear Dark",
-  },
-  {
-    key: "christmas",
+    key: "Christmas",
+    nativeName: "Christmas",
     nameKey: "appIcon.preset.christmas",
     source: require("../assets/christmas-ios.png"),
     tag: "Holiday",
   },
   {
-    key: "newyear_2026",
+    key: "NewYear2026",
+    nativeName: "NewYear2026",
     nameKey: "appIcon.preset.newyear_2026",
     source: require("../assets/2026-ios.png"),
     tag: "2026",
   },
   {
-    key: "school",
+    key: "SchoolCrest",
+    nativeName: "SchoolCrest",
     nameKey: "appIcon.preset.school",
     source: require("../assets/school-logo-removebg.png"),
     tag: "Crest",
@@ -56,45 +53,52 @@ export const PRESET_APP_ICONS = [
 ];
 
 /**
- * Resolves the Image source based on the active icon key and optional custom URI.
+ * Checks whether the current device supports setting alternate launcher icons.
  */
-export function getAppIconSource(iconKey, customIconUri) {
-  if (iconKey === "custom" && customIconUri) {
-    return { uri: customIconUri };
+export function isAlternateIconsSupported() {
+  try {
+    return Boolean(AlternateAppIcons?.supportsAlternateIcons);
+  } catch {
+    return false;
   }
-  const preset = PRESET_APP_ICONS.find((icon) => icon.key === iconKey);
-  if (preset) {
-    return preset.source;
-  }
-  return PRESET_APP_ICONS[0].source;
 }
 
 /**
- * Ensures an uploaded image is strictly square-cropped (1:1) and saves to persistent app storage.
+ * Returns the active launcher icon key saved in storage or reported natively.
  */
-export async function saveCustomAppIcon(sourceUri) {
-  if (!sourceUri) return null;
+export function getActiveLauncherIconKey() {
+  try {
+    const saved = storage.getString(LAUNCHER_STORAGE_KEY);
+    if (saved) return saved;
+
+    if (typeof AlternateAppIcons?.getAppIconName === "function") {
+      const activeNative = AlternateAppIcons.getAppIconName();
+      if (activeNative) return activeNative;
+    }
+  } catch {}
+  return "default";
+}
+
+/**
+ * Sets the OS launcher app icon.
+ * @param {string} iconKey - One of the keys in LAUNCHER_APP_ICONS ("default", "Classic", "Christmas", etc.)
+ */
+export async function applyLauncherIcon(iconKey) {
+  const item = LAUNCHER_APP_ICONS.find((i) => i.key === iconKey) || LAUNCHER_APP_ICONS[0];
+  const targetNative = item.nativeName;
 
   try {
-    // 1. Manipulate to ensure square dimension (resize to max 512x512 with square ratio)
-    const manipulated = await ImageManipulator.manipulateAsync(
-      sourceUri,
-      [{ resize: { width: 512, height: 512 } }],
-      { compress: 0.9, format: ImageManipulator.SaveFormat.PNG }
-    );
-
-    // 2. Persist to app's document directory
-    const fileName = `custom_app_icon_${Date.now()}.png`;
-    const destinationPath = `${FileSystem.documentDirectory}${fileName}`;
-
-    await FileSystem.copyAsync({
-      from: manipulated.uri,
-      to: destinationPath,
-    });
-
-    return destinationPath;
+    if (typeof AlternateAppIcons?.setAlternateAppIcon === "function") {
+      await AlternateAppIcons.setAlternateAppIcon(targetNative);
+    }
   } catch (error) {
-    console.error("Error cropping and saving custom app icon:", error);
-    throw error;
+    console.warn("[AppIcon] Could not set alternate app icon natively:", error?.message || error);
+    // Continue saving choice to storage so UI reflects selection on supported builds
   }
+
+  try {
+    storage.set(LAUNCHER_STORAGE_KEY, item.key);
+  } catch {}
+
+  return item.key;
 }

@@ -121,7 +121,7 @@
       "eas": {
         "projectId": "172eec8c-8c58-453c-a375-258412496e09"
       },
-      "minNativeBuild": 1050
+      "minNativeBuild": 1062
     },
     "runtimeVersion": "7.4.10",
     "updates": {
@@ -212,7 +212,48 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Classic",
+            "ios": {
+              "light": "./app/assets/ios-light.png",
+              "dark": "./app/assets/ios-dark.png",
+              "tinted": "./app/assets/ios-tinted.png"
+            },
+            "android": {
+              "foregroundImage": "./app/assets/adaptive-icon.png",
+              "backgroundColor": "#ffffff"
+            }
+          },
+          {
+            "name": "Christmas",
+            "ios": "./app/assets/christmas-ios.png",
+            "android": {
+              "foregroundImage": "./app/assets/christmas-android.png",
+              "backgroundColor": "#173C2B"
+            }
+          },
+          {
+            "name": "NewYear2026",
+            "ios": "./app/assets/2026-ios.png",
+            "android": {
+              "foregroundImage": "./app/assets/2026-android.png",
+              "backgroundColor": "#8B0000"
+            }
+          },
+          {
+            "name": "SchoolCrest",
+            "ios": "./app/assets/school-logo-removebg.png",
+            "android": {
+              "foregroundImage": "./app/assets/school-logo-removebg.png",
+              "backgroundColor": "#ffffff"
+            }
+          }
+        ]
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",
