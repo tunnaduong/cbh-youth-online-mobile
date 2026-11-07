@@ -730,7 +730,8 @@
     "defaultUpdateMessage": "New update with improvements and bug fixes.",
     "publishedAt": "Published at",
     "smoothUpdateNotice": "The update will be persisted permanently and applied even across app restarts.",
-    "updateNow": "Update Now"
+    "updateNow": "Update Now",
+    "downloadProgress": "Downloading: {{percent}}%"
   },
   "chatConversation": {
     "you": "You",

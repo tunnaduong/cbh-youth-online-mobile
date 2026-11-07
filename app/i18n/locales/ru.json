@@ -740,7 +740,8 @@
     "defaultUpdateMessage": "Новое обновление с улучшениями и исправлениями ошибок.",
     "publishedAt": "Опубликовано",
     "smoothUpdateNotice": "Обновление сохранится навсегда и будет действовать даже при перезапуске приложения.",
-    "updateNow": "Обновить сейчас"
+    "updateNow": "Обновить сейчас",
+    "downloadProgress": "Загрузка: {{percent}}%"
   },
   "chatConversation": {
     "you": "Вы",

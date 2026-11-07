@@ -43,12 +43,12 @@ const sectionVeil = (background) => {
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <TouchableOpacity
     onPress={() => navigation.navigate("CategoryScreen", { categoryId: section.id })}
-    activeOpacity={0.9}
+    activeOpacity={0.88}
     style={[
       styles.sectionBox,
       {
-        borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.7)",
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
       },
     ]}
   >
@@ -60,12 +60,9 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
     >
       {/* The section's picture fills the whole card (cover); this veil keeps
           the text readable. It covers exactly the card at any width: solid
-          on the left, fading out diagonally to the bare picture on the right.
-          The old veil was a rotated box with a fixed shift: nearly opaque,
-          and on a wide card (iPad) it left a bare triangle of picture with a
-          hard edge next to what looked like a black bar. */}
+          on the left, fading out diagonally to the bare picture on the right. */}
       <LinearGradient
-        colors={sectionVeil(theme.background)}
+        colors={sectionVeil(theme.surface || theme.background)}
         locations={[0, 0.45, 0.72, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.35 }}
@@ -78,12 +75,12 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
               {section.post_count} {t('forum.posts').toLowerCase()} · {section.comment_count} {t('forum.comments').toLowerCase()}
             </Text>
           </View>
-          <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}> 
+          <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)" }]}> 
             <Ionicons name="chevron-forward" size={16} color={theme.primary} />
           </View>
         </View>
 
-        <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.1)" : "rgba(49,149,39,0.06)" }]}> 
+        <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.12)" : "rgba(34, 197, 94, 0.08)" }]}> 
           {section.latest_post ? (
             <TouchableOpacity
               onPress={() => navigation.navigate("PostScreen", { postId: section.latest_post.id })}
@@ -272,6 +269,19 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Soft Ambient Light-Green Glow at Top */}
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.ambientGlow, { height: insets.top + 140 }]}
+          pointerEvents="none"
+        />
+
         <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
           <View style={styles.headerLeft}>
             {navigation?.canGoBack?.() && (
@@ -342,6 +352,19 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Soft Ambient Light-Green Glow at Top */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        pointerEvents="none"
+      />
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <View style={styles.headerLeft}>
@@ -410,27 +433,33 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         scrollEnabled={scrollEnabled}
         style={[styles.tabContainer, { backgroundColor: "transparent" }]}
       >
-        {categories.map((cat, index) => (
-          <TouchableOpacity
-            key={`cat-${cat.id}`}
-            onPress={() => handleActiveCategory(cat.id, index)}
-            style={[
-              styles.tab,
-              { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
-              activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
-            ]}
-          >
-            <Text
+        {categories.map((cat, index) => {
+          const active = activeCategory === cat.id;
+          return (
+            <TouchableOpacity
+              key={`cat-${cat.id}`}
+              onPress={() => handleActiveCategory(cat.id, index)}
               style={[
-                styles.tabText,
-                { color: theme.text },
-                activeCategory === cat.id && styles.tabTextActive,
+                styles.tab,
+                active
+                  ? { backgroundColor: theme.primary, borderColor: "transparent" }
+                  : { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
+              activeOpacity={0.7}
             >
-              {getCategoryName(cat.name, t)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  active
+                    ? { color: "#ffffff", fontWeight: "700" }
+                    : { color: theme.text, fontWeight: "500" },
+                ]}
+              >
+                {getCategoryName(cat.name, t)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {refreshing && (
@@ -542,6 +571,13 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 }
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -586,24 +622,17 @@ const styles = StyleSheet.create({
   tab: {
     paddingHorizontal: 16,
     paddingVertical: 7,
-    borderRadius: 8,
-    marginRight: 7,
-    height: 35,
+    borderRadius: 999,
+    marginRight: 8,
+    height: 36,
     justifyContent: "center",
-  },
-  tabActive: {
-    backgroundColor: "#C7F0C2",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   tabText: {
-    fontWeight: "500",
-    fontSize: 15,
-  },
-  tabTextActive: {
-    color: "#319527",
-    fontWeight: "bold",
+    fontSize: 14,
   },
   sectionBox: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
     marginBottom: 14,
     overflow: "hidden",

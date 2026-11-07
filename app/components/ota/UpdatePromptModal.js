@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Modal,
   View,
@@ -7,8 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TouchableWithoutFeedback,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Updates from "expo-updates";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
@@ -34,6 +37,11 @@ export default function UpdatePromptModal({
 
   const [status, setStatus] = useState(STATUS.PROMPT);
   const [errorMessage, setErrorMessage] = useState("");
+  const [progressPercent, setProgressPercent] = useState(0);
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progressSimTimer = useRef(null);
+  const updatesSubRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -43,8 +51,93 @@ export default function UpdatePromptModal({
         setStatus(STATUS.PROMPT);
       }
       setErrorMessage("");
+      setProgressPercent(0);
+      progressAnim.setValue(0);
+    } else {
+      if (progressSimTimer.current) {
+        clearInterval(progressSimTimer.current);
+        progressSimTimer.current = null;
+      }
+      if (updatesSubRef.current) {
+        updatesSubRef.current.remove?.();
+        updatesSubRef.current = null;
+      }
     }
-  }, [visible, updateInfo]);
+  }, [visible, updateInfo, progressAnim]);
+
+  // Clean up timer/listener on unmount
+  useEffect(() => {
+    return () => {
+      if (progressSimTimer.current) {
+        clearInterval(progressSimTimer.current);
+      }
+      if (updatesSubRef.current) {
+        updatesSubRef.current.remove?.();
+      }
+    };
+  }, []);
+
+  const startProgressTracking = () => {
+    setProgressPercent(10);
+    progressAnim.setValue(0.1);
+
+    // Smoothly simulate progress up to 90% while download is occurring
+    let currentP = 10;
+    progressSimTimer.current = setInterval(() => {
+      if (currentP < 88) {
+        const step = Math.max(1, Math.floor((90 - currentP) / 6));
+        currentP += step;
+        setProgressPercent(currentP);
+        Animated.timing(progressAnim, {
+          toValue: currentP / 100,
+          duration: 350,
+          useNativeDriver: false,
+        }).start();
+      }
+    }, 400);
+
+    // Also subscribe to native Updates event if supported
+    try {
+      if (typeof Updates.addUpdatesStateChangeListener === "function") {
+        updatesSubRef.current = Updates.addUpdatesStateChangeListener((event) => {
+          if (event?.context?.downloadProgress !== undefined) {
+            const ratio = Number(event.context.downloadProgress);
+            if (!isNaN(ratio) && ratio > 0 && ratio <= 1) {
+              const p = Math.round(ratio * 100);
+              if (p > currentP) {
+                currentP = p;
+                setProgressPercent(p);
+                Animated.timing(progressAnim, {
+                  toValue: ratio,
+                  duration: 200,
+                  useNativeDriver: false,
+                }).start();
+              }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      // Listener optional
+    }
+  };
+
+  const finishProgressTracking = () => {
+    if (progressSimTimer.current) {
+      clearInterval(progressSimTimer.current);
+      progressSimTimer.current = null;
+    }
+    if (updatesSubRef.current) {
+      updatesSubRef.current.remove?.();
+      updatesSubRef.current = null;
+    }
+    setProgressPercent(100);
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
 
   const handleUpdateNow = async () => {
     console.log(
@@ -52,11 +145,14 @@ export default function UpdatePromptModal({
     );
     setStatus(STATUS.DOWNLOADING);
     setErrorMessage("");
+    startProgressTracking();
 
     try {
       const channel = updateInfo?.channel;
       const res = await downloadAndApplyUpdate(channel, updateInfo);
       console.log(`[OTA Modal] downloadAndApplyUpdate result: status="${res.status}"`);
+
+      finishProgressTracking();
 
       if (res.status === "downloaded") {
         setStatus(STATUS.RESTARTING);
@@ -94,6 +190,7 @@ export default function UpdatePromptModal({
         setErrorMessage(res.error || t("ota.updateFailed", "Không thể tải bản cập nhật."));
       }
     } catch (err) {
+      finishProgressTracking();
       console.error("[OTA Modal] Unexpected error in handleUpdateNow:", err?.message || err);
       setStatus(STATUS.ERROR);
       setErrorMessage(err?.message || t("ota.updateFailed", "Không thể tải bản cập nhật."));
@@ -128,6 +225,11 @@ export default function UpdatePromptModal({
     ? ` · Build ${updateInfo.buildNumber}`
     : "";
 
+  const progressWidthInterpolate = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", "100%"],
+  });
+
   return (
     <Modal
       transparent
@@ -147,6 +249,17 @@ export default function UpdatePromptModal({
                 },
               ]}
             >
+              {/* Soft Ambient Light-Green Glow in dialog header */}
+              <LinearGradient
+                colors={
+                  isDarkMode
+                    ? ["rgba(20, 83, 45, 0.35)", "transparent"]
+                    : ["#E8F8EA", "transparent"]
+                }
+                style={styles.modalGlow}
+                pointerEvents="none"
+              />
+
               {/* Header Icon */}
               <View style={styles.headerIconRow}>
                 <View
@@ -237,8 +350,30 @@ export default function UpdatePromptModal({
               )}
 
               {status === STATUS.DOWNLOADING && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 16 }} />
+                <View style={styles.progressSection}>
+                  {/* Colorful animated progress bar */}
+                  <View style={styles.progressHeaderRow}>
+                    <Text style={[styles.progressStatusText, { color: theme.subText }]}>
+                      {t("ota.downloadingTitle", "Đang cập nhật...")}
+                    </Text>
+                    <View style={[styles.percentagePill, { backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.12)" }]}>
+                      <Text style={[styles.percentageText, { color: "#10B981" }]}>
+                        {progressPercent}%
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.progressBarTrack, { backgroundColor: theme.iconBackground }]}>
+                    <Animated.View style={[styles.progressBarFillWrap, { width: progressWidthInterpolate }]}>
+                      <LinearGradient
+                        colors={["#10B981", "#06B6D4", "#3B82F6"]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.progressBarGradient}
+                      />
+                    </Animated.View>
+                  </View>
+
                   <Text style={[styles.loadingDesc, { color: theme.subText }]}>
                     {t("ota.downloadingDesc", "Đang tải dữ liệu bản cập nhật mới. Vui lòng giữ ứng dụng mở trong giây lát...")}
                   </Text>
@@ -249,7 +384,7 @@ export default function UpdatePromptModal({
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 16 }} />
                   <Text style={[styles.loadingDesc, { color: theme.subText }]}>
-                    {t("ota.reloadingDesc", "Đã lưu bản cập nhật. Đang khởi động lại ứng dụng...")}
+                    {t("ota.reloadingDesc", "Đã tải xong bản cập nhật. Đang khởi động lại ứng dụng...")}
                   </Text>
                 </View>
               )}
@@ -354,6 +489,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 10,
+    overflow: "hidden",
+    position: "relative",
+  },
+  modalGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
   },
   headerIconRow: {
     marginBottom: 12,
@@ -413,6 +557,46 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 20,
   },
+  progressSection: {
+    width: "100%",
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  progressHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  progressStatusText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  percentagePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  percentageText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  progressBarTrack: {
+    width: "100%",
+    height: 10,
+    borderRadius: 999,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  progressBarFillWrap: {
+    height: "100%",
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressBarGradient: {
+    flex: 1,
+    height: "100%",
+  },
   loadingContainer: {
     alignItems: "center",
     paddingVertical: 12,
@@ -422,7 +606,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     lineHeight: 18,
-    marginBottom: 16,
+    marginTop: 4,
   },
   errorContainer: {
     alignItems: "center",

@@ -375,14 +375,14 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         };
       }
 
-      // Upstream OTA version must be strictly higher than current active build (native or active OTA).
-      // If user is on a newer preview build and switches to production, block updates if upstream <= current.
-      const effectiveCurrentBuild = Math.max(currentNativeBuild, currentActiveBuild);
-      if (upstreamBuildNumber > 0 && effectiveCurrentBuild > 0 && upstreamBuildNumber <= effectiveCurrentBuild) {
+      // Upstream OTA version must be at least as new as the installed native APK.
+      // If build numbers match or upstream is higher, allow the update if it's a different update ID.
+      // If upstream build is lower than native base APK, block it (cannot downgrade below base APK).
+      if (upstreamBuildNumber > 0 && currentNativeBuild > 0 && upstreamBuildNumber < currentNativeBuild) {
         console.log(
-          `[OTA Native] Upstream build (${upstreamBuildNumber}) <= current active build (${effectiveCurrentBuild}). Blocking update.`
+          `[OTA Native] Upstream build (${upstreamBuildNumber}) < native build (${currentNativeBuild}). Blocking update downgrade.`
         );
-        return { status: "up_to_date", isAvailable: false, channel, buildNumber: effectiveCurrentBuild };
+        return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
       }
 
       const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
@@ -481,14 +481,12 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           };
         }
 
-        // Upstream OTA version must be strictly higher than current active build (native or active OTA).
-        // If user is on a newer preview build and switches to production, block updates if upstream <= current.
-        const effectiveCurrentBuild = Math.max(currentNativeBuild, currentActiveBuild);
-        if (upstreamBuildNumber > 0 && effectiveCurrentBuild > 0 && upstreamBuildNumber <= effectiveCurrentBuild) {
+        // Upstream OTA version must be at least as new as the installed native APK.
+        if (upstreamBuildNumber > 0 && currentNativeBuild > 0 && upstreamBuildNumber < currentNativeBuild) {
           console.log(
-            `[OTA HTTP] Upstream build (${upstreamBuildNumber}) <= current active build (${effectiveCurrentBuild}). Blocking update.`
+            `[OTA HTTP] Upstream build (${upstreamBuildNumber}) < native build (${currentNativeBuild}). Blocking update downgrade.`
           );
-          return { status: "up_to_date", isAvailable: false, channel, buildNumber: effectiveCurrentBuild };
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
         // Check if currently running update ID matches
@@ -578,10 +576,19 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
 
   const currentNativeBuild = getNativeBuildNumber();
   const currentActiveBuild = getRunningOtaBuildNumber();
-  const effectiveCurrentBuild = Math.max(currentNativeBuild, currentActiveBuild);
-  if (targetUpdateInfo?.buildNumber && targetUpdateInfo.buildNumber <= effectiveCurrentBuild) {
+  const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
+
+  // Prevent downloading if the update is already currently running or is older than the base APK
+  if (targetUpdateInfo?.buildNumber && currentNativeBuild > 0 && targetUpdateInfo.buildNumber < currentNativeBuild) {
     console.log(
-      `[OTA] targetUpdateInfo.buildNumber (${targetUpdateInfo.buildNumber}) <= current (${effectiveCurrentBuild}). Blocking download.`
+      `[OTA] targetUpdateInfo.buildNumber (${targetUpdateInfo.buildNumber}) < native build (${currentNativeBuild}). Blocking download downgrade.`
+    );
+    return { status: "up_to_date", channel };
+  }
+
+  if (targetUpdateInfo?.id && runningUpdateId && targetUpdateInfo.id === runningUpdateId) {
+    console.log(
+      `[OTA] targetUpdateInfo.id (${targetUpdateInfo.id}) matches currently running update ID. Already applied.`
     );
     return { status: "up_to_date", channel };
   }

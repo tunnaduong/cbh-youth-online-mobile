@@ -719,7 +719,8 @@
     "defaultUpdateMessage": "Bản cập nhật mới với nhiều cải tiến và sửa lỗi.",
     "publishedAt": "Phát hành lúc",
     "smoothUpdateNotice": "Bản cập nhật sẽ được lưu vĩnh viễn và áp dụng ngay cả khi khởi động lại ứng dụng.",
-    "updateNow": "Cập nhật ngay"
+    "updateNow": "Cập nhật ngay",
+    "downloadProgress": "Đang tải: {{percent}}%"
   },
   "chatConversation": {
     "you": "Bạn",

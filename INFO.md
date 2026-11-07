@@ -354,7 +354,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ---
 
-## 6. Recent work (newest first, as of 2026-10)
+## 6. Recent work (newest first, as of 2026-11)
+
+- **Fix Sequential OTA Upgrades, Colorful Progress Modal & Modern Ambient Redesign for Menu & Forum** (`app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/components/Sidebar.js`, `app/screens/MainScreens/ForumScreen/index.js`, `app/i18n/locales/*.json`, `INFO.md`, sibling `cbh-youth-online-api`):
+  - **Sequential OTA Bug Fix (API & Client)**: Resolved an issue where updating OTA twice on a single base APK install caused the second upgrade to load the old bundle index.js despite reporting success. Updated `cbh-youth-online-api/app/Http/Controllers/OtaController.php` so `launchAsset.key` is dynamically hashed to its unique content hash (`$bundleHash`) rather than generic string `"bundle"`, preventing native SQLite caching from reusing older bundle disk files. Updated `otaService.js` to allow sequential updates with the same build number or higher as long as `manifest.id !== runningUpdateId` and `upstreamBuildNumber >= currentNativeBuild`.
+  - **Vibrant Colorful OTA Download Modal**: Revamped `UpdatePromptModal.js` with top ambient light-green glow, smooth animated progress tracking with real-time percentage badge (`0%` -> `100%`), and a colorful gradient progress bar (`["#10B981", "#06B6D4", "#3B82F6"]`) in a rounded pill track. Added localized `"downloadProgress"` string across Vietnamese, English, and Russian.
+  - **Menu Screen Modernization (`Sidebar.js`)**: Added soft ambient green glow (`LinearGradient` `#E8F8EA` / `rgba(20, 83, 45, 0.40)`), modernized 36x36 circular icon holders, unified card surfaces and hairline borders aligning with Home and Explore design standards.
+  - **Forum Screen Modernization (`ForumScreen/index.js`)**: Added soft ambient light-green glow at top, modernized category selector into clean pill filters (`styles.tab` with pill radius 999, active `theme.primary` and inactive `theme.surface`), updated section cards to utilize design system surface and border tokens with balanced background tints, and preserved static title and trophy button alignment.
 
 - **Post Composer: Merge add photo and add video into a unified Photo/Video button**:
   - Combined separate image and video picker actions in `PostComposerLayout.js` into a unified `onPickMedia` action ("Ảnh/Video" / `createPost.addMedia` with `images-outline` icon).

@@ -21,6 +21,7 @@ import { AvatarFrameWrap } from "./profile/AvatarFrame";
 import { useOwnProfileTheme } from "../utils/ownProfileTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import { AndroidGlassBackdrop } from "./GlassModules";
 import { openInAppBrowser } from "../utils/externalLink";
 
@@ -190,6 +191,19 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Soft Ambient Light-Green Glow at Top */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        pointerEvents="none"
+      />
+
       {/* Floating transparent header with fading title */}
       <View
         pointerEvents="box-none"
@@ -426,6 +440,13 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
 };
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
   profileCard: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
@@ -454,9 +475,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   iconHolder: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
