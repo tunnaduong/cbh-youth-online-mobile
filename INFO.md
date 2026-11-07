@@ -356,6 +356,16 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Comprehensive App-wide Modern Screen Redesign (All 42+ Screens & Sub-screens)**:
+  - Redesigned and standardized every screen, sub-screen, dialog modal, and settings flow across the mobile app to follow the unified CYO ambient design language (top green ambient glow `#E8F8EA` / `rgba(20, 83, 45, 0.40)`, floating `LiquidButton` + fading header, card radius 16–18, `theme.surface` tokens only, localized strings):
+    - **Chat Ecosystem**: `GroupInfoScreen.js` (replaced legacy `arrow-back` 20 with `chevron-back` 24, `theme.primary` title, ambient glow, `AndroidGlassBackdrop`, modernized permissions & rename modal), `MediaGalleryScreen.js` (ambient glow, `theme.primary` title), `NewConversationScreen.js` (ambient glow, search pill), `CreateGroupScreen.js` & `AddGroupMembersScreen.js` (ambient glow, `chevron-back` 24, header `LiquidButton` create action, modern input card), `SeenByModal.js` (`theme.surface` card, border).
+    - **Point Wallet**: `DepositScreen.js` (ambient glow, `theme.primary` title, `theme.surface` card, quick-amount preset selector chips [20k, 50k, 100k, 200k, 500k]), `WithdrawScreen.js` (ambient glow, `theme.primary` title, `theme.surface` form card, primary submit action).
+    - **Explore Ecosystem**: `QuizScreen/index.js` & `CustomQuizCreateScreen.js` (ambient glow, `theme.surface` cards, active option selection), `StudyMaterialScreen/index.js` & `StudyMaterialDetailScreen/index.js` (ambient glow, `theme.surface` hero & detail cards), `UploadStudyMaterialScreen/index.js` (ambient glow, `theme.primary` title, `theme.surface` input cards), `UniversityScreen/index.js` (ambient glow, `theme.primary` title, `theme.surface` cards, filter dialog).
+    - **Forum, Posts & Stories**: `PostScreen/index.js` (top ambient glow behind header), `CategoryScreen.js` (top ambient glow, category banner), `StoryViewersScreen/index.js` (ambient glow, `theme.surface` viewer cards), `LinkSafetyScreen/index.js` (ambient glow, security card).
+    - **Settings & Account**: Added top ambient glow across `AboutScreen.js`, `BlockedUsersScreen.js` (modernized blocked user card rows & outline unblock buttons), `StudentVerificationScreen.js`, `AppUpdatesScreen.js`, `SecurityScreen.js`, `DevicesScreen.js`, `PasskeysScreen.js`, `TwoFactorScreen.js`, `DevConsoleScreen.js`, `PrivacyPolicyScreen.js`, and `TermsOfServiceScreen.js`.
+    - **Profile Ecosystem**: `ProfileDetailScreen/index.js` (ambient glow, wrapped profile info in `theme.surface` card with `theme.iconBackground` icon holders), `EditProfileScreen/index.js` (ambient glow), `ProfileCustomizerScreen/index.js` (ambient glow).
+    - **Auth & Onboarding**: Added subtle top ambient glow above floating particles in `LoginScreen`, `SignupScreen`, `ForgotPasswordScreen`, `TwoFactorChallengeScreen`, `WelcomeScreen`, `LanguageSelectScreen`, and `FirstLaunchSettingsScreen`.
+
 - **WebRTC Call on Mobile, Category Icons in Post Editor & App-wide Screen Ambient Redesign**:
   - **WebRTC Call functionality**:
     - Created `app/services/call/callService.js` connecting to `/v1.0/chat/conversations/{id}/call/initiate`, `/v1.0/chat/calls/{id}/answer`, `/reject`, `/end`, `/signal`, and `/ice-servers`.

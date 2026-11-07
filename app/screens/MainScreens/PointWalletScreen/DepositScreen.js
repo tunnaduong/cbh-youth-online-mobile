@@ -117,11 +117,22 @@ export default function DepositScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        pointerEvents="none"
+      />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <LiquidButton providerId="DepositScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
           {t("wallet.depositScreen.title")}
         </Animated.Text>
         <View style={{ width: 44 }} />
@@ -131,7 +142,7 @@ export default function DepositScreen({ navigation }) {
         {!depositInfo ? (
           <>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="add-circle-outline" title={t("wallet.depositScreen.introTitle")} text={t("wallet.depositScreen.introText")} />
-            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
               <Label theme={theme} text={t("wallet.depositScreen.amountLabel")} />
               <TextInput value={amount} onChangeText={(value) => setAmount(value.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("wallet.depositScreen.amountPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
               <Text style={[styles.helperText, { color: theme.subText }]}> 
@@ -144,7 +155,7 @@ export default function DepositScreen({ navigation }) {
         ) : (
           <>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
-            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
               <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>
                 <Text style={[styles.mutedLabel, { color: "#C7F5D7" }]}>{t("wallet.depositScreen.amountToTransfer")}</Text>
                 <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd, lang)} VND</Text>
@@ -177,19 +188,23 @@ export default function DepositScreen({ navigation }) {
 
 function IntroCard({ theme, isDarkMode, icon, title, text }) {
   return (
-    <View style={[styles.intro, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+    <View style={[styles.intro, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
       <View style={styles.introIcon}><Ionicons name={icon} size={26} color="#1476C6" /></View>
       <View style={styles.introCopy}><Text style={[styles.introTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.introText, { color: theme.subText }]}>{text}</Text></View>
     </View>
   );
 }
 function Label({ theme, text }) { return <Text style={[styles.label, { color: theme.text }]}>{text}</Text>; }
-function InfoBox({ theme, isDarkMode, text }) { return <View style={[styles.infoBox, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC" }]}><Ionicons name="information-circle-outline" size={20} color={theme.primary} /><Text style={[styles.infoText, { color: theme.subText }]}>{text}</Text></View>; }
+function InfoBox({ theme, isDarkMode, text }) { return <View style={[styles.infoBox, { backgroundColor: theme.surface }]}><Ionicons name="information-circle-outline" size={20} color={theme.primary} /><Text style={[styles.infoText, { color: theme.subText }]}>{text}</Text></View>; }
 function TransferRow({ theme, label, value }) { return <View style={[styles.transferRow, { borderBottomColor: theme.border }]}><Text style={[styles.mutedLabel, { color: theme.subText }]}>{label}</Text><Text selectable style={[styles.transferValue, { color: theme.text }]}>{value}</Text></View>; }
 function PrimaryButton({ title, icon, onPress, loading }) { return <TouchableOpacity disabled={loading} onPress={onPress} style={[styles.primaryButton, loading && { opacity: 0.65 }]}>{loading ? <ActivityIndicator color="#fff" /> : <Ionicons name={icon} size={20} color="#fff" />}<Text style={styles.primaryText}>{title}</Text></TouchableOpacity>; }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
+  quickAmountRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10, marginBottom: 8 },
+  quickChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
+  quickChipText: { fontSize: 12, fontWeight: "600" },
   header: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 16, fontWeight: "700" },
   largeTitle: { fontSize: 28, fontWeight: "800", marginBottom: 12 },

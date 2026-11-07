@@ -12,6 +12,7 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -49,7 +50,7 @@ const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={[styles.pickerModal, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+        <TouchableOpacity activeOpacity={1} style={[styles.pickerModal, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <Text style={[styles.pickerTitle, { color: theme.text }]}>{title}</Text>
           <View style={[styles.pickerSearchBar, { backgroundColor: theme.iconBackground }]}>
             <Ionicons name="search" size={16} color={theme.subText} />
@@ -144,7 +145,7 @@ function UniversityCard({ uni, theme, isDarkMode, t }) {
   const visibleMajors = expanded ? majors : majors.slice(0, 4);
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
       <View style={styles.cardHeader}>
         <View style={[styles.cardIconWrap, { backgroundColor: theme.primary + "1A" }]}>
           <Ionicons name="school-outline" size={18} color={theme.primary} />
@@ -377,11 +378,22 @@ const UniversityScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        pointerEvents="none"
+      />
       <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
         <LiquidButton providerId="UniversityScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]} numberOfLines={1}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]} numberOfLines={1}>
           {t("universities.title", "Tìm trường ĐH-CĐ")}
         </Animated.Text>
         <View style={{ width: 44 }} />
@@ -421,7 +433,7 @@ const UniversityScreen = ({ navigation }) => {
                   <View
                     style={[
                       styles.filterCard,
-                      { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                      { backgroundColor: theme.surface, borderColor: theme.border },
                     ]}
                   >
                     <FilterField
@@ -549,7 +561,7 @@ const UniversityScreen = ({ navigation }) => {
                   {suggestLoading && <ActivityIndicator size="small" color={theme.primary} />}
                 </View>
                 {suggestions.length > 0 && (
-                  <View style={[styles.suggestBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+                  <View style={[styles.suggestBox, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
                     {suggestions.map((s, i) => (
                       <TouchableOpacity
                         key={i}
@@ -610,7 +622,7 @@ const UniversityScreen = ({ navigation }) => {
           {generalInfo.length > 0 && (
             <View style={{ marginTop: 28 }}>
               <Text style={[styles.generalInfoTitle, { color: theme.text }]}>{t("universities.generalInfoTitle", "Quy chế tuyển sinh đại học")}</Text>
-              <View style={[styles.generalInfoBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+              <View style={[styles.generalInfoBox, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
                 {generalInfo.map((item, i) => (
                   <TouchableOpacity
                     key={i}
@@ -653,6 +665,7 @@ const UniversityScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   header: {
     position: "absolute",
     top: 0,

@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -286,15 +287,23 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        pointerEvents="none"
+      />
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
         <LiquidButton providerId="UploadStudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
-          style={[
-            styles.headerTitle,
-            {
-              color: theme.text,
+          style={[styles.headerTitle, { color: theme.primary,
               opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
             },
           ]}
@@ -329,7 +338,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
             onChangeText={setTitle}
             placeholder={t("studyMaterial.titlePlaceholder")}
             placeholderTextColor={theme.placeholder}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.surface }]}
           />
         </View>
 
@@ -343,7 +352,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.surface }]}
           />
         </View>
 
@@ -361,7 +370,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
                     onPress={() => setSelectedCategoryId(category.id)}
                     style={[
                       styles.categoryChip,
-                      active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                      active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.surface, borderColor: theme.border },
                     ]}
                   >
                     <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>
@@ -402,7 +411,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
             multiline
             numberOfLines={5}
             textAlignVertical="top"
-            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.surface }]}
           />
         </View>
 
@@ -429,7 +438,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
                 placeholder={t("studyMaterial.pricePlaceholder")}
                 placeholderTextColor={theme.placeholder}
                 keyboardType="number-pad"
-                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.surface }]}
               />
             </View>
           ) : null}
