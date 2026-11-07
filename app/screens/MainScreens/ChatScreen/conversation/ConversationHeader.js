@@ -27,6 +27,7 @@ const ConversationHeader = ({
   onPressTitle,
   onOptions,
   onCall,
+  canCall = true,
   hasCustomBackground = false,
 }) => {
   const { theme, isDarkMode } = useTheme();
@@ -162,6 +163,7 @@ const ConversationHeader = ({
       </TouchableOpacity>
 
       <View style={styles.actionsRow}>
+        {canCall && (
         <LiquidButton
           size={38}
           forceNoGlass
@@ -175,6 +177,7 @@ const ConversationHeader = ({
             color={hasCustomBackground ? theme.primary : primaryAccent}
           />
         </LiquidButton>
+      )}
 
         <LiquidButton
           size={38}

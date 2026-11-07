@@ -58,10 +58,23 @@ export const CallProvider = ({ children }) => {
   const pendingRemoteOfferRef = useRef(null);
   const callStatusRef = useRef("idle");
   const ringingTimeoutRef = useRef(null);
+  const connectingTimeoutRef = useRef(null);
+  const callTypeRef = useRef("audio");
 
   useEffect(() => {
     callStatusRef.current = callStatus;
   }, [callStatus]);
+
+  useEffect(() => {
+    callTypeRef.current = callType;
+  }, [callType]);
+
+  const clearConnectingTimeout = useCallback(() => {
+    if (connectingTimeoutRef.current) {
+      clearTimeout(connectingTimeoutRef.current);
+      connectingTimeoutRef.current = null;
+    }
+  }, []);
 
   const clearRingingTimeout = useCallback(() => {
     if (ringingTimeoutRef.current) {
@@ -106,7 +119,9 @@ export const CallProvider = ({ children }) => {
 
   // Cleanup helper
   const cleanupCallState = useCallback(() => {
+    clearConnectingTimeout();
     clearRingingTimeout();
+    bridgeRef.current?.sendMessage("STOP_RINGING");
     pendingRemoteOfferRef.current = null;
     stopTimer();
     stopRingtoneVibration();
@@ -145,6 +160,7 @@ export const CallProvider = ({ children }) => {
       setCallStatus("ringing");
       startRingtoneVibration();
       bridgeRef.current?.sendMessage("START_INCOMING_RING");
+      sendCallSignalApi(call.id, "ringing", {}).catch(() => {});
 
       // Auto-disconnect callee after 60s if not answered
       clearRingingTimeout();
@@ -179,6 +195,7 @@ export const CallProvider = ({ children }) => {
     channel.listen(".call.answered", (data) => {
       clearRingingTimeout();
       stopRingtoneVibration();
+      bridgeRef.current?.sendMessage("STOP_RINGING");
       playCallConnectedHaptic();
       setCallStatus("connected");
       startTimer();
@@ -202,12 +219,37 @@ export const CallProvider = ({ children }) => {
     });
 
     channel.listen(".call.signaled", (data) => {
-      if (data?.type === "candidate") {
+      if (data?.type === "ringing") {
+        console.log("[CallContext] Callee received call and started ringing.");
+        clearConnectingTimeout();
+        if (callStatusRef.current === "calling") {
+          setCallStatus("ringing");
+          bridgeRef.current?.sendMessage("START_OUTGOING_CALL", {
+            callId: activeCallRef.current?.id,
+            callType: callTypeRef.current,
+          });
+
+          clearRingingTimeout();
+          ringingTimeoutRef.current = setTimeout(() => {
+            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing")) {
+              console.log("[CallContext] 60s timeout without answer -> auto end call");
+              Toast.show({
+                type: "info",
+                text1: "Người nhận không trả lời",
+                visibilityTime: 2500,
+              });
+              endCall();
+            }
+          }, 60000);
+        }
+        return;
+      } else if (data?.type === "candidate") {
         bridgeRef.current?.sendMessage("ADD_ICE_CANDIDATE", { candidate: data.payload });
       } else if (data?.type === "offer") {
         pendingRemoteOfferRef.current = data.payload;
         bridgeRef.current?.sendMessage("SET_REMOTE_SDP", { sdp: data.payload });
       } else if (data?.type === "answer") {
+        bridgeRef.current?.sendMessage("STOP_RINGING");
         bridgeRef.current?.sendMessage("SET_REMOTE_SDP", { sdp: data.payload });
       }
     });
@@ -279,13 +321,28 @@ export const CallProvider = ({ children }) => {
 
     checkActiveCalls();
 
+    const echo = getEcho();
+    const handleEchoConnected = () => {
+      console.log("[CallContext] Echo socket reconnected -> checkActiveCalls");
+      checkActiveCalls();
+    };
+
+    if (echo?.connector?.pusher?.connection) {
+      echo.connector.pusher.connection.bind("connected", handleEchoConnected);
+    }
+
     const sub = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         checkActiveCalls();
       }
     });
 
-    return () => sub.remove();
+    return () => {
+      if (echo?.connector?.pusher?.connection) {
+        echo.connector.pusher.connection.unbind("connected", handleEchoConnected);
+      }
+      sub.remove();
+    };
   }, [isLoggedIn, joinConversationPresence, startTimer]);
 
   // Actions
@@ -312,21 +369,20 @@ export const CallProvider = ({ children }) => {
           const updatedCall = { ...callData, receiver: participant || callData.receiver };
           setActiveCall(updatedCall);
           joinConversationPresence(conversationId, callId);
-          bridgeRef.current?.sendMessage("START_OUTGOING_CALL", { callId, callType: type });
-
-          // Auto-disconnect caller after 60s if receiver does not answer
+          // 10s connection timeout: Try connecting to callee for 10s
+          clearConnectingTimeout();
           clearRingingTimeout();
-          ringingTimeoutRef.current = setTimeout(() => {
-            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing")) {
-              console.log("[CallContext] 60s timeout without answer -> auto end call");
+          connectingTimeoutRef.current = setTimeout(() => {
+            if (callStatusRef.current === "calling") {
+              console.log("[CallContext] Callee unreachable after 10s.");
               Toast.show({
                 type: "info",
-                text1: "Người nhận không trả lời",
-                visibilityTime: 2500,
+                text1: "Không thể kết nối đến người kia",
+                visibilityTime: 3000,
               });
               endCall();
             }
-          }, 60000);
+          }, 10000);
         }
       } catch (err) {
         console.error("[CallContext] initiateCall error:", err);
@@ -343,6 +399,7 @@ export const CallProvider = ({ children }) => {
 
   const answerCall = useCallback(async () => {
     clearRingingTimeout();
+    bridgeRef.current?.sendMessage("STOP_RINGING");
     try {
       stopRingtoneVibration();
       const call = activeCallRef.current;

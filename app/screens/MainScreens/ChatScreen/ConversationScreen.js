@@ -3381,6 +3381,7 @@ const ConversationScreen = ({ navigation, route }) => {
         onPressTitle={uiActions.openTitle}
         onOptions={uiActions.showOptions}
         onCall={uiActions.callVoice}
+        canCall={!isGroupConversation && !Boolean(otherUser?.is_ai) && (otherUser?.role !== "ai") && !Boolean(otherUser?.username?.startsWith("ai_"))}
         hasCustomBackground={Boolean(chatBackgroundUrl)}
       />
 

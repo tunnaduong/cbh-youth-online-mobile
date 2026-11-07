@@ -19,6 +19,7 @@ const buildWebRtcHtml = (base64Audio) => `
     let audioCtx = null;
     let ringOscillator = null;
     let ringInterval = null;
+    let activeOscillators = [];
     let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
     let queuedCandidates = [];
     let pendingRemoteSdp = null;
@@ -55,6 +56,12 @@ const buildWebRtcHtml = (base64Audio) => `
         try { ringOscillator.stop(); ringOscillator.disconnect(); } catch(e){}
         ringOscillator = null;
       }
+      if (activeOscillators && activeOscillators.length > 0) {
+        activeOscillators.forEach(osc => {
+          try { osc.stop(); osc.disconnect(); } catch(e){}
+        });
+        activeOscillators = [];
+      }
     }
 
     function playTone(freq1, freq2, duration, type = 'sine') {
@@ -83,6 +90,17 @@ const buildWebRtcHtml = (base64Audio) => `
         if (osc2) osc2.start(now);
         osc1.stop(now + duration);
         if (osc2) osc2.stop(now + duration);
+
+        activeOscillators.push(osc1);
+        if (osc2) activeOscillators.push(osc2);
+        osc1.onended = () => {
+          activeOscillators = activeOscillators.filter(o => o !== osc1);
+        };
+        if (osc2) {
+          osc2.onended = () => {
+            activeOscillators = activeOscillators.filter(o => o !== osc2);
+          };
+        }
       } catch(e) {
         console.warn('Tone error:', e);
       }
@@ -104,18 +122,9 @@ const buildWebRtcHtml = (base64Audio) => `
         const playPromise = ringAudio.play();
         if (playPromise !== undefined) {
           playPromise.catch(function(err) {
-            console.warn('Ringtone audio play error, falling back to melodic tone', err);
-            playTone(520, 650, 1.2);
-            ringInterval = setInterval(() => {
-              playTone(520, 650, 1.2);
-            }, 3000);
+            console.warn('Ringtone audio play error:', err);
           });
         }
-      } else {
-        playTone(520, 650, 1.2);
-        ringInterval = setInterval(() => {
-          playTone(520, 650, 1.2);
-        }, 3000);
       }
     }
 
@@ -170,6 +179,7 @@ const buildWebRtcHtml = (base64Audio) => `
       };
 
       pc.ontrack = (event) => {
+        stopTones();
         const remoteAudio = document.getElementById('remoteAudio');
         if (remoteAudio) {
           if (event.streams && event.streams[0]) {
@@ -198,6 +208,10 @@ const buildWebRtcHtml = (base64Audio) => `
 
         if (action === 'SET_ICE_SERVERS') {
           if (Array.isArray(payload)) iceServers = payload;
+        }
+
+        else if (action === 'STOP_RINGING') {
+          stopTones();
         }
 
         else if (action === 'START_OUTGOING_CALL') {
@@ -238,6 +252,7 @@ const buildWebRtcHtml = (base64Audio) => `
         }
 
         else if (action === 'SET_REMOTE_SDP') {
+          stopTones();
           const { sdp } = payload;
           pendingRemoteSdp = sdp;
           if (pc && sdp) {
