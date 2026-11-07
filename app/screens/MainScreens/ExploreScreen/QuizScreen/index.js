@@ -13,6 +13,7 @@ import {
   Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -338,9 +339,9 @@ const QuizScreen = ({ navigation, route }) => {
           scrollY={scrollY}
           onPress={() => (phase === "setup" ? navigation.goBack() : handleRestart())}
         >
-          <Ionicons name={phase === "setup" ? "chevron-back" : "close"} size={22} color={theme.primary} />
+          <Ionicons name={phase === "setup" ? "chevron-back" : "close"} size={24} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]} numberOfLines={1}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]} numberOfLines={1}>
           {t("quiz.title", "Đố vui")}
         </Animated.Text>
         {quiz?.quiz_set_id && (phase === "taking" || phase === "result") ? (
@@ -356,6 +357,18 @@ const QuizScreen = ({ navigation, route }) => {
           <View style={{ width: 44 }} />
         )}
       </View>
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
 
       <AndroidGlassBackdrop providerId="QuizScreen" style={{ flex: 1 }}>
         {joiningShared ? (
@@ -375,7 +388,7 @@ const QuizScreen = ({ navigation, route }) => {
                 {t("quiz.subtitle", "Trả lời câu hỏi trắc nghiệm do AI tạo ra, thử thách kiến thức của bạn.")}
               </Text>
 
-              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
+              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Text style={[styles.cardLabel, { color: theme.text }]}>
                   {t("quiz.questionCount", "Số câu hỏi")}
                 </Text>
@@ -591,7 +604,7 @@ const QuizScreen = ({ navigation, route }) => {
                 />
               </View>
 
-              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
+              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Text style={[styles.questionIndex, { color: theme.subText }]}>
                   {t("quiz.questionIndex", "Câu {{current}}/{{total}}", {
                     current: currentIndex + 1,

@@ -19,7 +19,7 @@ const SeenByModal = ({ participants, onClose, onOpenProfile }) => {
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.seenByBackdrop}>
           <TouchableWithoutFeedback>
-            <View style={[styles.seenByBox, { backgroundColor: theme.background }]}>
+            <View style={[styles.seenByBox, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}>
               <Text style={[styles.seenByTitle, { color: theme.text }]}>
                 {t("chatConversation.seenBy", "Đã xem")}
               </Text>

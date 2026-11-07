@@ -356,6 +356,15 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Comprehensive App-wide Screen Modernization & Brand Redesign**:
+  - **Menu Screen (`Sidebar.js`)**: Redesigned to match the primary tab look (Home, Explore, Chat, Notifications) with dynamic green ambient glow (`LinearGradient`), CYO frog mascot + radiating doodle action lines (`assets/logo.png`), screen title with sparkle star `✦`, green subtitle, search bar with clear action, Facebook-style profile card with user avatar and badges, 2-column shortcut grid, and grouped section cards.
+  - **Point Wallet Sub-screens**: Modernized `DepositScreen.js` and `WithdrawScreen.js` with ambient green top glow, `theme.primary` titles, `chevron-back` (size 24) on floating `LiquidButton`, quick amount preset chips (20k, 50k, 100k, 200k, 500k), and elevated `theme.surface` cards.
+  - **Explore Ecosystem**: Modernized `StudyMaterialScreen/index.js`, `StudyMaterialDetailScreen/index.js`, `UploadStudyMaterialScreen/index.js`, `UniversityScreen/index.js`, `QuizScreen/index.js`, and `CustomQuizCreateScreen.js` with ambient glow, fading titles, standard back navigation, and `theme.surface` cards.
+  - **Chat Ecosystem**: Modernized `CreateGroupScreen.js`, `AddGroupMembersScreen.js`, `GroupInfoScreen.js`, `MediaGalleryScreen.js`, `NewConversationScreen.js`, and `SeenByModal.js` with ambient glow, `theme.primary` headers, and refined member cards.
+  - **Settings & Account Ecosystem**: Modernized `AboutScreen.js`, `BlockedUsersScreen.js`, `SecurityScreen.js`, `AppUpdatesScreen.js`, `DevicesScreen.js`, `PasskeysScreen.js`, `TwoFactorScreen.js`, `StudentVerificationScreen.js`, `NotificationSettingsScreen.js`, `DevConsoleScreen.js`, `PrivacyPolicyScreen.js`, and `TermsOfServiceScreen.js` with ambient green glow, standard floating header, and consistent container styles.
+  - **Community, Posts, Reports & Profile Sub-screens**: Modernized `CategoryScreen.js`, `PostScreen/index.js`, `StoryViewersScreen/index.js`, `ProfileDetailScreen/index.js`, `EditProfileScreen/index.js`, `ProfileCustomizerScreen/index.js`, `LinkSafetyScreen/index.js`, `MemberRankingScreen/index.js`, and all multi-step report screens (`ReportScreen/index.js`, `Step2.js`, `Step3.js`, `Success.js`).
+  - **i18n & Syntax Validation**: Verified all modified screens with Babel preset `babel-preset-expo` and validated all three translation files (`vi.json`, `en.json`, `ru.json`).
+
 - **Menu Screen Redesign Matching Home, Explore, Chat & Notifications & Revert Blanket Screen Ambient**:
   - Reverted commit `c6885d6a6983e117615db0ce29f8e91c5f19f510` (the blanket screen redesign across 42+ screens) cleanly resolving merge conflicts.
   - Comprehensive redesign of `Sidebar.js` (Menu / Me tab) to match the visual language of `HomeScreen`, `ExploreScreen`, `ChatScreen`, and `NotificationScreen`:
