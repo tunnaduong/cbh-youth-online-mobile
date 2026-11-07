@@ -40,7 +40,7 @@ const messageOf = (error) =>
 // this device with the system's own sheet (services/passkey.js).
 export default function PasskeysScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
   const scrollY = useRef(new Animated.Value(0)).current;

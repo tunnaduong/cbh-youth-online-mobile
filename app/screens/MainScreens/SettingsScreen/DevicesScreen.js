@@ -73,7 +73,7 @@ function DetailRow({ icon, label, value, theme, last }) {
 // (model, version, how it logged in, times, log out) when the card is opened.
 export default function DevicesScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
   const scrollY = useRef(new Animated.Value(0)).current;

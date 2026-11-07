@@ -43,7 +43,7 @@ const Section = ({ title, children, theme }) => (
 
 export default function AppUpdatesScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
   const [selectedChannel, setSelectedChannel] = useState(() => getOtaChannel());

@@ -175,7 +175,7 @@ const ActivityScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = 64 + insets.top;
   const headerTitleOpacity = scrollY.interpolate({

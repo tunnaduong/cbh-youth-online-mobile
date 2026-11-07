@@ -71,7 +71,7 @@ const PERMISSION_VALUE_LABELS = {
 const GroupInfoScreen = ({ navigation, route }) => {
   const { conversationId } = route.params;
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const { userInfo } = useContext(AuthContext);
   const { onMessageSent } = useChatSocket();

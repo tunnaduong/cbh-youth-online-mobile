@@ -14,7 +14,7 @@ import LiquidButton from "../../../components/LiquidButton";
 const AddGroupMembersScreen = ({ navigation, route }) => {
   const { conversationId } = route.params;
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [selected, setSelected] = useState([]);
   const [saving, setSaving] = useState(false);

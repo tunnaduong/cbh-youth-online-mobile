@@ -11,7 +11,8 @@ import AuthButton from "../../components/AuthButton";
 
 const WelcomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>

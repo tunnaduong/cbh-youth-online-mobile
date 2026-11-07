@@ -53,7 +53,7 @@ function quizAnswerMarkParser(input) {
 
 const CustomQuizCreateScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const contentInputRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;

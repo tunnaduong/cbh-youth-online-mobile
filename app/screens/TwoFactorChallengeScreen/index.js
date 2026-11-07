@@ -41,7 +41,7 @@ import {
 const TwoFactorChallengeScreen = ({ navigation, route }) => {
   const challenge = route.params?.challenge || {};
   const { signIn } = useContext(AuthContext);
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 

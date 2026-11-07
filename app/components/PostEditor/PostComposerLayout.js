@@ -108,7 +108,7 @@ export default function PostComposerLayout({
   onRemoveVideo,
   onRemoveDocument,
 }) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 

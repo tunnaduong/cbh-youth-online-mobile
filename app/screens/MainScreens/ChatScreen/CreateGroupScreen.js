@@ -22,7 +22,7 @@ import LiquidButton from "../../../components/LiquidButton";
 
 const CreateGroupScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [selected, setSelected] = useState([]);

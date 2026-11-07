@@ -44,7 +44,7 @@ const OTHER_TOPIC = "Khác";
 
 const QuizScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const sharedQuizId = route?.params?.sharedQuizId;
 

@@ -62,7 +62,7 @@ const ArchiveScreen = ({ route, navigation }) => {
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
   const titleBarHeight = 64 + insets.top;
   const headerTitleOpacity = scrollY.interpolate({
