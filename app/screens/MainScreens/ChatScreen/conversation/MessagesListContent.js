@@ -41,7 +41,6 @@ const MessageListItem = React.memo(({
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
   visibleViewport,
-  conversationId,
 }) => {
   const handleLayout = (e) => {
     if (value.type === "message" && value.id != null) {
