@@ -157,6 +157,10 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const handleNotificationReceived = (notification) => {
+    const callData = notification?.request?.content?.data;
+    if (callData?.type === 'incoming_call') {
+      DeviceEventEmitter.emit('INCOMING_CALL_PUSH', callData);
+    }
     console.log('Notification received callback fired:', notification);
     if (notification?.request?.content) {
       console.log('Notification content:', notification.request.content);
@@ -177,6 +181,11 @@ export const NotificationProvider = ({ children }) => {
     // it comes from the backend, not from anything reproducible locally.
     console.log('[Push] Notification tapped, raw data:', JSON.stringify(data));
     if (!data) return;
+
+    if (data?.type === 'incoming_call') {
+      DeviceEventEmitter.emit('INCOMING_CALL_PUSH', data);
+      return;
+    }
 
     // Same resolver the in-app notification bell list uses
     // (NotificationScreen/index.js) - the API now forwards the full

@@ -8,6 +8,10 @@ export const getIceServers = async () => {
   return axiosInstance.get("/v1.0/chat/calls/ice-servers");
 };
 
+export const getActiveCall = async () => {
+  return axiosInstance.get("/v1.0/chat/calls/active");
+};
+
 export const initiateCall = async (conversationId, type = "audio") => {
   return axiosInstance.post(`/v1.0/chat/conversations/${conversationId}/call/initiate`, { type });
 };

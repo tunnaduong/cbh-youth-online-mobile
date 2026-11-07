@@ -183,6 +183,15 @@ export default function AboutScreen({ navigation }) {
           </Text>
         </Section>
 
+        <Section title={t("about.soundLicenseTitle", "Bản quyền âm thanh")} theme={theme}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t(
+              "about.soundLicenseDesc",
+              "Nhạc chuông cuộc gọi được trích xuất từ âm báo thức (Alarm Ringtone) của OPPO. Bản quyền âm thanh thuộc sở hữu của Guangdong OPPO Mobile Telecommunications Corp., Ltd. Được sử dụng cho mục đích cộng đồng phi thương mại."
+            )}
+          </Text>
+        </Section>
+
         <Text style={[styles.copyright, { color: theme.subText }]}>
           {t("about.copyright")}
         </Text>

@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import FastImage from "../FastImage";
@@ -50,7 +51,7 @@ export default function IncomingCallModal({
   if (!visible || !call) return null;
 
   const caller = call.caller || {};
-  const callerName = caller.name || caller.username || t("chatConversation.call", "Cuộc gọi");
+  const callerName = caller.profile_name || caller.name || caller.username || t("chatConversation.call", "Cuộc gọi");
   const avatarUrl =
     caller.avatar_url ||
     (caller.username
@@ -60,7 +61,17 @@ export default function IncomingCallModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={[styles.overlay, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
+      <LinearGradient
+        colors={["#0c381c", "#072312", "#031209"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.overlay, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}
+      >
+        <LinearGradient
+          colors={["rgba(34, 197, 94, 0.4)", "rgba(34, 197, 94, 0.08)", "transparent"]}
+          style={styles.ambientTopGlow}
+          pointerEvents="none"
+        />
         {/* Caller Info Header */}
         <View style={styles.topInfo}>
           <Text style={styles.incomingLabel}>
@@ -68,6 +79,7 @@ export default function IncomingCallModal({
           </Text>
           <UserNameRow
             name={callerName}
+            theme={caller.profile_theme}
             style={styles.callerName}
             containerStyle={{ justifyContent: "center", marginTop: 8 }}
           />
@@ -91,7 +103,7 @@ export default function IncomingCallModal({
             ]}
           />
           <View style={styles.avatarContainer}>
-            <AvatarFrameWrap size={120}>
+            <AvatarFrameWrap size={120} theme={caller.profile_theme}>
               {avatarUrl ? (
                 <FastImage source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
               ) : (
@@ -131,15 +143,21 @@ export default function IncomingCallModal({
             <Text style={styles.actionLabel}>{t("call.answer", "Trả lời")}</Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  ambientTopGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+  },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(10, 15, 12, 0.94)",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,

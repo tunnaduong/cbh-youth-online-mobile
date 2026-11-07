@@ -1,8 +1,9 @@
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
+import { RINGTONE_OPPO_BASE64 } from "../../assets/sounds/ringtoneOppoBase64";
 
-const webrtcHtml = `
+const buildWebRtcHtml = (base64Audio) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,6 +12,7 @@ const webrtcHtml = `
 </head>
 <body style="background:transparent;margin:0;padding:0;">
   <audio id="remoteAudio" autoplay playsinline></audio>
+  <audio id="ringtoneAudio" loop playsinline preload="auto" src="data:audio/mp3;base64,${base64Audio}"></audio>
   <script>
     let pc = null;
     let localStream = null;
@@ -18,6 +20,8 @@ const webrtcHtml = `
     let ringOscillator = null;
     let ringInterval = null;
     let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+    let queuedCandidates = [];
+    let pendingRemoteSdp = null;
 
     function sendToNative(data) {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -36,6 +40,13 @@ const webrtcHtml = `
     }
 
     function stopTones() {
+      const ringAudio = document.getElementById('ringtoneAudio');
+      if (ringAudio) {
+        try {
+          ringAudio.pause();
+          ringAudio.currentTime = 0;
+        } catch(e) {}
+      }
       if (ringInterval) {
         clearInterval(ringInterval);
         ringInterval = null;
@@ -87,10 +98,25 @@ const webrtcHtml = `
 
     function startIncomingRing() {
       stopTones();
-      playTone(520, 650, 1.2);
-      ringInterval = setInterval(() => {
+      const ringAudio = document.getElementById('ringtoneAudio');
+      if (ringAudio) {
+        ringAudio.currentTime = 0;
+        const playPromise = ringAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(function(err) {
+            console.warn('Ringtone audio play error, falling back to melodic tone', err);
+            playTone(520, 650, 1.2);
+            ringInterval = setInterval(() => {
+              playTone(520, 650, 1.2);
+            }, 3000);
+          });
+        }
+      } else {
         playTone(520, 650, 1.2);
-      }, 3000);
+        ringInterval = setInterval(() => {
+          playTone(520, 650, 1.2);
+        }, 3000);
+      }
     }
 
     function playConnectedTone() {
@@ -119,6 +145,18 @@ const webrtcHtml = `
       return localStream;
     }
 
+    async function drainQueuedCandidates() {
+      if (!pc || !pc.remoteDescription) return;
+      while (queuedCandidates.length > 0) {
+        const candidate = queuedCandidates.shift();
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch(e) {
+          console.warn('drain candidate error', e);
+        }
+      }
+    }
+
     function createPeerConnection(callId) {
       if (pc) {
         try { pc.close(); } catch(e){}
@@ -133,12 +171,14 @@ const webrtcHtml = `
 
       pc.ontrack = (event) => {
         const remoteAudio = document.getElementById('remoteAudio');
-        if (event.streams && event.streams[0]) {
-          remoteAudio.srcObject = event.streams[0];
-        } else {
-          remoteAudio.srcObject = new MediaStream([event.track]);
+        if (remoteAudio) {
+          if (event.streams && event.streams[0]) {
+            remoteAudio.srcObject = event.streams[0];
+          } else {
+            remoteAudio.srcObject = new MediaStream([event.track]);
+          }
+          remoteAudio.play().catch(e => console.warn('Remote play error', e));
         }
-        remoteAudio.play().catch(e => console.warn('Remote play error', e));
         sendToNative({ type: 'REMOTE_STREAM_READY' });
       };
 
@@ -163,6 +203,8 @@ const webrtcHtml = `
         else if (action === 'START_OUTGOING_CALL') {
           initAudioContext();
           startOutgoingRing();
+          queuedCandidates = [];
+          pendingRemoteSdp = null;
           const { callId, callType } = payload;
           const stream = await acquireLocalMedia(callType);
           const peer = createPeerConnection(callId);
@@ -181,12 +223,14 @@ const webrtcHtml = `
         else if (action === 'ANSWER_INCOMING_CALL') {
           stopTones();
           const { callId, callType, remoteOffer } = payload;
+          const offerToUse = remoteOffer || pendingRemoteSdp;
           const stream = await acquireLocalMedia(callType);
           const peer = createPeerConnection(callId);
           stream.getTracks().forEach(track => peer.addTrack(track, stream));
 
-          if (remoteOffer) {
-            await peer.setRemoteDescription(new RTCSessionDescription(remoteOffer));
+          if (offerToUse) {
+            await peer.setRemoteDescription(new RTCSessionDescription(offerToUse));
+            await drainQueuedCandidates();
           }
           const answer = await peer.createAnswer();
           await peer.setLocalDescription(answer);
@@ -195,18 +239,24 @@ const webrtcHtml = `
 
         else if (action === 'SET_REMOTE_SDP') {
           const { sdp } = payload;
+          pendingRemoteSdp = sdp;
           if (pc && sdp) {
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            await drainQueuedCandidates();
           }
         }
 
         else if (action === 'ADD_ICE_CANDIDATE') {
           const { candidate } = payload;
-          if (pc && candidate) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch(e) {
-              console.warn('addIceCandidate error', e);
+          if (candidate) {
+            if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              } catch(e) {
+                console.warn('addIceCandidate error', e);
+              }
+            } else {
+              queuedCandidates.push(candidate);
             }
           }
         }
@@ -221,6 +271,8 @@ const webrtcHtml = `
         else if (action === 'END_CALL') {
           stopTones();
           playEndTone();
+          queuedCandidates = [];
+          pendingRemoteSdp = null;
           if (localStream) {
             localStream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
             localStream = null;
@@ -242,6 +294,10 @@ const webrtcHtml = `
 
 export const WebRtcBridge = forwardRef(({ onMessage }, ref) => {
   const webViewRef = useRef(null);
+
+  const htmlSource = useMemo(() => {
+    return { html: buildWebRtcHtml(RINGTONE_OPPO_BASE64) };
+  }, []);
 
   useImperativeHandle(ref, () => ({
     sendMessage: (action, payload = {}) => {
@@ -268,12 +324,13 @@ export const WebRtcBridge = forwardRef(({ onMessage }, ref) => {
       <WebView
         ref={webViewRef}
         originWhitelist={["*"]}
-        source={{ html: webrtcHtml }}
+        source={htmlSource}
         mediaPlaybackRequiresUserAction={false}
         allowsInlineMediaPlayback
         javaScriptEnabled
         domStorageEnabled
         androidLayerType="hardware"
+        mediaCapturePermissionGrantType="grant"
         onMessage={handleMessage}
       />
     </View>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { AuthContext } from "../../contexts/AuthContext";
 import FastImage from "../FastImage";
 import { AvatarFrameWrap } from "../profile/AvatarFrame";
 import UserNameRow from "../profile/UserNameRow";
@@ -37,15 +39,29 @@ export default function ActiveCallModal({
 }) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { userInfo } = useContext(AuthContext);
 
   if (!visible || !call) return null;
 
-  const caller = call.caller || call.receiver || {};
-  const displayName = caller.name || caller.username || t("chatConversation.call", "Cuộc gọi");
+  // If current logged-in user initiated the call, show the remote receiver/participant
+  const isOutgoing =
+    (userInfo?.id && (call.caller?.id === userInfo.id || call.caller_id === userInfo.id)) ||
+    (userInfo?.username && call.caller?.username === userInfo.username);
+
+  const remotePeer = isOutgoing
+    ? (call.receiver || call.participant || {})
+    : (call.caller || {});
+
+  const displayName =
+    remotePeer.profile_name ||
+    remotePeer.name ||
+    remotePeer.username ||
+    t("chatConversation.call", "Cuộc gọi");
+
   const avatarUrl =
-    caller.avatar_url ||
-    (caller.username
-      ? `https://api.chuyenbienhoa.com/v1.0/users/${caller.username}/avatar`
+    remotePeer.avatar_url ||
+    (remotePeer.username
+      ? `https://api.chuyenbienhoa.com/v1.0/users/${remotePeer.username}/avatar`
       : null);
   const isVideo = call.type === "video";
 
@@ -57,6 +73,12 @@ export default function ActiveCallModal({
         onPress={onToggleMinimize}
         style={[styles.floatingPill, { top: insets.top + 10 }]}
       >
+        <LinearGradient
+          colors={["#166534", "#0a2916"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
         <View style={styles.pillAvatar}>
           {avatarUrl ? (
             <FastImage source={{ uri: avatarUrl }} style={styles.pillAvatarImg} />
@@ -88,7 +110,17 @@ export default function ActiveCallModal({
   // Full-Screen Active Call Screen
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 30 }]}>
+      <LinearGradient
+        colors={["#0c381c", "#072312", "#031209"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 30 }]}
+      >
+        <LinearGradient
+          colors={["rgba(34, 197, 94, 0.4)", "rgba(34, 197, 94, 0.08)", "transparent"]}
+          style={styles.ambientTopGlow}
+          pointerEvents="none"
+        />
         {/* Top bar with Minimize */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -107,7 +139,7 @@ export default function ActiveCallModal({
         {/* Center: Remote Participant Info & Timer */}
         <View style={styles.centerSection}>
           <View style={styles.avatarWrap}>
-            <AvatarFrameWrap size={130}>
+            <AvatarFrameWrap size={130} theme={remotePeer.profile_theme}>
               {avatarUrl ? (
                 <FastImage source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
               ) : (
@@ -120,11 +152,12 @@ export default function ActiveCallModal({
 
           <UserNameRow
             name={displayName}
+            theme={remotePeer.profile_theme}
             style={styles.callerName}
             containerStyle={{ justifyContent: "center", marginTop: 18 }}
           />
-          {caller.username && (
-            <Text style={styles.username}>@{caller.username}</Text>
+          {remotePeer.username && (
+            <Text style={styles.username}>@{remotePeer.username}</Text>
           )}
 
           <View style={styles.timerBadge}>
@@ -177,12 +210,19 @@ export default function ActiveCallModal({
             <Text style={styles.controlLabel}>{isSpeakerOn ? t("call.speakerOn", "Loa ngoài") : t("call.speaker", "Loa")}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  ambientTopGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+  },
   container: {
     flex: 1,
     backgroundColor: "#0B130E",
@@ -300,6 +340,7 @@ const styles = StyleSheet.create({
   floatingPill: {
     position: "absolute",
     right: 16,
+    overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(20, 30, 24, 0.94)",

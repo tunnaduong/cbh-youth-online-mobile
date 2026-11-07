@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AppState, DeviceEventEmitter } from "react-native";
 import { AuthContext } from "./AuthContext";
 import { getEcho } from "../services/echo/echo";
 import {
@@ -15,6 +16,7 @@ import {
   endCall as endCallApi,
   sendCallSignal as sendCallSignalApi,
   getIceServers as getIceServersApi,
+  getActiveCall as getActiveCallApi,
 } from "../services/call/callService";
 import {
   startRingtoneVibration,
@@ -52,6 +54,7 @@ export const CallProvider = ({ children }) => {
   const timerRef = useRef(null);
   const activeCallRef = useRef(null);
   const conversationChannelRef = useRef(null);
+  const pendingRemoteOfferRef = useRef(null);
 
   useEffect(() => {
     activeCallRef.current = activeCall;
@@ -89,6 +92,7 @@ export const CallProvider = ({ children }) => {
 
   // Cleanup helper
   const cleanupCallState = useCallback(() => {
+    pendingRemoteOfferRef.current = null;
     stopTimer();
     stopRingtoneVibration();
     bridgeRef.current?.sendMessage("END_CALL");
@@ -175,11 +179,71 @@ export const CallProvider = ({ children }) => {
     channel.listen(".call.signaled", (data) => {
       if (data?.type === "candidate") {
         bridgeRef.current?.sendMessage("ADD_ICE_CANDIDATE", { candidate: data.payload });
-      } else if (data?.type === "answer" || data?.type === "offer") {
+      } else if (data?.type === "offer") {
+        pendingRemoteOfferRef.current = data.payload;
+        bridgeRef.current?.sendMessage("SET_REMOTE_SDP", { sdp: data.payload });
+      } else if (data?.type === "answer") {
         bridgeRef.current?.sendMessage("SET_REMOTE_SDP", { sdp: data.payload });
       }
     });
   }, [cleanupCallState, startTimer]);
+
+  // Listen for incoming call push events (from foreground/background push notification tap)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("INCOMING_CALL_PUSH", (pushData) => {
+      const call = pushData?.call || pushData;
+      if (!call || activeCallRef.current) return;
+
+      setActiveCall(call);
+      setCallType(call.type || "audio");
+      setCallStatus("ringing");
+      startRingtoneVibration();
+      bridgeRef.current?.sendMessage("START_INCOMING_RING");
+
+      if (call.conversation_id) {
+        joinConversationPresence(call.conversation_id, call.id);
+      }
+    });
+
+    return () => sub.remove();
+  }, [joinConversationPresence]);
+
+  // Check active calls when app resumes or logs in
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const checkActiveCalls = async () => {
+      try {
+        if (activeCallRef.current) return;
+        const res = await getActiveCallApi();
+        const call = res?.data?.call;
+        if (call && (call.status === "ringing" || call.status === "accepted") && !activeCallRef.current) {
+          setActiveCall(call);
+          setCallType(call.type || "audio");
+          setCallStatus(call.status === "accepted" ? "connected" : "ringing");
+          if (call.status === "ringing") {
+            startRingtoneVibration();
+            bridgeRef.current?.sendMessage("START_INCOMING_RING");
+          } else {
+            startTimer();
+          }
+          if (call.conversation_id) {
+            joinConversationPresence(call.conversation_id, call.id);
+          }
+        }
+      } catch (e) {}
+    };
+
+    checkActiveCalls();
+
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        checkActiveCalls();
+      }
+    });
+
+    return () => sub.remove();
+  }, [isLoggedIn, joinConversationPresence, startTimer]);
 
   // Actions
   const startCall = useCallback(
@@ -233,6 +297,7 @@ export const CallProvider = ({ children }) => {
       bridgeRef.current?.sendMessage("ANSWER_INCOMING_CALL", {
         callId: call.id,
         callType,
+        remoteOffer: pendingRemoteOfferRef.current,
       });
 
       await answerCallApi(call.id);
