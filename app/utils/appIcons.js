@@ -14,25 +14,25 @@ export const PRESET_APP_ICONS = [
   {
     key: "ios_default",
     nameKey: "appIcon.preset.ios_default",
-    source: require("../assets/cbh-youth-iOS-Default-1024x1024@1x.png"),
+    source: require("../assets/cbh-youth-iOS-Default-1024x1024.png"),
     tag: "Light",
   },
   {
     key: "ios_dark",
     nameKey: "appIcon.preset.ios_dark",
-    source: require("../assets/cbh-youth-iOS-Dark-1024x1024@1x.png"),
+    source: require("../assets/cbh-youth-iOS-Dark-1024x1024.png"),
     tag: "Dark",
   },
   {
     key: "ios_clearlight",
     nameKey: "appIcon.preset.ios_clearlight",
-    source: require("../assets/cbh-youth-iOS-ClearLight-1024x1024@1x.png"),
+    source: require("../assets/cbh-youth-iOS-ClearLight-1024x1024.png"),
     tag: "Clear",
   },
   {
     key: "ios_cleardark",
     nameKey: "appIcon.preset.ios_cleardark",
-    source: require("../assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"),
+    source: require("../assets/cbh-youth-iOS-ClearDark-1024x1024.png"),
     tag: "Clear Dark",
   },
   {

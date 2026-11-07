@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Fix OTA Channel Downgrade Bug & Metro Asset Resolution**:
+  - **OTA Channel Downgrade Bug**: Fixed update availability check in `otaService.js` (`checkUpdateAvailable` and `downloadAndApplyUpdate`). Enforced that upstream build numbers must be strictly higher (`upstreamBuildNumber > currentActiveBuild`) to be eligible for update. Prevents clients on a higher build (e.g. preview) switching to an older production build from seeing a false "equal build" update prompt.
+  - **Asset Resolution Fix**: Resolved Metro bundling error in `appIcons.js` by dropping explicit `@1x` scale suffix from image require paths (`cbh-youth-iOS-Default-1024x1024.png`, `cbh-youth-iOS-Dark-1024x1024.png`, etc.) allowing Metro's asset resolver to match physical files properly.
+
 - **Settings Option to Change App Icon & Custom Square Crop Upload**:
   - Added App Icon customization under Settings (`AppIconScreen.js`).
   - **Presets from assets**: CYO Default Frog (`icon.png`), CYO Classic (`cbh-youth-iOS-Default`), CYO Dark (`cbh-youth-iOS-Dark`), Clear Light (`cbh-youth-iOS-ClearLight`), Clear Dark (`cbh-youth-iOS-ClearDark`), Christmas Edition (`christmas-ios.png`), New Year 2026 (`2026-ios.png`), and School Crest (`school-logo-removebg.png`).

@@ -375,9 +375,16 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         };
       }
 
-      // Upstream OTA version must be at least as new as the installed native APK.
-      // If build numbers match or upstream is higher, allow the update if it's a different update ID.
-      // If upstream build is lower than native base APK, block it (cannot downgrade below base APK).
+      // Upstream OTA version must be strictly newer than the active running build
+      // (and at least as new as the installed native APK).
+      // Only strictly higher build numbers can be upgraded. If equal or lower, client is up to date.
+      if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
+        console.log(
+          `[OTA Native] Upstream build (${upstreamBuildNumber}) <= active build (${currentActiveBuild}). No upgrade available.`
+        );
+        return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+      }
+
       if (upstreamBuildNumber > 0 && currentNativeBuild > 0 && upstreamBuildNumber < currentNativeBuild) {
         console.log(
           `[OTA Native] Upstream build (${upstreamBuildNumber}) < native build (${currentNativeBuild}). Blocking update downgrade.`
@@ -481,6 +488,15 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           };
         }
 
+        // Upstream OTA version must be strictly higher than the current active build.
+        // If equal or lower, client is already on this or a newer build (e.g. switching preview -> older production).
+        if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
+          console.log(
+            `[OTA HTTP] Upstream build (${upstreamBuildNumber}) <= active build (${currentActiveBuild}). No upgrade available.`
+          );
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+        }
+
         // Upstream OTA version must be at least as new as the installed native APK.
         if (upstreamBuildNumber > 0 && currentNativeBuild > 0 && upstreamBuildNumber < currentNativeBuild) {
           console.log(
@@ -578,7 +594,14 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
   const currentActiveBuild = getRunningOtaBuildNumber();
   const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
 
-  // Prevent downloading if the update is already currently running or is older than the base APK
+  // Prevent downloading if the update is not strictly higher than the running build or is older than the base APK
+  if (targetUpdateInfo?.buildNumber && currentActiveBuild > 0 && targetUpdateInfo.buildNumber <= currentActiveBuild) {
+    console.log(
+      `[OTA] targetUpdateInfo.buildNumber (${targetUpdateInfo.buildNumber}) <= active build (${currentActiveBuild}). Blocking download.`
+    );
+    return { status: "up_to_date", channel };
+  }
+
   if (targetUpdateInfo?.buildNumber && currentNativeBuild > 0 && targetUpdateInfo.buildNumber < currentNativeBuild) {
     console.log(
       `[OTA] targetUpdateInfo.buildNumber (${targetUpdateInfo.buildNumber}) < native build (${currentNativeBuild}). Blocking download downgrade.`
