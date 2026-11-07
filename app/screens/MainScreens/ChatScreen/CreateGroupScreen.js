@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: "600", flex: 1, textAlign: "center" },
   createText: { fontSize: 16, fontWeight: "600" },
-  nameBox: { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 },
+  nameBox: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 },
   ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   nameInput: { flex: 1, fontSize: 16 },
   sectionLabel: {

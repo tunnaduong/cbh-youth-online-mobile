@@ -356,6 +356,9 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Fix ReferenceError: Property 'theme' doesn't exist in module-level StyleSheet declarations**:
+  - Removed accidental references to `theme` in `StyleSheet.create` blocks in `CreateGroupScreen.js` and `WithdrawScreen.js` that caused runtime crashes during initial bundle module loading.
+
 - **Comprehensive App-wide Modern Screen Redesign (All 42+ Screens & Sub-screens)**:
   - Redesigned and standardized every screen, sub-screen, dialog modal, and settings flow across the mobile app to follow the unified CYO ambient design language (top green ambient glow `#E8F8EA` / `rgba(20, 83, 45, 0.40)`, floating `LiquidButton` + fading header, card radius 16–18, `theme.surface` tokens only, localized strings):
     - **Chat Ecosystem**: `GroupInfoScreen.js` (replaced legacy `arrow-back` 20 with `chevron-back` 24, `theme.primary` title, ambient glow, `AndroidGlassBackdrop`, modernized permissions & rename modal), `MediaGalleryScreen.js` (ambient glow, `theme.primary` title), `NewConversationScreen.js` (ambient glow, search pill), `CreateGroupScreen.js` & `AddGroupMembersScreen.js` (ambient glow, `chevron-back` 24, header `LiquidButton` create action, modern input card), `SeenByModal.js` (`theme.surface` card, border).

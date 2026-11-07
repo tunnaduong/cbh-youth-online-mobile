@@ -141,7 +141,7 @@ export default function WithdrawScreen({ navigation }) {
           <Label theme={theme} text={t("wallet.withdrawScreen.accountHolderLabel")} />
           <TextInput value={accountHolder} onChangeText={setAccountHolder} autoCapitalize="characters" placeholder={t("wallet.withdrawScreen.accountHolderPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
           <View style={[styles.notice, { backgroundColor: theme.surface }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>{t("wallet.withdrawScreen.notice")}</Text></View>
-          <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? t("wallet.withdrawScreen.submitting") : t("wallet.withdrawScreen.submit")}</Text></TouchableOpacity>
+          <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, { backgroundColor: theme.primary }, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? t("wallet.withdrawScreen.submitting") : t("wallet.withdrawScreen.submit")}</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancel}><Text style={[styles.cancelText, { color: theme.subText }]}>{t("wallet.withdrawScreen.cancel")}</Text></TouchableOpacity>
         </View>
       </Animated.ScrollView>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   helper: { fontSize: 12, marginTop: 7 },
   notice: { flexDirection: "row", gap: 8, padding: 12, borderRadius: 12, marginTop: 20, marginBottom: 18 },
   noticeText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  submit: { minHeight: 52, borderRadius: 13, backgroundColor: theme.primary, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
+  submit: { minHeight: 52, borderRadius: 13, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   submitText: { color: "#fff", fontWeight: "800", fontSize: 15 },
   cancel: { alignItems: "center", padding: 14 },
   cancelText: { fontWeight: "700" },
