@@ -1242,6 +1242,7 @@
     "liquidGlassEffect": "Liquid glass effect",
     "shakeToReport": "Shake phone to report a problem",
     "blockedUsers": "Blocked Users",
+    "appIcon": "App Icon",
     "appUpdates": "App Updates",
     "about": "About",
     "debugConsole": "Debug Console",
@@ -2468,5 +2469,36 @@
     "loggedOutOthers": "Logged out of all other devices",
     "loadError": "Couldn't load the device list.",
     "showing": "Showing the {{shown}} most recent of {{total}} logins."
+  },
+  "appIcon": {
+    "title": "App Icon",
+    "activeBadge": "Currently Active",
+    "customSection": "Custom Upload",
+    "presets": "Preset Collection",
+    "custom": "Custom Icon",
+    "yourCustomIcon": "Your Custom Icon",
+    "noCustomYet": "No custom icon uploaded yet",
+    "upload": "Upload New Image",
+    "changeCustom": "Change Image",
+    "cropNote": "Image will be cropped to 1:1 square",
+    "updatedTitle": "App Icon Changed",
+    "updatedDesc": "The app icon has been updated.",
+    "customSetTitle": "Custom Icon Applied",
+    "customSetDesc": "Square 1:1 icon was saved successfully.",
+    "permissionDenied": "The app needs photo library access to choose an icon.",
+    "cropFailed": "Could not crop and save the icon. Please try again.",
+    "removeConfirmTitle": "Remove Custom Icon?",
+    "removeConfirmDesc": "The app will revert to the default preset icon.",
+    "removedTitle": "Custom Icon Removed",
+    "preset": {
+      "default": "Default CYO Frog",
+      "ios_default": "CYO Classic",
+      "ios_dark": "CYO Dark",
+      "ios_clearlight": "Clear Light",
+      "ios_cleardark": "Clear Dark",
+      "christmas": "Christmas",
+      "newyear_2026": "New Year 2026",
+      "school": "School Crest"
+    }
   }
 }

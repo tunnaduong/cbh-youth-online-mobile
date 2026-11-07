@@ -1230,6 +1230,7 @@
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
     "shakeToReport": "Lắc điện thoại để báo cáo sự cố",
     "blockedUsers": "Người dùng đã chặn",
+    "appIcon": "Biểu tượng ứng dụng",
     "appUpdates": "Cập nhật ứng dụng",
     "about": "Giới thiệu",
     "debugConsole": "Bảng debug",
@@ -2455,5 +2456,36 @@
     "loggedOutOthers": "Đã đăng xuất khỏi tất cả thiết bị khác",
     "loadError": "Không tải được danh sách thiết bị.",
     "showing": "Đang hiển thị {{shown}} trên {{total}} lượt đăng nhập gần nhất."
+  },
+  "appIcon": {
+    "title": "Biểu tượng ứng dụng",
+    "activeBadge": "Đang được kích hoạt",
+    "customSection": "Tự tải lên",
+    "presets": "Bộ sưu tập mặc định",
+    "custom": "Biểu tượng tùy chỉnh",
+    "yourCustomIcon": "Ảnh tùy chỉnh của bạn",
+    "noCustomYet": "Chưa có biểu tượng tải lên",
+    "upload": "Tải lên ảnh mới",
+    "changeCustom": "Đổi ảnh khác",
+    "cropNote": "Ảnh sẽ tự động cắt theo tỉ lệ vuông 1:1",
+    "updatedTitle": "Đã đổi biểu tượng",
+    "updatedDesc": "Biểu tượng ứng dụng đã được cập nhật.",
+    "customSetTitle": "Đã áp dụng biểu tượng tùy chỉnh",
+    "customSetDesc": "Biểu tượng vuông 1:1 đã được lưu thành công.",
+    "permissionDenied": "Ứng dụng cần quyền truy cập ảnh để chọn biểu tượng.",
+    "cropFailed": "Không thể cắt và lưu biểu tượng. Vui lòng thử lại.",
+    "removeConfirmTitle": "Xóa biểu tượng tùy chỉnh?",
+    "removeConfirmDesc": "Ứng dụng sẽ quay về biểu tượng mặc định ban đầu.",
+    "removedTitle": "Đã xóa biểu tượng tùy chỉnh",
+    "preset": {
+      "default": "Ếch CYO mặc định",
+      "ios_default": "CYO Classic",
+      "ios_dark": "CYO Dark",
+      "ios_clearlight": "Trong suốt Sáng",
+      "ios_cleardark": "Trong suốt Tối",
+      "christmas": "Giáng sinh",
+      "newyear_2026": "Năm mới 2026",
+      "school": "Huy hiệu trường"
+    }
   }
 }

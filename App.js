@@ -106,6 +106,7 @@ import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 import ProfileCustomizerScreen from "./app/screens/MainScreens/ProfileCustomizerScreen";
 import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
+import AppIconScreen from "./app/screens/MainScreens/SettingsScreen/AppIconScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -971,6 +972,13 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="BlockedUsersScreen"
                 component={BlockedUsersScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="AppIconScreen"
+                component={AppIconScreen}
                 options={{
                   headerShown: false,
                 }}

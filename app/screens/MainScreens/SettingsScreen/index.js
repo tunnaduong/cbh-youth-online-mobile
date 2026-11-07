@@ -328,6 +328,11 @@ export default function SettingsScreen({ navigation }) {
             onPress={setShakeToReportEnabled}
           />
           <SettingItem
+            icon="images-outline"
+            title={t("settings.appIcon", "Biểu tượng ứng dụng")}
+            onPress={() => navigation.navigate("AppIconScreen")}
+          />
+          <SettingItem
             icon="ban-outline"
             title={t("settings.blockedUsers")}
             onPress={() => navigation.navigate("BlockedUsersScreen")}

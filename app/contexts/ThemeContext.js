@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
 import { Appearance, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
+import { getAppIconSource } from "../utils/appIcons";
 
 export const ThemeContext = createContext();
 
@@ -82,6 +83,14 @@ export const ThemeProvider = ({ children }) => {
     return storage.getBoolean("chatLiteEnabled") ?? false;
   });
 
+  const [appIcon, setAppIconState] = useState(() => {
+    return storage.getString("app_icon_key") || "default";
+  });
+
+  const [customAppIconUri, setCustomAppIconUriState] = useState(() => {
+    return storage.getString("custom_app_icon_uri") || null;
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
@@ -145,6 +154,30 @@ export const ThemeProvider = ({ children }) => {
     storage.set("chatLiteEnabled", value);
   }, []);
 
+  const setAppIcon = useCallback((key) => {
+    setAppIconState(key);
+    storage.set("app_icon_key", key);
+  }, []);
+
+  const setCustomAppIcon = useCallback((uri) => {
+    setCustomAppIconUriState(uri);
+    if (uri) {
+      storage.set("custom_app_icon_uri", uri);
+      setAppIconState("custom");
+      storage.set("app_icon_key", "custom");
+    } else {
+      storage.delete("custom_app_icon_uri");
+      if (storage.getString("app_icon_key") === "custom") {
+        setAppIconState("default");
+        storage.set("app_icon_key", "default");
+      }
+    }
+  }, []);
+
+  const appIconSource = useMemo(() => {
+    return getAppIconSource(appIcon, customAppIconUri);
+  }, [appIcon, customAppIconUri]);
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   const value = useMemo(
@@ -164,6 +197,11 @@ export const ThemeProvider = ({ children }) => {
       setShakeToReportEnabled,
       chatLiteEnabled,
       setChatLiteEnabled,
+      appIcon,
+      setAppIcon,
+      customAppIconUri,
+      setCustomAppIcon,
+      appIconSource,
     }),
     [
       isDarkMode,
@@ -180,6 +218,11 @@ export const ThemeProvider = ({ children }) => {
       setShakeToReportEnabled,
       chatLiteEnabled,
       setChatLiteEnabled,
+      appIcon,
+      setAppIcon,
+      customAppIconUri,
+      setCustomAppIcon,
+      appIconSource,
     ]
   );
 

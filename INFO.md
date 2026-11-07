@@ -356,6 +356,14 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Settings Option to Change App Icon & Custom Square Crop Upload**:
+  - Added App Icon customization under Settings (`AppIconScreen.js`).
+  - **Presets from assets**: CYO Default Frog (`icon.png`), CYO Classic (`cbh-youth-iOS-Default`), CYO Dark (`cbh-youth-iOS-Dark`), Clear Light (`cbh-youth-iOS-ClearLight`), Clear Dark (`cbh-youth-iOS-ClearDark`), Christmas Edition (`christmas-ios.png`), New Year 2026 (`2026-ios.png`), and School Crest (`school-logo-removebg.png`).
+  - **Custom Image Upload**: Integrated `expo-image-picker` with `aspect: [1, 1]` and `expo-image-manipulator` to enforce 1:1 square crop dimension, persisting the resulting square icon file to the local documents directory via `expo-file-system/legacy`.
+  - **Persistence & ThemeContext**: Sourced synchronously via MMKV (`app_icon_key`, `custom_app_icon_uri`) in `ThemeContext.js` with `setAppIcon`, `setCustomAppIcon`, and `appIconSource`.
+  - **i18n**: Localized all strings across `vi.json`, `en.json`, and `ru.json`.
+  - **Syntax verified**: All modified and new files compiled cleanly with Babel `babel-preset-expo`.
+
 - **Comprehensive App-wide Screen Modernization & Brand Redesign**:
   - **Menu Screen (`Sidebar.js`)**: Redesigned to match the primary tab look (Home, Explore, Chat, Notifications) with dynamic green ambient glow (`LinearGradient`), CYO frog mascot + radiating doodle action lines (`assets/logo.png`), screen title with sparkle star `✦`, green subtitle, search bar with clear action, Facebook-style profile card with user avatar and badges, 2-column shortcut grid, and grouped section cards.
   - **Point Wallet Sub-screens**: Modernized `DepositScreen.js` and `WithdrawScreen.js` with ambient green top glow, `theme.primary` titles, `chevron-back` (size 24) on floating `LiquidButton`, quick amount preset chips (20k, 50k, 100k, 200k, 500k), and elevated `theme.surface` cards.
