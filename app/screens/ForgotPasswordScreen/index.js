@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import ProgressHUD from "../../components/ProgressHUD";
 import { forgotPassword } from "../../services/api/Api";
 import { useTranslation } from "react-i18next";
@@ -75,17 +74,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <AuthBackground />
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: (insets?.top || 0) + 140, zIndex: 0 }}
-        pointerEvents="none"
-      />
       <ProgressHUD loadText={t("forgotPassword.loading")} visible={loading} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

@@ -14,7 +14,6 @@ import {
   Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -477,7 +476,7 @@ const StudyMaterialScreen = ({ navigation }) => {
               <TouchableOpacity
                 key={filter.key}
                 onPress={() => setSelectedFilter(filter.key)}
-                style={[styles.chip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.surface, borderColor: theme.border }]}
+                style={[styles.chip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
               >
                 <Text style={[styles.chipText, active ? { color: "#fff" } : { color: theme.text }]}>{t(`studyMaterial.filters.${filter.labelKey}`)}</Text>
               </TouchableOpacity>
@@ -490,7 +489,7 @@ const StudyMaterialScreen = ({ navigation }) => {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
               onPress={() => setSelectedCategory(null)}
-              style={[styles.categoryChip, !selectedCategory ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.surface, borderColor: theme.border }]}
+              style={[styles.categoryChip, !selectedCategory ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
             >
               <Text style={[styles.categoryChipText, !selectedCategory ? { color: "#fff" } : { color: theme.text }]}>{t("studyMaterial.filters.all")}</Text>
             </TouchableOpacity>
@@ -500,7 +499,7 @@ const StudyMaterialScreen = ({ navigation }) => {
                 <TouchableOpacity
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
-                  style={[styles.categoryChip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  style={[styles.categoryChip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 >
                   <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>{getCategoryLabel(category)}</Text>
                 </TouchableOpacity>

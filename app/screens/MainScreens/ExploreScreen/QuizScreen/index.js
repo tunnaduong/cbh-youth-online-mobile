@@ -13,7 +13,6 @@ import {
   Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -329,17 +328,6 @@ const QuizScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View
         style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
         pointerEvents="box-none"
@@ -387,7 +375,7 @@ const QuizScreen = ({ navigation, route }) => {
                 {t("quiz.subtitle", "Trả lời câu hỏi trắc nghiệm do AI tạo ra, thử thách kiến thức của bạn.")}
               </Text>
 
-              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.cardLabel, { color: theme.text }]}>
                   {t("quiz.questionCount", "Số câu hỏi")}
                 </Text>
@@ -529,7 +517,7 @@ const QuizScreen = ({ navigation, route }) => {
               </View>
 
               <TouchableOpacity
-                style={[styles.customQuizCard, { backgroundColor: theme.surface }]}
+                style={[styles.customQuizCard, { backgroundColor: theme.cardBackground || theme.iconBackground }]}
                 onPress={() => navigation.navigate("CustomQuizCreateScreen")}
               >
                 <View style={[styles.customQuizIcon, { backgroundColor: `${theme.primary}1A` }]}>
@@ -603,7 +591,7 @@ const QuizScreen = ({ navigation, route }) => {
                 />
               </View>
 
-              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.questionIndex, { color: theme.subText }]}>
                   {t("quiz.questionIndex", "Câu {{current}}/{{total}}", {
                     current: currentIndex + 1,
@@ -766,7 +754,7 @@ const QuizScreen = ({ navigation, route }) => {
 
           {phase === "result" && result && quiz && (
             <View>
-              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.resultLabel, { color: theme.subText }]}>{t("quiz.result", "Kết quả")}</Text>
                 <View style={[styles.resultRing, { borderColor: theme.primary }]}>
                   <Text style={[styles.resultScore, { color: theme.primary }]}>
@@ -818,7 +806,7 @@ const QuizScreen = ({ navigation, route }) => {
                 return (
                   <View
                     key={q.id}
-                    style={[styles.resultQuestionCard, { backgroundColor: theme.surface }]}
+                    style={[styles.resultQuestionCard, { backgroundColor: theme.cardBackground || theme.iconBackground }]}
                   >
                     <View style={styles.resultQuestionHeader}>
                       <Ionicons
@@ -867,7 +855,6 @@ const QuizScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   header: {
     position: "absolute",
     top: 0,

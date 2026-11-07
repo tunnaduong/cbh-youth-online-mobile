@@ -1,8 +1,6 @@
 import React, { useState, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -53,54 +51,35 @@ const AddGroupMembersScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View
         style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
       >
         <LiquidButton providerId="AddGroupMembersScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          <Ionicons name="arrow-back" size={20} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
+          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
           numberOfLines={1}
         >
           {t("chatConversation.addMembers", "Thêm thành viên")}
         </Animated.Text>
-        <LiquidButton
-          size={44}
-          scrollY={scrollY}
-          providerId="AddGroupMembersScreen"
-          style={{ width: "auto", minWidth: 60, paddingHorizontal: 12 }}
-          onPress={handleAdd}
-          disabled={!canSubmit}
-        >
+        <TouchableOpacity onPress={handleAdd} disabled={!canSubmit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           {saving ? (
             <ActivityIndicator size="small" color={theme.primary} />
           ) : (
-            <Text style={[styles.addText, { color: canSubmit ? theme.primary : theme.subText }]}>
+            <Text style={[styles.addText, { color: canSubmit ? theme.primary : theme.placeholder }]}>
               {t("common.add", "Thêm")}
             </Text>
           )}
-        </LiquidButton>
+        </TouchableOpacity>
       </View>
 
-      <AndroidGlassBackdrop providerId="AddGroupMembersScreen" style={{ flex: 1 }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: headerHeight + 8, paddingBottom: 24 }}
       >
         <UserMultiSelectPicker
           selected={selected}
@@ -108,14 +87,12 @@ const AddGroupMembersScreen = ({ navigation, route }) => {
           excludeConversationId={conversationId}
         />
       </ScrollView>
-      </AndroidGlassBackdrop>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   header: {
     position: "absolute",
     top: 0,

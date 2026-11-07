@@ -19,8 +19,6 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -496,7 +494,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
           pointerEvents="box-none"
         >
           <LiquidButton providerId="GroupInfoScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            <Ionicons name="arrow-back" size={20} color={theme.primary} />
           </LiquidButton>
         </View>
         <ActivityIndicator size="large" color={theme.primary} />
@@ -508,17 +506,6 @@ const GroupInfoScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View
         style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
@@ -532,17 +519,15 @@ const GroupInfoScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={20} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
+          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
           numberOfLines={1}
         >
           {t("chatConversation.groupInfo", "Thông tin nhóm")}
         </Animated.Text>
-        <View style={{ width: 44 }} />
+        <View style={{ width: 36 }} />
       </View>
 
-      <AndroidGlassBackdrop providerId="GroupInfoScreen" style={{ flex: 1 }}>
       <FlatList
-        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 24 }}
         data={group.participants}
         keyExtractor={(item) => String(item.id)}
         onScroll={handleScroll}
@@ -785,7 +770,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
 
       <Modal visible={renameVisible} transparent animationType="fade" onRequestClose={() => setRenameVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.background }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>
               {t("chatConversation.renameGroup", "Đổi tên nhóm")}
             </Text>
@@ -829,7 +814,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
         onRequestClose={() => setPermissionsVisible(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.background }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>
               {t("chatConversation.manageGroup", "Quản lý nhóm")}
             </Text>
@@ -865,7 +850,6 @@ const GroupInfoScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
-      </AndroidGlassBackdrop>
     </View>
   );
 };
@@ -972,8 +956,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 32,
   },
-  modalBox: { width: "100%", borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 20 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
+  modalBox: { width: "100%", borderRadius: 16, padding: 20 },
   modalTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
   modalInput: {
     borderWidth: 1,

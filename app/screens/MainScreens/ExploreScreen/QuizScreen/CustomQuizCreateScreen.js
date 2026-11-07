@@ -13,7 +13,6 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -200,17 +199,6 @@ const CustomQuizCreateScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View
         style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
         pointerEvents="box-none"
@@ -224,7 +212,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
           <Ionicons name="chevron-back" size={22} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
+          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
           numberOfLines={1}
         >
           {t("customQuiz.title", "Tạo bộ đề tùy chỉnh")}
@@ -469,7 +457,6 @@ const CustomQuizCreateScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   header: {
     position: "absolute",
     top: 0,

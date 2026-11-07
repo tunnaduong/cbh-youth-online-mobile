@@ -15,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -455,17 +454,6 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
         <LiquidButton providerId="StudyMaterialDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -502,7 +490,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.heroCard, { backgroundColor: theme.surface }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name ? getCategoryLabel(material.category) : t("studyMaterial.material")}</Text>
             </View>
@@ -547,7 +535,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           </View>
 
           {pdfViewerUrl || officeViewerUrl ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
               <View style={[styles.webviewContainer, { borderColor: theme.border }]}>
                 <WebView
@@ -572,7 +560,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               </View>
             </View>
           ) : material?.preview_path ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
               <View style={[styles.webviewContainer, { borderColor: theme.border, height: 320, backgroundColor: isDarkMode ? "#18181B" : "#F3F4F6", overflow: "hidden" }]}>
                 <FastImage
@@ -585,13 +573,13 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           ) : null}
 
           {material.preview_content ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.summary")}</Text>
               <Text style={[styles.previewText, { color: theme.subText }]}>{material.preview_content}</Text>
             </View>
           ) : null}
 
-          <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.reviews")}</Text>
             <Text style={[styles.helperText, { color: theme.subText }]}>{t("studyMaterial.reviewHint")}</Text>
             <View style={styles.starsRow}>
@@ -624,7 +612,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           </View>
 
           {ratings.length > 0 ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.communityReviews")}</Text>
               {ratings.map((item) => {
                 const avatarUrl = item?.user?.username
@@ -671,7 +659,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         onRequestClose={() => setShowPurchaseModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: theme.surface }]}> 
+          <View style={[styles.modalCard, { backgroundColor: theme.cardBackground }]}> 
             <Text style={[styles.modalTitle, { color: theme.text }]}>{t("studyMaterial.purchaseTitle")}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>{t("studyMaterial.purchaseMessage", { title: material?.title, price: purchasePrice })}</Text>
             <View style={[styles.balanceBox, { backgroundColor: theme.primary + "12" }]}> 
@@ -705,7 +693,6 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   header: {
     flexDirection: "row",
     alignItems: "center",

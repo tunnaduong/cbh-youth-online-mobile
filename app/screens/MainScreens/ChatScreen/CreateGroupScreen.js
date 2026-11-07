@@ -10,8 +10,6 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -67,54 +65,35 @@ const CreateGroupScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View
         style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
       >
         <LiquidButton providerId="CreateGroupScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          <Ionicons name="arrow-back" size={20} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
+          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
           numberOfLines={1}
         >
           {t("chatConversation.createGroup", "Tạo nhóm")}
         </Animated.Text>
-        <LiquidButton
-          size={44}
-          scrollY={scrollY}
-          providerId="CreateGroupScreen"
-          style={{ width: "auto", minWidth: 60, paddingHorizontal: 12 }}
-          onPress={handleCreate}
-          disabled={!canCreate}
-        >
+        <TouchableOpacity onPress={handleCreate} disabled={!canCreate} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           {creating ? (
             <ActivityIndicator size="small" color={theme.primary} />
           ) : (
-            <Text style={[styles.createText, { color: canCreate ? theme.primary : theme.subText }]}>
+            <Text style={[styles.createText, { color: canCreate ? theme.primary : theme.placeholder }]}>
               {t("chatConversation.create", "Tạo")}
             </Text>
           )}
-        </LiquidButton>
+        </TouchableOpacity>
       </View>
 
-      <AndroidGlassBackdrop providerId="CreateGroupScreen" style={{ flex: 1 }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: headerHeight + 8, paddingBottom: 24 }}
       >
         <View style={[styles.nameBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <TextInput
@@ -133,7 +112,6 @@ const CreateGroupScreen = ({ navigation }) => {
 
         <UserMultiSelectPicker selected={selected} onChange={setSelected} />
       </ScrollView>
-      </AndroidGlassBackdrop>
     </View>
   );
 };
@@ -153,8 +131,16 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: "600", flex: 1, textAlign: "center" },
   createText: { fontSize: 16, fontWeight: "600" },
-  nameBox: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
+  nameBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 48,
+  },
   nameInput: { flex: 1, fontSize: 16 },
   sectionLabel: {
     fontSize: 13,

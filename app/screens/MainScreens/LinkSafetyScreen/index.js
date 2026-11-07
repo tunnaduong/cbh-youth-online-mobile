@@ -12,8 +12,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { LinearGradient } from "expo-linear-gradient";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -104,18 +102,7 @@ const LinkSafetyScreen = ({ navigation, route }) => {
 
   if (!url || !parts) {
     return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
-        pointerEvents="none"
-      />
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {Header}
         <View
           style={{

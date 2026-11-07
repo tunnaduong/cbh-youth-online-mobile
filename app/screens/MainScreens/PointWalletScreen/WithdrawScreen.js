@@ -96,22 +96,11 @@ export default function WithdrawScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <LiquidButton providerId="WithdrawScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
           {t("wallet.withdrawScreen.title")}
         </Animated.Text>
         <View style={{ width: 44 }} />
@@ -126,7 +115,7 @@ export default function WithdrawScreen({ navigation }) {
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.approxVnd", { value: `${formatNumber(balance?.vnd, lang)} VND` })}</Text>
           </View>
         </LinearGradient>
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <Text style={[styles.title, { color: theme.text }]}>{t("wallet.withdrawScreen.formTitle")}</Text>
           <Text style={[styles.description, { color: theme.subText }]}>{t("wallet.withdrawScreen.formDescription")}</Text>
           <Label theme={theme} text={t("wallet.withdrawScreen.amountLabel")} />
@@ -140,8 +129,8 @@ export default function WithdrawScreen({ navigation }) {
           <TextInput value={bankName} onChangeText={setBankName} placeholder={t("wallet.withdrawScreen.bankNamePlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
           <Label theme={theme} text={t("wallet.withdrawScreen.accountHolderLabel")} />
           <TextInput value={accountHolder} onChangeText={setAccountHolder} autoCapitalize="characters" placeholder={t("wallet.withdrawScreen.accountHolderPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
-          <View style={[styles.notice, { backgroundColor: theme.surface }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>{t("wallet.withdrawScreen.notice")}</Text></View>
-          <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, { backgroundColor: theme.primary }, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? t("wallet.withdrawScreen.submitting") : t("wallet.withdrawScreen.submit")}</Text></TouchableOpacity>
+          <View style={[styles.notice, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC" }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>{t("wallet.withdrawScreen.notice")}</Text></View>
+          <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? t("wallet.withdrawScreen.submitting") : t("wallet.withdrawScreen.submit")}</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancel}><Text style={[styles.cancelText, { color: theme.subText }]}>{t("wallet.withdrawScreen.cancel")}</Text></TouchableOpacity>
         </View>
       </Animated.ScrollView>
@@ -154,7 +143,6 @@ function Label({ theme, text }) { return <Text style={[styles.label, { color: th
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 16, fontWeight: "700" },
@@ -172,7 +160,7 @@ const styles = StyleSheet.create({
   helper: { fontSize: 12, marginTop: 7 },
   notice: { flexDirection: "row", gap: 8, padding: 12, borderRadius: 12, marginTop: 20, marginBottom: 18 },
   noticeText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  submit: { minHeight: 52, borderRadius: 13, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
+  submit: { minHeight: 52, borderRadius: 13, backgroundColor: "#168348", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   submitText: { color: "#fff", fontWeight: "800", fontSize: 15 },
   cancel: { alignItems: "center", padding: 14 },
   cancelText: { fontWeight: "700" },

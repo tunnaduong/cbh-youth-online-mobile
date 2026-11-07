@@ -17,7 +17,6 @@ import {
 } from "react-native";
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
@@ -179,17 +178,6 @@ export default function BlockedUsersScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
-        pointerEvents="none"
-      />
       
       {/* Floating header */}
       <View
@@ -249,7 +237,7 @@ export default function BlockedUsersScreen({ navigation }) {
           contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
         >
           {blockedUsers.map((user) => (
-            <View key={user.id} style={[styles.userItem, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, marginHorizontal: 16, marginBottom: 8, padding: 12 }]}>
+            <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: 12 }}>
                 <FastImage
                   source={{ uri: user.profile?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}

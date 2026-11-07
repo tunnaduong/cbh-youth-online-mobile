@@ -9,7 +9,6 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { getStoryViewers } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
@@ -91,7 +90,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.viewerItem, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, marginHorizontal: 16, marginBottom: 8 }]}
+        style={[styles.viewerItem, { borderBottomColor: theme.border }]}
         onPress={() => {
           navigation.navigate("ProfileScreen", {
             username: item.username,
@@ -129,17 +128,6 @@ const StoryViewersScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
-        pointerEvents="none"
-      />
       {/* Floating header: glass back button appears once the list scrolls under it */}
       <View pointerEvents="box-none" style={styles.headerWrap}>
         <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
@@ -184,8 +172,10 @@ const StoryViewersScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  ambientGlow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 0 },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: {
     flexDirection: "row",
