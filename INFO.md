@@ -356,6 +356,9 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **OTA Updates: Bump minimum native binary build required to 1050** (`app.json`, `INFO.md`):
+  - Bumped `expo.extra.minNativeBuild` in `app.json` from `1045` to `1050`. Base APK installations older than build 1050 will be required to install the new APK before receiving subsequent OTA bundles.
+
 - **Fix Sequential OTA Upgrades, Colorful Progress Modal & Modern Ambient Redesign for Menu & Forum** (`app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/components/Sidebar.js`, `app/screens/MainScreens/ForumScreen/index.js`, `app/i18n/locales/*.json`, `INFO.md`, sibling `cbh-youth-online-api`):
   - **Sequential OTA Bug Fix (API & Client)**: Resolved an issue where updating OTA twice on a single base APK install caused the second upgrade to load the old bundle index.js despite reporting success. Updated `cbh-youth-online-api/app/Http/Controllers/OtaController.php` so `launchAsset.key` is dynamically hashed to its unique content hash (`$bundleHash`) rather than generic string `"bundle"`, preventing native SQLite caching from reusing older bundle disk files. Updated `otaService.js` to allow sequential updates with the same build number or higher as long as `manifest.id !== runningUpdateId` and `upstreamBuildNumber >= currentNativeBuild`.
   - **Vibrant Colorful OTA Download Modal**: Revamped `UpdatePromptModal.js` with top ambient light-green glow, smooth animated progress tracking with real-time percentage badge (`0%` -> `100%`), and a colorful gradient progress bar (`["#10B981", "#06B6D4", "#3B82F6"]`) in a rounded pill track. Added localized `"downloadProgress"` string across Vietnamese, English, and Russian.
