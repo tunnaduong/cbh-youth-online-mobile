@@ -41,6 +41,7 @@ import StickerSheet from "./StickerSheet";
 import MentionSheet from "./MentionSheet";
 import LinkSheet from "./LinkSheet";
 import MusicSheet from "./MusicSheet";
+import LiquidButton from "../../../components/LiquidButton";
 import { StoryOverlayItemContent } from "../../../components/StoryOverlays/StoryOverlayLayer";
 import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
 import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
@@ -197,45 +198,65 @@ const ToolsBar = ({
   onCycleGradient,
 }) => (
   <View style={styles.toolsContainer}>
-    <TouchableOpacity style={styles.toolButton} onPress={onAddText}>
-      <Ionicons name="text" size={24} color="#fff" />
+    <TouchableOpacity
+      style={styles.toolButton}
+      onPress={onAddText}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+    >
+      <Ionicons name="text" size={22} color="#fff" />
     </TouchableOpacity>
-    <TouchableOpacity style={styles.toolButton} onPress={onOpenStickers}>
-      <Ionicons name="happy-outline" size={24} color="#fff" />
+    <TouchableOpacity
+      style={styles.toolButton}
+      onPress={onOpenStickers}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+    >
+      <Ionicons name="happy-outline" size={22} color="#fff" />
     </TouchableOpacity>
     <TouchableOpacity
       style={[styles.toolButton, hasMusic && styles.activeToolButton]}
       onPress={onOpenMusic}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
     >
-      <Ionicons name="musical-notes" size={24} color="#fff" />
+      <Ionicons name="musical-notes" size={22} color={hasMusic ? "#4ADE80" : "#fff"} />
+      {hasMusic && <View style={styles.activeDot} />}
     </TouchableOpacity>
     {!isTextOnly && (
       <>
         <TouchableOpacity
           style={[styles.toolButton, isDrawing && styles.activeToolButton]}
           onPress={onToggleDrawing}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Ionicons name="brush" size={24} color="#fff" />
+          <Ionicons name="brush" size={22} color={isDrawing ? "#4ADE80" : "#fff"} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.toolButton, filtersVisible && styles.activeToolButton]}
           onPress={onToggleFilters}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Ionicons name="color-filter-outline" size={24} color="#fff" />
+          <Ionicons name="color-filter-outline" size={22} color={filtersVisible ? "#4ADE80" : "#fff"} />
         </TouchableOpacity>
       </>
     )}
     {isTextOnly && (
-      <TouchableOpacity style={styles.toolButton} onPress={onCycleGradient}>
-        <Ionicons name="color-palette-outline" size={24} color="#fff" />
+      <TouchableOpacity
+        style={styles.toolButton}
+        onPress={onCycleGradient}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      >
+        <Ionicons name="color-palette-outline" size={22} color="#fff" />
       </TouchableOpacity>
     )}
     {selectedMediaType === "video" && (
-      <TouchableOpacity style={styles.toolButton} onPress={toggleMute}>
+      <TouchableOpacity
+        style={[styles.toolButton, isMuted && styles.activeToolButton]}
+        onPress={toggleMute}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      >
         <Ionicons
           name={isMuted ? "volume-mute-outline" : "volume-high-outline"}
-          size={24}
-          color="#fff"
+          size={22}
+          color={isMuted ? "#EF4444" : "#fff"}
         />
       </TouchableOpacity>
     )}
@@ -245,8 +266,6 @@ const ToolsBar = ({
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
-  // The editor is black whatever the theme.
-  useStatusBarStyle("light-content", "#000000");
   const insets = useSafeAreaInsets();
 
   // Media
@@ -257,6 +276,14 @@ const CreateStoryScreen = ({ navigation }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isTextOnly, setIsTextOnly] = useState(false);
   const [textBackground, setTextBackground] = useState(GRADIENTS[0].colors);
+
+  const hasContent = Boolean(originalImage || isTextOnly);
+
+  // Status bar: light text over black in editor mode, themed in picker mode
+  useStatusBarStyle(
+    hasContent ? "light-content" : (isDarkMode ? "light-content" : "dark-content"),
+    hasContent ? "#000000" : theme.background
+  );
 
   // Overlays
   const [items, setItems] = useState([]);
@@ -297,7 +324,6 @@ const CreateStoryScreen = ({ navigation }) => {
     return { w: size.width, h: size.height };
   }, [contentAreaHeight]);
 
-  const hasContent = Boolean(originalImage || isTextOnly);
   const isVideo = selectedMediaType === "video";
 
   /**
@@ -1098,33 +1124,95 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <View
-          style={{ marginTop: insets.top }}
-          className="flex-row items-center justify-center px-4 py-2 h-[50px]"
-        >
-          <TouchableOpacity
-            style={{ position: "absolute", left: 10 }}
-            onPress={handleBackPress}
-            disabled={isUploading}
+      <View style={{ flex: 1, backgroundColor: hasContent ? "#000" : theme.background }}>
+        {/* Top Header */}
+        {hasContent ? (
+          <View
+            style={{
+              paddingTop: insets.top,
+              height: 56 + insets.top,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              backgroundColor: "rgba(0,0,0,0.4)",
+            }}
           >
-            <Ionicons
-              name={isDrawing || hasContent ? "close" : "arrow-back"}
-              size={28}
-              color={theme.text}
-            />
-          </TouchableOpacity>
-          <Text style={{ color: theme.text }} className="text-lg font-semibold">
-            {isDrawing
-              ? t("story.draw")
-              : isTextOnly
-              ? t("story.textContent")
-              : hasContent
-              ? t("story.edit")
-              : t("story.createStory")}
-          </Text>
-          {headerRightButton}
-        </View>
+            <TouchableOpacity
+              style={styles.headerGlassButton}
+              onPress={handleBackPress}
+              disabled={isUploading}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+
+            <View style={styles.headerCenterPill}>
+              <Text style={styles.headerCenterText}>
+                {isDrawing
+                  ? t("story.draw")
+                  : isTextOnly
+                  ? t("story.textContent")
+                  : t("story.edit")}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.headerActionPill,
+                { backgroundColor: isDrawing ? "rgba(255,255,255,0.2)" : theme.primary },
+                (!hasContent || isUploading) && { opacity: 0.6 }
+              ]}
+              onPress={() => (isDrawing ? saveDrawing() : uploadStory())}
+              disabled={!hasContent || isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.headerActionText}>
+                    {isDrawing ? t("story.done") : t("story.share")}
+                  </Text>
+                  {!isDrawing && (
+                    <Ionicons name="arrow-forward" size={15} color="#fff" style={{ marginLeft: 4 }} />
+                  )}
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View
+            style={{
+              paddingTop: insets.top,
+              height: 56 + insets.top,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+            }}
+          >
+            <View style={{ width: 44 }}>
+              <LiquidButton size={44} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
+            </View>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 18,
+                fontWeight: "600",
+                color: theme.primary,
+                textAlign: "center",
+                flex: 1,
+              }}
+            >
+              {t("story.createStory", "Tạo tin")}
+            </Text>
+            <View style={{ width: 44 }} />
+          </View>
+        )}
 
         <View
           style={{ flex: 1 }}
@@ -1290,65 +1378,226 @@ const CreateStoryScreen = ({ navigation }) => {
                   )}
 
                   <TrashZone visible={isDraggingItem} isOver={isOverTrash} t={t} />
+
+                  {/* Modern Bottom Action Bar */}
+                  {!showFilters && !isDraggingItem && (
+                    <View
+                      style={[
+                        styles.bottomActionBar,
+                        { paddingBottom: Math.max(insets.bottom, 12) }
+                      ]}
+                      pointerEvents="box-none"
+                    >
+                      <TouchableOpacity
+                        style={styles.bottomSecondaryButton}
+                        onPress={() => (Platform.OS === "ios" ? handleExitIOS("content") : handleExitAndroid("content"))}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#fff" />
+                      </TouchableOpacity>
+
+                      {music ? (
+                        <TouchableOpacity
+                          style={styles.bottomMusicTag}
+                          onPress={() => setActiveSheet("music")}
+                        >
+                          <Ionicons name="musical-notes" size={15} color="#4ADE80" />
+                          <Text numberOfLines={1} style={styles.bottomMusicText}>
+                            {music.title || music.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={{ flex: 1 }} />
+                      )}
+
+                      <TouchableOpacity
+                        style={[styles.bottomShareButton, { backgroundColor: theme.primary }]}
+                        onPress={uploadStory}
+                        disabled={isUploading}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="paper-plane" size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.bottomShareText}>{t("story.shareStory", "Chia sẻ lên Tin")}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </>
               )}
             </View>
           ) : (
-            <>
-              <View className="flex-row items-center justify-center py-5 gap-4 mx-2">
-                <TouchableHighlight
-                  onPress={handleCameraPress}
-                  className="flex-1 rounded-xl"
-                  underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
-                >
-                  <View
-                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
-                    className="items-center justify-center h-[100px] rounded-xl border-2"
-                  >
-                    <Ionicons
-                      name="camera-outline"
-                      size={40}
-                      color={theme.text}
-                      style={{ marginBottom: 3 }}
-                    />
-                    <Text style={{ color: theme.text }} className="text-md font-semibold">
-                      {t("story.takePhotoOrVideo")}
-                    </Text>
-                  </View>
-                </TouchableHighlight>
-                <TouchableHighlight
-                  onPress={handleTextOnlyStory}
-                  className="flex-1 rounded-xl"
-                  underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
-                >
-                  <View
-                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
-                    className="items-center justify-center h-[100px] rounded-xl border-2"
-                  >
-                    <Ionicons
-                      name="text-outline"
-                      size={40}
-                      color={theme.text}
-                      style={{ marginBottom: 3 }}
-                    />
-                    <Text style={{ color: theme.text }} className="text-md font-semibold">
-                      {t("story.text")}
-                    </Text>
-                  </View>
-                </TouchableHighlight>
-              </View>
-              <TouchableOpacity
-                style={[styles.imagePicker, { backgroundColor: theme.background }]}
-                onPress={pickImage}
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingTop: 14,
+                paddingBottom: insets.bottom + 28,
+              }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Header Hero Banner */}
+              <LinearGradient
+                colors={
+                  isDarkMode
+                    ? ["rgba(49, 149, 39, 0.22)", "rgba(20, 30, 20, 0.55)"]
+                    : ["rgba(49, 149, 39, 0.12)", "rgba(240, 253, 244, 0.7)"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.heroBanner,
+                  { borderColor: isDarkMode ? "rgba(76, 175, 80, 0.25)" : "rgba(49, 149, 39, 0.2)" }
+                ]}
               >
-                <View style={styles.imagePickerContent}>
-                  <Ionicons name="image" size={40} color={theme.text} />
-                  <Text style={[styles.imagePickerText, { color: theme.text }]}>
-                    {t("story.pickPhotoOrVideo")}
+                <View style={[styles.heroBadge, { backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.2)" : "rgba(49, 149, 39, 0.12)" }]}>
+                  <Ionicons name="sparkles" size={13} color={theme.primary} />
+                  <Text style={[styles.heroBadgeText, { color: theme.primary }]}>
+                    24 GIỜ
                   </Text>
                 </View>
+                <Text style={[styles.heroTitle, { color: theme.text }]}>
+                  {t("story.createStory", "Tạo tin mới")}
+                </Text>
+                <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
+                  {t("story.heroSubtitle", "Chia sẻ hình ảnh, video và khoảnh khắc đáng nhớ đến bạn bè trong trường.")}
+                </Text>
+              </LinearGradient>
+
+              {/* 3 Creation Mode Cards */}
+              <Text style={[styles.sectionHeading, { color: theme.subText }]}>
+                {t("story.selectCreationMode", "CHỌN CÁCH TẠO TIN")}
+              </Text>
+
+              {/* 1. Gallery Pick (Featured) */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[
+                  styles.modeCard,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                  }
+                ]}
+                onPress={pickImage}
+              >
+                <LinearGradient
+                  colors={["#10B981", "#059669"]}
+                  style={styles.modeIconCircle}
+                >
+                  <Ionicons name="images" size={26} color="#fff" />
+                </LinearGradient>
+                <View style={styles.modeCardBody}>
+                  <View style={styles.modeCardTitleRow}>
+                    <Text style={[styles.modeCardTitle, { color: theme.text }]}>
+                      {t("story.galleryTitle", "Thư viện thiết bị")}
+                    </Text>
+                    <View style={[styles.popularBadge, { backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.12)" }]}>
+                      <Text style={[styles.popularBadgeText, { color: "#10B981" }]}>
+                        Phổ biến
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.modeCardDesc, { color: theme.subText }]}>
+                    {t("story.gallerySubtitle", "Chọn ảnh hoặc video có sẵn từ album của bạn")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.subText} />
               </TouchableOpacity>
-            </>
+
+              {/* 2. Camera Card */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[
+                  styles.modeCard,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                  }
+                ]}
+                onPress={handleCameraPress}
+              >
+                <LinearGradient
+                  colors={["#3B82F6", "#2563EB"]}
+                  style={styles.modeIconCircle}
+                >
+                  <Ionicons name="camera" size={26} color="#fff" />
+                </LinearGradient>
+                <View style={styles.modeCardBody}>
+                  <Text style={[styles.modeCardTitle, { color: theme.text }]}>
+                    {t("story.cameraTitle", "Máy ảnh & Quay phim")}
+                  </Text>
+                  <Text style={[styles.modeCardDesc, { color: theme.subText }]}>
+                    {t("story.cameraSubtitle", "Chụp ảnh hoặc quay video trực tiếp")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+              </TouchableOpacity>
+
+              {/* 3. Text Story Card */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[
+                  styles.modeCard,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                  }
+                ]}
+                onPress={handleTextOnlyStory}
+              >
+                <LinearGradient
+                  colors={GRADIENTS[0].colors}
+                  style={styles.modeIconCircle}
+                >
+                  <Ionicons name="text" size={26} color="#fff" />
+                </LinearGradient>
+                <View style={styles.modeCardBody}>
+                  <Text style={[styles.modeCardTitle, { color: theme.text }]}>
+                    {t("story.textStoryTitle", "Tin dạng chữ")}
+                  </Text>
+                  <Text style={[styles.modeCardDesc, { color: theme.subText }]}>
+                    {t("story.textStorySubtitle", "Tự do sáng tạo với chữ nghệ thuật & hình nền chuyển sắc")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+              </TouchableOpacity>
+
+              {/* Feature Highlights Grid */}
+              <View style={[styles.featureBox, { backgroundColor: theme.surface, borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}>
+                <View style={styles.featureBoxHeader}>
+                  <Ionicons name="color-palette-outline" size={17} color={theme.primary} />
+                  <Text style={[styles.featureBoxTitle, { color: theme.text }]}>
+                    {t("story.creativeTools", "Công cụ sáng tạo")}
+                  </Text>
+                </View>
+                <Text style={[styles.featureBoxDesc, { color: theme.subText }]}>
+                  {t("story.creativeToolsDesc", "Tất cả tính năng đã sẵn sàng để bạn tùy biến câu chuyện của mình:")}
+                </Text>
+                <View style={styles.featureGrid}>
+                  {[
+                    { icon: "musical-notes", label: "Nhạc nền hot", color: "#EC4899" },
+                    { icon: "color-filter", label: "12+ Bộ lọc màu", color: "#8B5CF6" },
+                    { icon: "brush", label: "Bút vẽ & Cọ", color: "#F59E0B" },
+                    { icon: "happy", label: "Sticker & Tag", color: "#06B6D4" },
+                  ].map((feat, idx) => (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.featureChip,
+                        {
+                          backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                          borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                        }
+                      ]}
+                    >
+                      <Ionicons name={feat.icon} size={15} color={feat.color} />
+                      <Text style={[styles.featureChipText, { color: theme.text }]}>
+                        {feat.label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
           )}
         </View>
 
@@ -1394,41 +1643,280 @@ const CreateStoryScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  imagePicker: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#1a1a1a",
-  },
-  imagePickerContent: {
-    alignItems: "center",
+  // Initial Picker Screen Styles
+  heroBanner: {
+    borderRadius: 22,
     padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    overflow: "hidden",
   },
-  imagePickerText: {
-    color: "#fff",
-    marginTop: 10,
+  heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sectionHeading: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  modeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  modeIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  modeCardBody: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+  },
+  modeCardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 3,
+  },
+  modeCardTitle: {
     fontSize: 16,
+    fontWeight: "600",
   },
+  modeCardDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  popularBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  popularBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  featureBox: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  featureBoxHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  featureBoxTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  featureBoxDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  featureGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  featureChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexGrow: 1,
+  },
+  featureChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+
+  // Editor Top Header Styles
+  headerGlassButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerCenterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  headerCenterText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  headerActionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerActionText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  // Editor Tools Styles
   toolsContainer: {
     position: "absolute",
-    right: 10,
-    top: "50%",
-    transform: [{ translateY: -120 }],
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 12,
-    padding: 8,
+    right: 12,
+    top: "38%",
+    transform: [{ translateY: -110 }],
+    backgroundColor: "rgba(18,18,18,0.72)",
+    borderRadius: 24,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   toolButton: {
     width: 40,
     height: 40,
     justifyContent: "center",
     alignItems: "center",
-    marginVertical: 4,
+    marginVertical: 3,
     borderRadius: 20,
   },
   activeToolButton: {
-    backgroundColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#4ADE80",
+  },
+
+  // Bottom Floating Action Bar
+  bottomActionBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  bottomSecondaryButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bottomMusicTag: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  bottomMusicText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 6,
+    flex: 1,
+  },
+  bottomShareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    height: 44,
+    borderRadius: 22,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  bottomShareText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
   mediaPreviewContainer: {
     overflow: "hidden",
     backgroundColor: "#000",
@@ -1439,7 +1927,7 @@ const styles = StyleSheet.create({
   },
   trashZone: {
     position: "absolute",
-    bottom: 40,
+    bottom: 74,
     alignSelf: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
