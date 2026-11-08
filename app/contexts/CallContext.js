@@ -170,14 +170,14 @@ export const CallProvider = ({ children }) => {
       bridgeRef.current?.sendMessage("START_INCOMING_RING");
       sendCallSignalApi(call.id, "ringing", {}).catch(() => {});
 
-      // Auto-disconnect callee after 60s if not answered
+      // Auto-disconnect callee after 45s if not answered
       clearRingingTimeout();
       ringingTimeoutRef.current = setTimeout(() => {
         if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log("[CallContext] Callee 60s timeout without answer -> stop ringing");
+          console.log("[CallContext] Callee 45s timeout without answer -> stop ringing");
           cleanupCallState();
         }
-      }, 60000);
+      }, 45000);
 
       // Join conversation presence channel to listen for call progression
       if (call.conversation_id) {
@@ -239,8 +239,8 @@ export const CallProvider = ({ children }) => {
 
           clearRingingTimeout();
           ringingTimeoutRef.current = setTimeout(() => {
-            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing")) {
-              console.log("[CallContext] 60s timeout without answer -> auto end call");
+            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing" || callStatusRef.current === "ringingOutward")) {
+              console.log("[CallContext] 45s ringing timeout without answer -> auto end call");
               Toast.show({
                 type: "info",
                 text1: "Người nhận không trả lời",
@@ -248,7 +248,7 @@ export const CallProvider = ({ children }) => {
               });
               endCall();
             }
-          }, 60000);
+          }, 45000);
         }
         return;
       } else if (data?.type === "candidate") {
@@ -275,14 +275,14 @@ export const CallProvider = ({ children }) => {
       startRingtoneVibration();
       bridgeRef.current?.sendMessage("START_INCOMING_RING");
 
-      // Auto-disconnect callee after 60s if not answered
+      // Auto-disconnect callee after 45s if not answered
       clearRingingTimeout();
       ringingTimeoutRef.current = setTimeout(() => {
         if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log("[CallContext] Callee 60s timeout without answer -> stop ringing");
+          console.log("[CallContext] Callee 45s timeout without answer -> stop ringing");
           cleanupCallState();
         }
-      }, 60000);
+      }, 45000);
 
       if (call.conversation_id) {
         joinConversationPresence(call.conversation_id, call.id);
@@ -322,14 +322,14 @@ export const CallProvider = ({ children }) => {
             startRingtoneVibration();
             bridgeRef.current?.sendMessage("START_INCOMING_RING");
 
-      // Auto-disconnect callee after 60s if not answered
+      // Auto-disconnect callee after 45s if not answered
       clearRingingTimeout();
       ringingTimeoutRef.current = setTimeout(() => {
         if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log("[CallContext] Callee 60s timeout without answer -> stop ringing");
+          console.log("[CallContext] Callee 45s timeout without answer -> stop ringing");
           cleanupCallState();
         }
-      }, 60000);
+      }, 45000);
           } else {
             startTimer();
           }
@@ -390,6 +390,21 @@ export const CallProvider = ({ children }) => {
         };
         setActiveCall(placeholderCall);
 
+        // 10s connection timeout: If backend/server cannot initiate or connect within 10s
+        clearConnectingTimeout();
+        clearRingingTimeout();
+        connectingTimeoutRef.current = setTimeout(() => {
+          if (callStatusRef.current === "calling") {
+            console.log("[CallContext] Callee unreachable / server connect timeout after 10s.");
+            Toast.show({
+              type: "info",
+              text1: "Không thể kết nối đến người kia",
+              visibilityTime: 3000,
+            });
+            endCall();
+          }
+        }, 10000);
+
         const res = await initiateCallApi(conversationId, type);
         const callData = res?.data?.call || res?.data;
         const callId = callData?.id;
@@ -399,20 +414,20 @@ export const CallProvider = ({ children }) => {
           setActiveCall(updatedCall);
           setCallStatus("ringingOutward");
           joinConversationPresence(conversationId, callId);
-          // 10s connection timeout: Try connecting to callee for 10s
+          // 45s ringing timeout for outgoing call
           clearConnectingTimeout();
           clearRingingTimeout();
-          connectingTimeoutRef.current = setTimeout(() => {
-            if (callStatusRef.current === "calling" || callStatusRef.current === "ringingOutward") {
-              console.log("[CallContext] Callee unreachable after 10s.");
+          ringingTimeoutRef.current = setTimeout(() => {
+            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing" || callStatusRef.current === "ringingOutward")) {
+              console.log("[CallContext] 45s ringing timeout without answer -> auto end call");
               Toast.show({
                 type: "info",
-                text1: "Không thể kết nối đến người kia",
-                visibilityTime: 3000,
+                text1: "Người nhận không trả lời",
+                visibilityTime: 2500,
               });
               endCall();
             }
-          }, 10000);
+          }, 45000);
         }
       } catch (err) {
         console.error("[CallContext] initiateCall error:", err);

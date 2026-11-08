@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Text, TouchableOpacity, View, BackHandler, Platform } from "react-native";
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -40,28 +40,6 @@ export const SavedAccountList = ({ excludeUserId, onSwitched, showAdd = true, ti
     try {
       await switchAccount(account);
       onSwitched?.();
-
-      Alert.alert(
-        t("ota.updateCompleteTitle", "Cập nhật hoàn tất!"),
-        t("ota.updateCompleteMessage", "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục."),
-        [
-          {
-            text: t("common.ok", "OK"),
-            onPress: () => {
-              if (Platform.OS === "android") {
-                BackHandler.exitApp();
-              }
-            },
-          },
-        ],
-        { cancelable: false }
-      );
-
-      if (Platform.OS === "android") {
-        setTimeout(() => {
-          BackHandler.exitApp();
-        }, 3000);
-      }
     } catch (e) {
       Toast.show({ type: "error", text1: t("sidebar.sessionExpired") });
       load();
