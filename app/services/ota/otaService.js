@@ -516,7 +516,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
 
         // Check timestamps against active/embedded update ONLY if build numbers are equal
         // (if upstream build number is strictly higher, it is always newer).
-        if (upstreamBuildNumber === effectiveCurrentBuild) {
+        if (upstreamBuildNumber === currentActiveBuild) {
           const serverTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
           const runningTime = Updates.createdAt ? new Date(Updates.createdAt).getTime() : 0;
           const storedTime = storage.getNumber("ota_active_created_at") || 0;
