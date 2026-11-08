@@ -105,8 +105,8 @@
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
+        "foregroundImage": "./app/assets/cbh-youth-default-android.png",
+        "backgroundColor": "#F4FBF7",
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
@@ -220,7 +220,7 @@
             "name": "Dark",
             "ios": "./app/assets/cbh-youth-dark.png",
             "android": {
-              "foregroundImage": "./app/assets/cbh-youth-dark.png",
+              "foregroundImage": "./app/assets/cbh-youth-dark-android.png",
               "backgroundColor": "#0F261D"
             }
           },
@@ -228,7 +228,7 @@
             "name": "ClearDark",
             "ios": "./app/assets/cbh-youth-cleardark.png",
             "android": {
-              "foregroundImage": "./app/assets/cbh-youth-cleardark.png",
+              "foregroundImage": "./app/assets/cbh-youth-cleardark-android.png",
               "backgroundColor": "#121212"
             }
           },
@@ -236,7 +236,7 @@
             "name": "ClearLight",
             "ios": "./app/assets/cbh-youth-clearlight.png",
             "android": {
-              "foregroundImage": "./app/assets/cbh-youth-clearlight.png",
+              "foregroundImage": "./app/assets/cbh-youth-clearlight-android.png",
               "backgroundColor": "#ffffff"
             }
           },
@@ -244,7 +244,7 @@
             "name": "TintedDark",
             "ios": "./app/assets/cbh-youth-tinteddark.png",
             "android": {
-              "foregroundImage": "./app/assets/cbh-youth-tinteddark.png",
+              "foregroundImage": "./app/assets/cbh-youth-tinteddark-android.png",
               "backgroundColor": "#0F261D"
             }
           },
@@ -252,7 +252,7 @@
             "name": "TintedLight",
             "ios": "./app/assets/cbh-youth-tintedlight.png",
             "android": {
-              "foregroundImage": "./app/assets/cbh-youth-tintedlight.png",
+              "foregroundImage": "./app/assets/cbh-youth-tintedlight-android.png",
               "backgroundColor": "#E8F5E9"
             }
           },
@@ -272,7 +272,7 @@
               "tinted": "./app/assets/ios-tinted.png"
             },
             "android": {
-              "foregroundImage": "./app/assets/adaptive-icon.png",
+              "foregroundImage": "./app/assets/classic-android.png",
               "backgroundColor": "#ffffff"
             }
           },
@@ -296,7 +296,7 @@
             "name": "SchoolCrest",
             "ios": "./app/assets/school-logo-removebg.png",
             "android": {
-              "foregroundImage": "./app/assets/school-logo-removebg.png",
+              "foregroundImage": "./app/assets/school-crest-android.png",
               "backgroundColor": "#ffffff"
             }
           }

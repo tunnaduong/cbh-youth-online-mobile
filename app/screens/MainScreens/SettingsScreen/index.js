@@ -137,7 +137,11 @@ export default function SettingsScreen({ navigation }) {
 
   if (!userInfo) return null;
 
-  const languageCode = i18n.language?.split("-")[0] || "vi";
+  const themeItemIcon = useSystemTheme
+    ? "contrast-outline"
+    : isDarkMode
+    ? "moon-outline"
+    : "sunny-outline";
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
   const currentThemeLabel = useSystemTheme
     ? `🌓 ${t("settings.auto")}`
@@ -255,7 +259,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
             <View style={styles.settingItemLeft}>
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name="moon-outline" size={20} color={theme.primary} />
+                <Ionicons name={themeItemIcon} size={20} color={theme.primary} />
               </View>
               <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
             </View>
