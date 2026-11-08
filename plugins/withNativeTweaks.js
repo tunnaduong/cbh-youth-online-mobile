@@ -110,6 +110,35 @@ const withStableDebugKeystore = (config) =>
     },
   ]);
 
+// Google Play Store builds (.aab) split strings and optimize/shrink resources, which
+// can cause '@string/expo_runtime_version' to fail resolving or return an unparsed resource ID
+// when expo-updates queries metadata, disabling OTA (Updates.isEnabled = false).
+// Writing the literal runtimeVersion and update URL directly into AndroidManifest.xml
+// guarantees expo-updates always validates successfully on Google Play installs.
+const withDirectUpdatesMetadata = (config) =>
+  withAndroidManifest(config, (cfg) => {
+    const mainApp = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
+    const runtimeVersion = cfg.runtimeVersion || "7.4.10";
+    const updateUrl = cfg.updates?.url || "https://api.chuyenbienhoa.com/v1.0/ota/manifest";
+
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      mainApp,
+      "expo.modules.updates.EXPO_RUNTIME_VERSION",
+      String(runtimeVersion)
+    );
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      mainApp,
+      "expo.modules.updates.EXPO_UPDATE_URL",
+      String(updateUrl)
+    );
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      mainApp,
+      "expo.modules.updates.ENABLED",
+      "true"
+    );
+    return cfg;
+  });
+
 const IMAGE_CLASSES_MARKER = "[withNativeTweaks] image module classes";
 
 // React Native's image modules ("ImageLoader", ...) are not in the class table
@@ -154,8 +183,10 @@ const withImageModuleClasses = (config) =>
   });
 
 module.exports = (config) =>
-  withImageModuleClasses(
-    withIncomingCallLockscreenFlags(
-      withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+  withDirectUpdatesMetadata(
+    withImageModuleClasses(
+      withIncomingCallLockscreenFlags(
+        withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+      )
     )
   );

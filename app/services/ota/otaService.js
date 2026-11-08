@@ -277,6 +277,27 @@ export function getRunningUpdateInfo() {
 }
 
 /**
+ * Reads and prints native expo-updates log entries for debugging initialization failures.
+ */
+export async function logNativeUpdatesLogs() {
+  try {
+    if (typeof Updates.readLogEntriesAsync === "function") {
+      const entries = await Updates.readLogEntriesAsync(86400000);
+      if (entries && entries.length > 0) {
+        console.warn(`[OTA Native Logs] Found ${entries.length} log entry(ies):`);
+        entries.slice(-10).forEach((entry) => {
+          console.warn(`[OTA Native Log] [${entry.code || "INFO"}] ${entry.message}`);
+        });
+      } else {
+        console.log("[OTA Native Logs] No entries found in expo-updates log.");
+      }
+    }
+  } catch (err) {
+    console.warn("[OTA Native Logs] Could not read native logs:", err?.message);
+  }
+}
+
+/**
  * Queries the self-hosted manifest or native expo-updates to check if an update is available.
  *
  * Implements intelligent checks:
@@ -532,6 +553,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
 
         if (!Updates.isEnabled) {
           console.log("[OTA] Updates.isEnabled is false in this environment.");
+          logNativeUpdatesLogs().catch(() => {});
           return { status: "disabled", isAvailable: false, channel };
         }
 
@@ -562,6 +584,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
   }
 
   if (!Updates.isEnabled) {
+    logNativeUpdatesLogs().catch(() => {});
     return { status: "disabled", isAvailable: false, channel };
   }
 
@@ -620,6 +643,7 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
 
   if (!Updates.isEnabled) {
     console.error("[OTA] Updates.isEnabled is false! Updates cannot be downloaded natively.");
+    logNativeUpdatesLogs().catch(() => {});
     return { status: "disabled", error: "Tính năng cập nhật không khả dụng trong bản build này." };
   }
 
