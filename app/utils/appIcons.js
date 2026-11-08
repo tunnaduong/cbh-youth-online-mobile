@@ -4,6 +4,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import { storage } from "../global/storage";
 import { checkAndExecuteForcedOtaUpdate } from "../services/ota/otaService";
+import i18n from "../i18n";
 
 // Dynamic import or optional require for native module
 let AlternateAppIcons = null;
@@ -295,7 +296,9 @@ export async function syncSeasonalLauncherIcon(axiosInstance = null) {
     // If server forced the icon change, alert the user using a native system toast
     // and local notification so they know the system icon changed.
     if (isForced) {
-      const noticeText = "Biểu tượng ứng dụng đã được thay đổi";
+      const noticeText = i18n?.t
+        ? i18n.t("appIcon.systemIconChanged", "Biểu tượng ứng dụng đã được thay đổi")
+        : "Biểu tượng ứng dụng đã được thay đổi";
 
       if (Platform.OS === "android") {
         try {

@@ -140,7 +140,11 @@ const Dropdown = ({
         onPress={() => setTempSelected(item)}
         activeOpacity={0.7}
       >
-        {itemIcon ? (
+        {React.isValidElement(item.icon) ? (
+          <View style={styles.optionIconContainer}>{item.icon}</View>
+        ) : item.iconComponent ? (
+          <View style={styles.optionIconContainer}>{item.iconComponent}</View>
+        ) : itemIcon ? (
           <View style={styles.optionIconContainer}>
             <Ionicons
               name={itemIcon}
@@ -216,6 +220,10 @@ const Dropdown = ({
         >
           {leftIcon ? (
             <View style={{ marginRight: 8 }}>{leftIcon}</View>
+          ) : selectedValue?.iconComponent ? (
+            <View style={{ marginRight: 8 }}>{selectedValue.iconComponent}</View>
+          ) : React.isValidElement(selectedValue?.icon) ? (
+            <View style={{ marginRight: 8 }}>{selectedValue.icon}</View>
           ) : isCategoryOrGrouped && selectedValue ? (
             <View style={{ marginRight: 8 }}>
               <Ionicons

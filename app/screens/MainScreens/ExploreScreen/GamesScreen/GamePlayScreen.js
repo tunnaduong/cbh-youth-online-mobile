@@ -92,15 +92,31 @@ export default function GamePlayScreen({ navigation, route }) {
   // The page itself stays on chuyenbienhoa.com - anything else is dropped.
   // Frames inside the page (the game, its ads) load what they like.
   const onShouldStartLoadWithRequest = useCallback((request) => {
+    // iOS explicitly sets isTopFrame: false for all iframes and embeds
     if (request.isTopFrame === false) return true;
     const url = request.url || "";
-    if (url.startsWith("about:")) return true;
+    if (url.startsWith("about:") || url.startsWith("blob:") || url.startsWith("data:")) return true;
     const parts = parseUrlParts(url);
-    return (
-      !!parts &&
-      parts.scheme === "https" &&
-      (parts.hostname === "chuyenbienhoa.com" || parts.hostname.endsWith(".chuyenbienhoa.com"))
-    );
+    if (!parts) return false;
+
+    // Allow CBH site domains
+    if (parts.scheme === "https" && (parts.hostname === "chuyenbienhoa.com" || parts.hostname.endsWith(".chuyenbienhoa.com"))) {
+      return true;
+    }
+
+    // Allow game frame hosts and embedded resources (especially on Android where isTopFrame is undefined)
+    const h = parts.hostname || "";
+    if (
+      h.includes("famobi.com") ||
+      h.includes("is-a.dev") ||
+      h.includes("github.io") ||
+      h.includes("google") ||
+      h.includes("gstatic")
+    ) {
+      return true;
+    }
+
+    return false;
   }, []);
 
   // Android's back button does the same before leaving the screen.

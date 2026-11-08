@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Vector Theme Dropdown Icons, Localized Icon Changed Toast & Game/Webview Load Fixes**:
+  - `SettingsScreen/index.js` & `Dropdown.js`: Replaced text emojis (`🌓`, `☀️`, `🌙`) with dedicated `MaterialCommunityIcons` vector icons (`theme-light-dark`, `weather-sunny`, `weather-night`) and custom accent colors.
+  - `appIcons.js`: Localized the forced app icon change toast and system notification (`appIcon.systemIconChanged`) across `vi.json`, `en.json`, and `ru.json`.
+  - `GamePlayScreen.js` & `WebAppScreen/index.js`: Fixed `onShouldStartLoadWithRequest` on Android to support game iframes (`famobi.com`, `is-a.dev`, `github.io`) and allowed all `*.chuyenbienhoa.com` subdomains to prevent webview loading failures.
+
 - **Remote Forced OTA Auto-Update Directives & Management**:
   - `otaService.js`: Added `checkAndExecuteForcedOtaUpdate(otaDirective)` and `syncRemoteOtaConfig(axiosInstance)`. When server sends `ota_update.force = true`, the client immediately checks and executes OTA download + reload, bypassing all client in-app disable toggles (`isOtaEnabled()`, `isStartupCheckEnabled()`).
   - Added native Android Toast (`ToastAndroid.showWithGravity`) and local notification banner alerts (`Notifications.scheduleNotificationAsync`) informing the user during download and automatic reload.

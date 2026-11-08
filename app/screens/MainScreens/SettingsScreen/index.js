@@ -10,7 +10,7 @@ import {
   Animated,
   StatusBar,
 } from "react-native";
-import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import { Ionicons, FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -137,18 +137,40 @@ export default function SettingsScreen({ navigation }) {
 
   if (!userInfo) return null;
 
-  const themeItemIcon = useSystemTheme
-    ? "contrast-outline"
-    : isDarkMode
-    ? "moon-outline"
-    : "sunny-outline";
   const languageCode = i18n.language?.split("-")[0] || "vi";
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
+
+  const currentThemeIcon = useSystemTheme ? (
+    <MaterialCommunityIcons name="theme-light-dark" size={18} color="#10B981" />
+  ) : isDarkMode ? (
+    <MaterialCommunityIcons name="weather-night" size={18} color="#8B5CF6" />
+  ) : (
+    <MaterialCommunityIcons name="weather-sunny" size={18} color="#F59E0B" />
+  );
+
   const currentThemeLabel = useSystemTheme
-    ? `🌓 ${t("settings.auto")}`
+    ? t("settings.auto")
     : isDarkMode
-    ? `🌙 ${t("settings.dark")}`
-    : `☀️ ${t("settings.light")}`;
+    ? t("settings.dark")
+    : t("settings.light");
+
+  const themeOptions = [
+    {
+      label: t("settings.auto"),
+      value: "system",
+      icon: <MaterialCommunityIcons name="theme-light-dark" size={20} color="#10B981" />,
+    },
+    {
+      label: t("settings.light"),
+      value: "light",
+      icon: <MaterialCommunityIcons name="weather-sunny" size={20} color="#F59E0B" />,
+    },
+    {
+      label: t("settings.dark"),
+      value: "dark",
+      icon: <MaterialCommunityIcons name="weather-night" size={20} color="#8B5CF6" />,
+    },
+  ];
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -260,24 +282,22 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
             <View style={styles.settingItemLeft}>
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name={themeItemIcon} size={20} color={theme.primary} />
+                {currentThemeIcon}
               </View>
               <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
             </View>
             <Dropdown
-              options={[
-                { label: `🌓 ${t("settings.auto")}`, value: "system" },
-                { label: `☀️ ${t("settings.light")}`, value: "light" },
-                { label: `🌙 ${t("settings.dark")}`, value: "dark" },
-              ]}
+              options={themeOptions}
               selectedValue={{
                 label: currentThemeLabel,
                 value: useSystemTheme ? "system" : isDarkMode ? "dark" : "light",
+                icon: currentThemeIcon,
               }}
               onValueChange={(item) => setThemeMode(item.value)}
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
               containerStyle={{ marginVertical: 0, minWidth: 100 }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
+              modalTitle={t("settings.theme")}
             />
           </View>
 
