@@ -637,7 +637,11 @@ const MessageRow = React.memo(({
               </MentionText>
             ) : null}
             {linkPreviewUrl ? (
-              <LinkPreviewCard url={linkPreviewUrl} compact style={{ marginTop: 8 }} />
+              <LinkPreviewCard
+                url={linkPreviewUrl}
+                compact
+                style={{ marginTop: 8, width: "100%", alignSelf: "stretch" }}
+              />
             ) : null}
           </Pressable>
           <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />

@@ -82,7 +82,13 @@ const SharedPostCard = ({ topic, compact = false, onPress }) => {
   if (!onPress) return body;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => (pressed ? { opacity: 0.8 } : null)}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        { width: "100%", alignSelf: "stretch" },
+        pressed ? { opacity: 0.8 } : null,
+      ]}
+    >
       {body}
     </Pressable>
   );
@@ -90,7 +96,9 @@ const SharedPostCard = ({ topic, compact = false, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
+    width: "100%",
     minWidth: 200,
+    alignSelf: "stretch",
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",

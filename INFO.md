@@ -356,6 +356,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Responsive Link & Post Preview Card Alignment in Chat Bubbles**:
+  - `LinkPreviewCard.js`: Replaced rigid `compact: { width: 240 }` with responsive `width: "100%", minWidth: 220, maxWidth: "100%", alignSelf: "stretch"`. When messages have long links or text, the preview card now stretches to 100% of the bubble interior symmetrically with equal padding instead of getting stuck at fixed 240px width with an awkward gap on the right.
+  - `SharedPostCard.js`: Added `width: "100%", alignSelf: "stretch"` ensuring shared post cards also stretch responsively to match bubble width.
+  - `MessageRow.js`: Passed `width: "100%", alignSelf: "stretch"` to preview card components.
+
+
 - **App.json minNativeBuild 1076 Bump & Temporary Calling Feature Gate**:
   - `app.json`: Bumped `expo.extra.minNativeBuild` to `1076` aligning base requirement with forced OTA build directive.
   - `app/services/call/callConfig.js`: Introduced master feature flag `CALL_FEATURES_ENABLED = false` to temporarily hide calling buttons, callback actions, active listeners, and modals before prod release while keeping the entire WebRTC codebase intact.

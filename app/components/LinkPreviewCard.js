@@ -147,11 +147,17 @@ const LinkPreviewCard = ({ url, compact = false, style }) => {
 
 const styles = StyleSheet.create({
   card: {
+    width: "100%",
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
-  compact: { width: 240 },
+  compact: {
+    width: "100%",
+    minWidth: 220,
+    maxWidth: "100%",
+    alignSelf: "stretch",
+  },
   pressed: { opacity: 0.8 },
   image: { width: "100%", aspectRatio: 1.91 },
   imageCompact: { aspectRatio: undefined, height: 126 },
