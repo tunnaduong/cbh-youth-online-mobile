@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Version 6.5.4 & Build 1096**:
+  - `app.json` and `package.json` version bumped to `6.5.4`.
+  - Android `versionCode` and iOS `buildNumber` set to `1096`.
+  - Updated fallback version string in `AppUpdatesScreen.js`.
+
 - **Fix OTA Manifest Direct Check ReferenceError**:
   - `app/services/ota/otaService.js`: Replaced obsolete variable `effectiveCurrentBuild` with `currentActiveBuild` in the HTTP manifest check. Prevents `ReferenceError: Property 'effectiveCurrentBuild' doesn't exist` from crashing the check and erroneously falling back to `status: "disabled"` on standalone builds.
 
