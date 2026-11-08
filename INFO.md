@@ -356,6 +356,14 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Story Overhaul Refinement, Bug Fixes & Design System Revamp**:
+  - `CreateStoryScreen/index.js`:
+    - **Header Navigation**: Replaced `LiquidButton` with a clean, borderless `TouchableOpacity` back button on the static initial creation header and removed the bottom border. Removed border from the editor's circular close button.
+    - **Bottom Action Bar**: Removed the crashing discard/trash button and the redundant music tag trigger next to it, streamlining the bar to a clean, thumb-reachable primary "Chia sẻ lên Tin" / "Share to Story" pill button.
+    - **Localization & Design Alignment**: Replaced hardcoded strings ("24 GIỜ", "Phổ biến", and creative tools chips) with localized keys (`heroHours`, `popularBadge`, `featMusic`, `featFilters`, `featDrawing`, `featStickers`) across `en.json`, `vi.json`, and `ru.json`. Updated creation cards and feature boxes to adhere strictly to CYO design system tokens (hairline `theme.border`, `theme.surface`, standard section heading typography).
+  - `StickerSheet.js`: Prevented horizontal `ScrollView` flex expansion (`style={{ flexGrow: 0 }}`) and tightened vertical spacing between the action buttons, sticker categories, and the sticker emoji grid.
+  - `StoryViewersScreen/index.js`: Replaced `ActivityIndicator` with `<CustomLoading size="medium" />`, removed legacy `providerId` props and old green gradient banner, and brought list rows and typography in line with design system tokens.
+
 - **Revamped Story Creation Experience & Editor UI (`CreateStoryScreen`)**:
   - `CreateStoryScreen/index.js`:
     - **Replaced raw boxy buttons with a modern creation hub**: Added an interactive Hero Banner ("Tạo tin mới · 24 Giờ"), three distinct creation cards with gradient icon circles (Gallery with 'Phổ biến' badge, Camera with direct capture, Text Story with gradient preview) and a creative tools feature showcase grid (Music, Filters, Drawing, Stickers).

@@ -41,7 +41,6 @@ import StickerSheet from "./StickerSheet";
 import MentionSheet from "./MentionSheet";
 import LinkSheet from "./LinkSheet";
 import MusicSheet from "./MusicSheet";
-import LiquidButton from "../../../components/LiquidButton";
 import { StoryOverlayItemContent } from "../../../components/StoryOverlays/StoryOverlayLayer";
 import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
 import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
@@ -1189,14 +1188,18 @@ const CreateStoryScreen = ({ navigation }) => {
               alignItems: "center",
               justifyContent: "space-between",
               paddingHorizontal: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
             }}
           >
             <View style={{ width: 44 }}>
-              <LiquidButton size={44} onPress={() => navigation.goBack()}>
+              <TouchableOpacity
+                style={styles.headerBackButton}
+                onPress={() => navigation.goBack()}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.back", "Quay lại")}
+              >
                 <Ionicons name="chevron-back" size={24} color={theme.primary} />
-              </LiquidButton>
+              </TouchableOpacity>
             </View>
             <Text
               numberOfLines={1}
@@ -1208,7 +1211,7 @@ const CreateStoryScreen = ({ navigation }) => {
                 flex: 1,
               }}
             >
-              {t("story.createStory", "Tạo tin")}
+              {t("story.createStory")}
             </Text>
             <View style={{ width: 44 }} />
           </View>
@@ -1384,32 +1387,10 @@ const CreateStoryScreen = ({ navigation }) => {
                     <View
                       style={[
                         styles.bottomActionBar,
-                        { paddingBottom: Math.max(insets.bottom, 12) }
+                        { paddingBottom: Math.max(insets.bottom, 14) }
                       ]}
                       pointerEvents="box-none"
                     >
-                      <TouchableOpacity
-                        style={styles.bottomSecondaryButton}
-                        onPress={() => (Platform.OS === "ios" ? handleExitIOS("content") : handleExitAndroid("content"))}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons name="trash-outline" size={20} color="#fff" />
-                      </TouchableOpacity>
-
-                      {music ? (
-                        <TouchableOpacity
-                          style={styles.bottomMusicTag}
-                          onPress={() => setActiveSheet("music")}
-                        >
-                          <Ionicons name="musical-notes" size={15} color="#4ADE80" />
-                          <Text numberOfLines={1} style={styles.bottomMusicText}>
-                            {music.title || music.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={{ flex: 1 }} />
-                      )}
-
                       <TouchableOpacity
                         style={[styles.bottomShareButton, { backgroundColor: theme.primary }]}
                         onPress={uploadStory}
@@ -1417,7 +1398,7 @@ const CreateStoryScreen = ({ navigation }) => {
                         activeOpacity={0.85}
                       >
                         <Ionicons name="paper-plane" size={16} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.bottomShareText}>{t("story.shareStory", "Chia sẻ lên Tin")}</Text>
+                        <Text style={styles.bottomShareText}>{t("story.shareStory")}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -1451,20 +1432,20 @@ const CreateStoryScreen = ({ navigation }) => {
                 <View style={[styles.heroBadge, { backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.2)" : "rgba(49, 149, 39, 0.12)" }]}>
                   <Ionicons name="sparkles" size={13} color={theme.primary} />
                   <Text style={[styles.heroBadgeText, { color: theme.primary }]}>
-                    24 GIỜ
+                    {t("story.heroHours")}
                   </Text>
                 </View>
                 <Text style={[styles.heroTitle, { color: theme.text }]}>
-                  {t("story.createStory", "Tạo tin mới")}
+                  {t("story.createStory")}
                 </Text>
                 <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
-                  {t("story.heroSubtitle", "Chia sẻ hình ảnh, video và khoảnh khắc đáng nhớ đến bạn bè trong trường.")}
+                  {t("story.heroSubtitle")}
                 </Text>
               </LinearGradient>
 
               {/* 3 Creation Mode Cards */}
               <Text style={[styles.sectionHeading, { color: theme.subText }]}>
-                {t("story.selectCreationMode", "CHỌN CÁCH TẠO TIN")}
+                {t("story.selectCreationMode")}
               </Text>
 
               {/* 1. Gallery Pick (Featured) */}
@@ -1474,7 +1455,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   styles.modeCard,
                   {
                     backgroundColor: theme.surface,
-                    borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                    borderColor: theme.border,
                   }
                 ]}
                 onPress={pickImage}
@@ -1488,16 +1469,16 @@ const CreateStoryScreen = ({ navigation }) => {
                 <View style={styles.modeCardBody}>
                   <View style={styles.modeCardTitleRow}>
                     <Text style={[styles.modeCardTitle, { color: theme.text }]}>
-                      {t("story.galleryTitle", "Thư viện thiết bị")}
+                      {t("story.galleryTitle")}
                     </Text>
                     <View style={[styles.popularBadge, { backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.12)" }]}>
                       <Text style={[styles.popularBadgeText, { color: "#10B981" }]}>
-                        Phổ biến
+                        {t("story.popularBadge")}
                       </Text>
                     </View>
                   </View>
                   <Text style={[styles.modeCardDesc, { color: theme.subText }]}>
-                    {t("story.gallerySubtitle", "Chọn ảnh hoặc video có sẵn từ album của bạn")}
+                    {t("story.gallerySubtitle")}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.subText} />
@@ -1510,7 +1491,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   styles.modeCard,
                   {
                     backgroundColor: theme.surface,
-                    borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                    borderColor: theme.border,
                   }
                 ]}
                 onPress={handleCameraPress}
@@ -1523,10 +1504,10 @@ const CreateStoryScreen = ({ navigation }) => {
                 </LinearGradient>
                 <View style={styles.modeCardBody}>
                   <Text style={[styles.modeCardTitle, { color: theme.text }]}>
-                    {t("story.cameraTitle", "Máy ảnh & Quay phim")}
+                    {t("story.cameraTitle")}
                   </Text>
                   <Text style={[styles.modeCardDesc, { color: theme.subText }]}>
-                    {t("story.cameraSubtitle", "Chụp ảnh hoặc quay video trực tiếp")}
+                    {t("story.cameraSubtitle")}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.subText} />
@@ -1539,7 +1520,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   styles.modeCard,
                   {
                     backgroundColor: theme.surface,
-                    borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                    borderColor: theme.border,
                   }
                 ]}
                 onPress={handleTextOnlyStory}
@@ -1552,32 +1533,32 @@ const CreateStoryScreen = ({ navigation }) => {
                 </LinearGradient>
                 <View style={styles.modeCardBody}>
                   <Text style={[styles.modeCardTitle, { color: theme.text }]}>
-                    {t("story.textStoryTitle", "Tin dạng chữ")}
+                    {t("story.textStoryTitle")}
                   </Text>
                   <Text style={[styles.modeCardDesc, { color: theme.subText }]}>
-                    {t("story.textStorySubtitle", "Tự do sáng tạo với chữ nghệ thuật & hình nền chuyển sắc")}
+                    {t("story.textStorySubtitle")}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.subText} />
               </TouchableOpacity>
 
               {/* Feature Highlights Grid */}
-              <View style={[styles.featureBox, { backgroundColor: theme.surface, borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}>
+              <View style={[styles.featureBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.featureBoxHeader}>
                   <Ionicons name="color-palette-outline" size={17} color={theme.primary} />
                   <Text style={[styles.featureBoxTitle, { color: theme.text }]}>
-                    {t("story.creativeTools", "Công cụ sáng tạo")}
+                    {t("story.creativeTools")}
                   </Text>
                 </View>
                 <Text style={[styles.featureBoxDesc, { color: theme.subText }]}>
-                  {t("story.creativeToolsDesc", "Tất cả tính năng đã sẵn sàng để bạn tùy biến câu chuyện của mình:")}
+                  {t("story.creativeToolsDesc")}
                 </Text>
                 <View style={styles.featureGrid}>
                   {[
-                    { icon: "musical-notes", label: "Nhạc nền hot", color: "#EC4899" },
-                    { icon: "color-filter", label: "12+ Bộ lọc màu", color: "#8B5CF6" },
-                    { icon: "brush", label: "Bút vẽ & Cọ", color: "#F59E0B" },
-                    { icon: "happy", label: "Sticker & Tag", color: "#06B6D4" },
+                    { icon: "musical-notes", label: t("story.featMusic"), color: "#EC4899" },
+                    { icon: "color-filter", label: t("story.featFilters"), color: "#8B5CF6" },
+                    { icon: "brush", label: t("story.featDrawing"), color: "#F59E0B" },
+                    { icon: "happy", label: t("story.featStickers"), color: "#06B6D4" },
                   ].map((feat, idx) => (
                     <View
                       key={idx}
@@ -1676,24 +1657,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   sectionHeading: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    paddingHorizontal: 4,
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    marginTop: 18,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   modeCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   modeIconCircle: {
     width: 48,
@@ -1734,8 +1711,8 @@ const styles = StyleSheet.create({
   featureBox: {
     marginTop: 8,
     padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   featureBoxHeader: {
     flexDirection: "row",
@@ -1772,14 +1749,21 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
+  // Header Back Button (Initial Screen)
+  headerBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   // Editor Top Header Styles
   headerGlassButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1862,49 +1846,22 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
+    justifyContent: "center",
+    paddingHorizontal: 20,
     paddingTop: 10,
     backgroundColor: "rgba(0,0,0,0.65)",
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.08)",
   },
-  bottomSecondaryButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bottomMusicTag: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
-  bottomMusicText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-    marginLeft: 6,
-    flex: 1,
-  },
   bottomShareButton: {
+    flex: 1,
+    maxWidth: 380,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 18,
-    height: 44,
-    borderRadius: 22,
+    paddingHorizontal: 20,
+    height: 46,
+    borderRadius: 23,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -1913,7 +1870,7 @@ const styles = StyleSheet.create({
   },
   bottomShareText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
   },
 
