@@ -356,6 +356,15 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Default Icon Variants, 20/11 Teachers' Day Icon, Custom Icon & Launcher Simplification**:
+  - **Default Icon & Variants**: Kept current iOS default (`cbh-youth-default.png`) as the official default icon with direct "Đặt lại mặc định" button in hero card and header (disabled/inactive when already default, no separate default card in grid). Added official variants as alternate options: `Dark`, `ClearDark`, `ClearLight`, `TintedDark`, `TintedLight`.
+  - **Classic CYO Option**: Kept Classic CYO frog icon (`icon.png`) as an independent selectable option in the collection.
+  - **Vietnamese Teachers' Day (20/11) Icon**: Designed a new 1024x1024 icon celebrating Ngày Nhà giáo Việt Nam 20/11 (`teachers-day-20-11.png` / `teachers-day-android.png`) featuring an illuminated open book of knowledge, golden fountain pen, celebratory red roses, and embossed '20-11' medallion on an emerald-to-forest-green gradient.
+  - **Custom Icon Support**: Added custom icon upload card with `expo-image-picker` and `expo-image-manipulator` (1:1 square crop, local documents storage, use and delete actions).
+  - **Native Plugin Configuration**: Updated `expo-alternate-app-icons` in `app.json` with all 10 alternate presets and cleaned asset paths in `expo-splash-screen` and `ios.icon`.
+  - **Localization**: Added copy for 20/11, variants, custom icon, and default states across `vi.json`, `en.json`, and `ru.json`.
+
+
 - **OS Launcher Alternate App Icons (`expo-alternate-app-icons`) & Min Native OTA Build 1062 Bump**:
   - **OS Launcher Icon Switching**: Configured `expo-alternate-app-icons` in `app.json` plugins for Android `activity-alias` and iOS `CFBundleAlternateIcons`. Supports 5 launcher icons: Default CYO Frog, Classic Edition (`ios-light.png` / `adaptive-icon.png`), Christmas Edition (`christmas-ios.png` / `christmas-android.png`), New Year 2026 Edition (`2026-ios.png` / `2026-android.png`), and School Crest (`school-logo-removebg.png`).
   - **App Icon Settings Screen**: Built dedicated launcher icon switcher in `AppIconScreen.js` with instant "Đặt lại mặc định" (Reset to Default) button, active icon hero card, and clean `FastImage` rendering for all thumbnails.

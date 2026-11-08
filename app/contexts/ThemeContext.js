@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
 import { Appearance, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
-import { getActiveLauncherIconKey } from "../utils/appIcons";
+import { getActiveLauncherIconKey, getCustomAppIconUri } from "../utils/appIcons";
 
 export const ThemeContext = createContext();
 
@@ -87,6 +87,10 @@ export const ThemeProvider = ({ children }) => {
     return getActiveLauncherIconKey();
   });
 
+  const [customAppIconUri, setCustomAppIconUriState] = useState(() => {
+    return getCustomAppIconUri();
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
@@ -154,6 +158,10 @@ export const ThemeProvider = ({ children }) => {
     setLauncherIconKeyState(key);
   }, []);
 
+  const setCustomAppIconUri = useCallback((uri) => {
+    setCustomAppIconUriState(uri);
+  }, []);
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   const value = useMemo(
@@ -175,6 +183,8 @@ export const ThemeProvider = ({ children }) => {
       setChatLiteEnabled,
       launcherIconKey,
       setLauncherIconKey,
+      customAppIconUri,
+      setCustomAppIconUri,
     }),
     [
       isDarkMode,
@@ -193,6 +203,8 @@ export const ThemeProvider = ({ children }) => {
       setChatLiteEnabled,
       launcherIconKey,
       setLauncherIconKey,
+      customAppIconUri,
+      setCustomAppIconUri,
     ]
   );
 

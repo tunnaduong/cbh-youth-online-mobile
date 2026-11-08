@@ -13,9 +13,9 @@
     "ios": {
       "supportsTablet": true,
       "icon": {
-        "dark": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
-        "light": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
-        "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
+        "dark": "./app/assets/cbh-youth-dark.png",
+        "light": "./app/assets/cbh-youth-default.png",
+        "tinted": "./app/assets/cbh-youth-cleardark.png"
       },
       "bundleIdentifier": "com.fatties.youth",
       "buildNumber": "1012",
@@ -139,11 +139,11 @@
       [
         "expo-splash-screen",
         {
-          "image": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
+          "image": "./app/assets/cbh-youth-default.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "image": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
+            "image": "./app/assets/cbh-youth-dark.png",
             "backgroundColor": "#000000"
           }
         }
@@ -216,6 +216,54 @@
       [
         "expo-alternate-app-icons",
         [
+          {
+            "name": "Dark",
+            "ios": "./app/assets/cbh-youth-dark.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-dark.png",
+              "backgroundColor": "#0F261D"
+            }
+          },
+          {
+            "name": "ClearDark",
+            "ios": "./app/assets/cbh-youth-cleardark.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-cleardark.png",
+              "backgroundColor": "#121212"
+            }
+          },
+          {
+            "name": "ClearLight",
+            "ios": "./app/assets/cbh-youth-clearlight.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-clearlight.png",
+              "backgroundColor": "#ffffff"
+            }
+          },
+          {
+            "name": "TintedDark",
+            "ios": "./app/assets/cbh-youth-tinteddark.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-tinteddark.png",
+              "backgroundColor": "#0F261D"
+            }
+          },
+          {
+            "name": "TintedLight",
+            "ios": "./app/assets/cbh-youth-tintedlight.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-tintedlight.png",
+              "backgroundColor": "#E8F5E9"
+            }
+          },
+          {
+            "name": "TeachersDay",
+            "ios": "./app/assets/teachers-day-20-11.png",
+            "android": {
+              "foregroundImage": "./app/assets/teachers-day-android.png",
+              "backgroundColor": "#173C2B"
+            }
+          },
           {
             "name": "Classic",
             "ios": {

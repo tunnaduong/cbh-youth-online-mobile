@@ -7,10 +7,12 @@ import {
   ScrollView,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -19,14 +21,25 @@ import FastImage from "../../../components/FastImage";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
   LAUNCHER_APP_ICONS,
+  getActiveIconDisplay,
   applyLauncherIcon,
+  saveCustomAppIcon,
+  removeCustomAppIcon,
 } from "../../../utils/appIcons";
 
 export default function AppIconScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme, isDarkMode, launcherIconKey, setLauncherIconKey } = useTheme();
+  const {
+    theme,
+    isDarkMode,
+    launcherIconKey,
+    setLauncherIconKey,
+    customAppIconUri,
+    setCustomAppIconUri,
+  } = useTheme();
   const { t } = useTranslation();
   const [switching, setSwitching] = useState(false);
+  const [pickingCustom, setPickingCustom] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -36,9 +49,9 @@ export default function AppIconScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
-  const activeIconItem =
-    LAUNCHER_APP_ICONS.find((i) => i.key === launcherIconKey) ||
-    LAUNCHER_APP_ICONS[0];
+  const isDefault = !launcherIconKey || launcherIconKey === "default";
+  const isCustomActive = launcherIconKey === "custom";
+  const activeIconItem = getActiveIconDisplay(launcherIconKey, customAppIconUri);
 
   const handleSelectIcon = async (key) => {
     if (key === launcherIconKey || switching) return;
@@ -66,7 +79,88 @@ export default function AppIconScreen({ navigation }) {
   };
 
   const handleResetToDefault = () => {
+    if (isDefault) return;
     handleSelectIcon("default");
+  };
+
+  const handlePickCustomImage = async () => {
+    if (pickingCustom) return;
+    setPickingCustom(true);
+
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          t("common.error", "Lỗi"),
+          t("appIcon.permissionDenied", "Ứng dụng cần quyền truy cập ảnh để chọn biểu tượng.")
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (result.canceled || !result.assets || !result.assets[0]?.uri) {
+        return;
+      }
+
+      const savedUri = await saveCustomAppIcon(result.assets[0].uri);
+      setCustomAppIconUri(savedUri);
+      await applyLauncherIcon("custom");
+      setLauncherIconKey("custom");
+
+      Toast.show({
+        type: "success",
+        text1: t("appIcon.customSetTitle", "Đã lưu biểu tượng tùy chỉnh"),
+        text2: t("appIcon.customSetDesc", "Biểu tượng tùy chỉnh của bạn đã được thiết lập."),
+        visibilityTime: 2500,
+      });
+    } catch (error) {
+      console.error("[AppIcon] Pick custom icon error:", error);
+      Toast.show({
+        type: "error",
+        text1: t("common.error", "Lỗi"),
+        text2: t("appIcon.cropFailed", "Không thể cắt và lưu biểu tượng. Vui lòng thử lại."),
+      });
+    } finally {
+      setPickingCustom(false);
+    }
+  };
+
+  const handleApplySavedCustom = async () => {
+    if (!customAppIconUri || isCustomActive) return;
+    await handleSelectIcon("custom");
+  };
+
+  const handleDeleteCustom = () => {
+    Alert.alert(
+      t("appIcon.removeConfirmTitle", "Xóa biểu tượng tùy chỉnh?"),
+      t("appIcon.removeConfirmDesc", "Biểu tượng tùy chỉnh sẽ bị xóa và quay về mặc định."),
+      [
+        { text: t("common.cancel", "Hủy"), style: "cancel" },
+        {
+          text: t("common.delete", "Xóa"),
+          style: "destructive",
+          onPress: async () => {
+            await removeCustomAppIcon(customAppIconUri);
+            setCustomAppIconUri(null);
+            if (launcherIconKey === "custom") {
+              await applyLauncherIcon("default");
+              setLauncherIconKey("default");
+            }
+            Toast.show({
+              type: "info",
+              text1: t("appIcon.customRemovedTitle", "Đã xóa biểu tượng"),
+              text2: t("appIcon.customRemovedDesc", "Đã quay về biểu tượng mặc định."),
+            });
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -106,7 +200,7 @@ export default function AppIconScreen({ navigation }) {
             {t("appIcon.title", "Biểu tượng ứng dụng")}
           </Animated.Text>
           <View style={{ width: 44 }}>
-            {launcherIconKey !== "default" && (
+            {!isDefault && (
               <LiquidButton providerId="AppIconScreenDefault" size={44} onPress={handleResetToDefault}>
                 <Ionicons name="refresh-outline" size={20} color={theme.primary} />
               </LiquidButton>
@@ -140,9 +234,20 @@ export default function AppIconScreen({ navigation }) {
                 {t(activeIconItem.nameKey, activeIconItem.tag)}
               </Text>
               <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
-                {t("appIcon.activeBadge", "Đang dùng trên màn hình chính")}
+                {isDefault
+                  ? t("appIcon.activeDefaultDesc", "Đang dùng biểu tượng mặc định")
+                  : isCustomActive
+                  ? t("appIcon.activeCustomDesc", "Đang áp dụng biểu tượng tùy chỉnh")
+                  : t("appIcon.activeBadge", "Đang dùng trên màn hình chính")}
               </Text>
-              {launcherIconKey !== "default" && (
+              {isDefault ? (
+                <View style={[styles.resetButton, { borderColor: theme.border, opacity: 0.6 }]}>
+                  <Ionicons name="checkmark-circle-outline" size={14} color={theme.subText} style={{ marginRight: 4 }} />
+                  <Text style={[styles.resetButtonText, { color: theme.subText }]}>
+                    {t("appIcon.alreadyDefault", "Đang là mặc định")}
+                  </Text>
+                </View>
+              ) : (
                 <TouchableOpacity
                   style={[styles.resetButton, { borderColor: theme.primary }]}
                   onPress={handleResetToDefault}
@@ -157,7 +262,96 @@ export default function AppIconScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Section: Launcher Icons */}
+          {/* Section: Custom Icon */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.primary }]}>
+              {t("appIcon.customSection", "Biểu tượng tùy chỉnh")}
+            </Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>
+              {t("appIcon.customDesc", "Tải ảnh từ thiết bị để tạo biểu tượng theo ý thích.")}
+            </Text>
+          </View>
+
+          <View style={[styles.customCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.customCardRow}>
+              <View
+                style={[
+                  styles.customIconContainer,
+                  {
+                    borderColor: isCustomActive ? theme.primary : theme.border,
+                    backgroundColor: theme.background,
+                    borderWidth: isCustomActive ? 2 : 1,
+                  },
+                ]}
+              >
+                {customAppIconUri ? (
+                  <FastImage source={{ uri: customAppIconUri }} style={styles.customThumbImage} resizeMode="cover" />
+                ) : (
+                  <Ionicons name="image-outline" size={24} color={theme.subText} />
+                )}
+              </View>
+
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.customCardTitle, { color: theme.text }]}>
+                  {customAppIconUri
+                    ? t("appIcon.customUploaded", "Ảnh tùy chỉnh của bạn")
+                    : t("appIcon.noCustomImage", "Chưa có ảnh tùy chỉnh")}
+                </Text>
+                <Text style={[styles.customCardDesc, { color: theme.subText }]}>
+                  {customAppIconUri
+                    ? isCustomActive
+                      ? t("appIcon.customIsActive", "Đang được chọn làm biểu tượng")
+                      : t("appIcon.customIsSaved", "Đã lưu ảnh, nhấn áp dụng để dùng")
+                    : t("appIcon.customHelp", "Hỗ trợ ảnh vuông tỉ lệ 1:1 từ thư viện")}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.customActionsRow}>
+              <TouchableOpacity
+                style={[styles.uploadButton, { backgroundColor: theme.primary }]}
+                onPress={handlePickCustomImage}
+                disabled={pickingCustom}
+                activeOpacity={0.8}
+              >
+                {pickingCustom ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="cloud-upload-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.uploadButtonText}>
+                      {customAppIconUri ? t("appIcon.changePhoto", "Đổi ảnh") : t("appIcon.pickImage", "Chọn ảnh")}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {customAppIconUri && !isCustomActive && (
+                <TouchableOpacity
+                  style={[styles.selectCustomButton, { borderColor: theme.primary }]}
+                  onPress={handleApplySavedCustom}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="checkmark-outline" size={16} color={theme.primary} style={{ marginRight: 4 }} />
+                  <Text style={[styles.selectCustomText, { color: theme.primary }]}>
+                    {t("appIcon.useCustom", "Sử dụng")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {customAppIconUri && (
+                <TouchableOpacity
+                  style={styles.deleteCustomButton}
+                  onPress={handleDeleteCustom}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Section: Presets Grid (NO separate default card) */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.primary }]}>
               {t("appIcon.presets", "Bộ sưu tập biểu tượng")}
@@ -254,13 +448,13 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   heroTextWrap: {
-    marginLeft: 16,
     flex: 1,
+    marginLeft: 14,
   },
   heroTitle: {
     fontSize: 17,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   heroSubtitle: {
     fontSize: 13,
@@ -270,8 +464,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     marginTop: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
   },
@@ -280,11 +474,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   sectionHeader: {
-    marginBottom: 12,
+    marginBottom: 10,
     paddingHorizontal: 4,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -293,16 +487,85 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  customCard: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    marginBottom: 24,
+  },
+  customCardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  customIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  customThumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+  customCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  customCardDesc: {
+    fontSize: 12,
+  },
+  customActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    gap: 8,
+  },
+  uploadButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  uploadButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  selectCustomButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  selectCustomText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  deleteCustomButton: {
+    padding: 9,
+    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: 14,
+    gap: 12,
+    marginTop: 4,
   },
   gridItem: {
     width: "48%",
-    padding: 14,
-    borderRadius: 18,
+    padding: 12,
+    borderRadius: 16,
     alignItems: "center",
   },
   gridIconWrap: {
@@ -319,13 +582,14 @@ const styles = StyleSheet.create({
   },
   checkBadge: {
     position: "absolute",
-    top: 4,
+    bottom: 4,
     right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
     alignItems: "center",
+    elevation: 2,
   },
   gridItemTitle: {
     fontSize: 14,
