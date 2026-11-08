@@ -18,7 +18,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { searchQuery, getSearchSuggestions } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
-import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -305,14 +304,20 @@ export default function SearchScreen({ navigation, route }) {
       {/* Header with Search Bar and Segmented Filter Tabs */}
       <View style={[styles.headerContainer, { paddingTop: inset.top + 6 }]}>
         <View style={styles.topRow}>
-          <LiquidButton
-            providerId="SearchScreen"
+          <TouchableOpacity
+            activeOpacity={0.7}
             onPress={() => navigation.goBack()}
-            size={40}
-            borderRadius={20}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+              },
+            ]}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons name="chevron-back" color={theme.text} size={22} />
-          </LiquidButton>
+          </TouchableOpacity>
 
           {/* Plain Solid Pill Input Field (Matching Filter Pill styling without liquid glass) */}
           <View
@@ -645,6 +650,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
   },
   searchInputPill: {
     flex: 1,
