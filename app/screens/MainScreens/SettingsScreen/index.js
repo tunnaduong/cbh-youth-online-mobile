@@ -282,7 +282,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
             <View style={styles.settingItemLeft}>
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                {currentThemeIcon}
+                <Ionicons name="moon-outline" size={20} color={theme.primary} />
               </View>
               <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
             </View>
