@@ -120,7 +120,9 @@ const Dropdown = ({
 
     let itemIcon = item.icon;
     if (!itemIcon && isCategoryOrGrouped) {
-      itemIcon = item.icon || getSubforumIcon(item.label, item.rawName || item.name || item.slug || item.value);
+      itemIcon =
+        (item.rawCategory || item.category ? getSectionIcon(item.rawCategory || item.category) : null) ||
+        getSubforumIcon(item.label, item.rawName || item.name || item.slug || item.value);
     }
 
     return (
@@ -148,7 +150,7 @@ const Dropdown = ({
           <View style={styles.optionIconContainer}>
             <Ionicons
               name={itemIcon}
-              size={22}
+              size={18}
               color={
                 selected ? theme.primary : isDarkMode ? "#b0b0b0" : "#555555"
               }
@@ -194,7 +196,9 @@ const Dropdown = ({
   );
 
   const flattenedStyle = StyleSheet.flatten(style) || {};
+  const flattenedTextStyle = StyleSheet.flatten(textStyle) || {};
   const isFitContent = flattenedStyle.alignSelf === "flex-start";
+  const isRightAligned = flattenedTextStyle.textAlign === "right";
 
   const SheetSurface = LiquidGlassView || View;
 
@@ -215,19 +219,33 @@ const Dropdown = ({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            flex: isFitContent ? 0 : 1,
+            justifyContent: isRightAligned ? "flex-end" : "flex-start",
+            flex: isFitContent || isRightAligned ? 0 : 1,
+            marginRight: isRightAligned ? 6 : 0,
+            maxWidth: isRightAligned ? "88%" : "100%",
           }}
         >
           {leftIcon ? (
-            <View style={{ marginRight: 8 }}>{leftIcon}</View>
+            <View style={{ marginRight: 6 }}>{leftIcon}</View>
           ) : selectedValue?.iconComponent ? (
-            <View style={{ marginRight: 8 }}>{selectedValue.iconComponent}</View>
+            <View style={{ marginRight: 6 }}>{selectedValue.iconComponent}</View>
           ) : React.isValidElement(selectedValue?.icon) ? (
-            <View style={{ marginRight: 8 }}>{selectedValue.icon}</View>
+            <View style={{ marginRight: 6 }}>{selectedValue.icon}</View>
+          ) : selectedValue?.icon && typeof selectedValue.icon === "string" ? (
+            <View style={{ marginRight: 6 }}>
+              <Ionicons
+                name={selectedValue.icon}
+                size={16}
+                color={theme.primary}
+              />
+            </View>
           ) : isCategoryOrGrouped && selectedValue ? (
-            <View style={{ marginRight: 8 }}>
+            <View style={{ marginRight: 6 }}>
               <Ionicons
                 name={
+                  (selectedValue.rawCategory || selectedValue.category
+                    ? getSectionIcon(selectedValue.rawCategory || selectedValue.category)
+                    : null) ||
                   selectedValue.icon ||
                   getSubforumIcon(selectedValue.label, selectedValue.rawName || selectedValue.name)
                 }
@@ -241,7 +259,7 @@ const Dropdown = ({
               styles.dropdownText,
               { color: selectedValue ? theme.text : theme.subText },
               textStyle,
-              { flex: isFitContent ? 0 : 1 },
+              { flex: isFitContent || isRightAligned ? 0 : 1, flexShrink: 1 },
             ]}
             numberOfLines={1}
           >
@@ -520,8 +538,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginHorizontal: 14,
+    paddingHorizontal: 12,
+    marginHorizontal: 12,
     marginVertical: 3,
     borderRadius: 14,
     borderWidth: 1.5,
@@ -531,10 +549,10 @@ const styles = StyleSheet.create({
     // border and background set dynamically
   },
   optionIconContainer: {
-    width: 28,
+    width: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: 8,
   },
   optionText: {
     flex: 1,

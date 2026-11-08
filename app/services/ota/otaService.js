@@ -768,11 +768,29 @@ export async function reloadApp() {
 let isForcedUpdateInProgress = false;
 let lastOtaCheckTimestamp = 0;
 
+function compareSemver(v1, v2) {
+  const parts1 = String(v1 || "0").split(".").map((n) => parseInt(n, 10) || 0);
+  const parts2 = String(v2 || "0").split(".").map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(parts1.length, parts2.length);
+  for (let i = 0; i < len; i++) {
+    const num1 = parts1[i] || 0;
+    const num2 = parts2[i] || 0;
+    if (num1 > num2) return 1;
+    if (num1 < num2) return -1;
+  }
+  return 0;
+}
+
 /**
  * Checks if server has issued a forced OTA update directive and executes it immediately,
  * bypassing user in-app toggles.
  *
- * @param {object} otaDirective { force: boolean, min_build?: number|null, channel?: string|null, message?: string|null }
+ * Supports:
+ * - `min_version` / `min_build`: Oldest version affected.
+ * - `max_version` / `max_build`: Highest version forced to upgrade.
+ * - `channel`: "all" (forces every branch to upgrade to the latest build in that branch) or specific channel.
+ *
+ * @param {object} otaDirective { force: boolean, min_version?: string|null, max_version?: string|null, min_build?: number|null, max_build?: number|null, channel?: string|null, message?: string|null }
  * @returns {Promise<{ enforced: boolean, updated?: boolean, upToDate?: boolean, error?: string }>}
  */
 export async function checkAndExecuteForcedOtaUpdate(otaDirective) {
@@ -796,21 +814,71 @@ export async function checkAndExecuteForcedOtaUpdate(otaDirective) {
   }
 
   const currentActiveBuild = getRunningOtaBuildNumber();
+  const currentAppVersion = Application?.nativeApplicationVersion || "0.0.0";
+  const currentChannel = getOtaChannel();
 
-  // If min_build is specified and current active build satisfies it, no force needed
-  if (otaDirective.min_build && currentActiveBuild >= otaDirective.min_build) {
+  // 1. Channel check:
+  // If directive channel is specified and not "all", it only affects clients on that specific channel.
+  const directiveChannel = otaDirective.channel;
+  if (directiveChannel && directiveChannel !== "all" && directiveChannel !== currentChannel) {
     console.log(
-      `[OTA Force] Active build (${currentActiveBuild}) already meets or exceeds required min_build (${otaDirective.min_build}). Up to date.`
+      `[OTA Force] Directive targets channel "${directiveChannel}", but current device is on "${currentChannel}". Skipping.`
     );
-    return { enforced: false, upToDate: true };
+    return { enforced: false, channelMismatch: true };
   }
 
-  const targetChannel = otaDirective.channel || getOtaChannel();
+  // When channel is "all", client updates to the latest version in its own active branch/channel!
+  const targetChannel = (!directiveChannel || directiveChannel === "all") ? currentChannel : directiveChannel;
+
+  // 2. Minimum version/build check (Oldest version affected):
+  // Clients older than min_version/min_build are NOT forced to upgrade.
+  const minBound = otaDirective.min_version ?? otaDirective.min_build;
+  if (minBound !== undefined && minBound !== null && minBound !== "") {
+    if (!isNaN(minBound)) {
+      const minBuildNum = parseInt(minBound, 10);
+      if (currentActiveBuild < minBuildNum) {
+        console.log(
+          `[OTA Force] Current active build (${currentActiveBuild}) is older than minimum affected build (${minBuildNum}). Skipping.`
+        );
+        return { enforced: false, belowMinVersion: true };
+      }
+    } else {
+      if (compareSemver(currentAppVersion, String(minBound)) < 0) {
+        console.log(
+          `[OTA Force] Current app version (${currentAppVersion}) is older than minimum affected version (${minBound}). Skipping.`
+        );
+        return { enforced: false, belowMinVersion: true };
+      }
+    }
+  }
+
+  // 3. Maximum version/build check (Highest version forced to upgrade):
+  // Clients newer than max_version/max_build are already up to date and NOT forced to upgrade.
+  const maxBound = otaDirective.max_version ?? otaDirective.max_build;
+  if (maxBound !== undefined && maxBound !== null && maxBound !== "") {
+    if (!isNaN(maxBound)) {
+      const maxBuildNum = parseInt(maxBound, 10);
+      if (currentActiveBuild > maxBuildNum) {
+        console.log(
+          `[OTA Force] Current active build (${currentActiveBuild}) is higher than maximum forced build (${maxBuildNum}). Already up to date.`
+        );
+        return { enforced: false, aboveMaxVersion: true, upToDate: true };
+      }
+    } else {
+      if (compareSemver(currentAppVersion, String(maxBound)) > 0) {
+        console.log(
+          `[OTA Force] Current app version (${currentAppVersion}) is higher than maximum forced version (${maxBound}). Already up to date.`
+        );
+        return { enforced: false, aboveMaxVersion: true, upToDate: true };
+      }
+    }
+  }
+
   isForcedUpdateInProgress = true;
 
   try {
     console.log(
-      `[OTA Force] Executing forced OTA update check on channel "${targetChannel}" (activeBuild=${currentActiveBuild}, minBuildRequired=${otaDirective.min_build || "any"})...`
+      `[OTA Force] Executing forced OTA update check on channel "${targetChannel}" (activeBuild=${currentActiveBuild}, range=[${minBound || "any"}, ${maxBound || "any"}])...`
     );
 
     // Call checkUpdateAvailable with force = true to bypass isOtaEnabled()

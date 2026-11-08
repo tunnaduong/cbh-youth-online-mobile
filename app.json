@@ -293,6 +293,14 @@
             }
           },
           {
+            "name": "NewYear2027",
+            "ios": "./app/assets/2027-ios.png",
+            "android": {
+              "foregroundImage": "./app/assets/2027-android.png",
+              "backgroundColor": "#8B0000"
+            }
+          },
+          {
             "name": "SchoolCrest",
             "ios": "./app/assets/school-logo-removebg.png",
             "android": {

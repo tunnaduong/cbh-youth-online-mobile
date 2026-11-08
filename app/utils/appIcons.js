@@ -100,6 +100,13 @@ export const LAUNCHER_APP_ICONS = [
     tag: "2026",
   },
   {
+    key: "NewYear2027",
+    nativeName: "NewYear2027",
+    nameKey: "appIcon.preset.newyear_2027",
+    source: require("../assets/2027-ios.png"),
+    tag: "2027",
+  },
+  {
     key: "SchoolCrest",
     nativeName: "SchoolCrest",
     nameKey: "appIcon.preset.school",
@@ -274,7 +281,10 @@ export async function syncSeasonalLauncherIcon(axiosInstance = null) {
       return { changed: false, iconKey: currentSavedKey, otaUpdate: otaDirective };
     }
 
-    const targetIcon = appIconDirective.target_icon;
+    let targetIcon = appIconDirective.target_icon;
+    if (targetIcon === "NewYear") {
+      targetIcon = "NewYear2026";
+    }
     const isForced = Boolean(appIconDirective.force);
 
     // Determine eligibility:

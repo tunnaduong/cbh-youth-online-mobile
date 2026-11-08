@@ -22,7 +22,7 @@ import CustomLoading from "../CustomLoading";
 import Dropdown from "../Dropdown";
 import FastImage from "../FastImage";
 import VideoThumbnail from "../VideoThumbnail";
-import { getSubforumIcon } from "../../utils/forumUtils";
+import { getSubforumIcon, getSectionIcon } from "../../utils/forumUtils";
 import { TOOLBAR_HEIGHT } from "./MarkdownToolbar";
 import {
   PostEditorField,
@@ -306,8 +306,14 @@ export default function PostComposerLayout({
             <View style={cardStyle}>
               <SettingRow
                 icon={
-                  category?.icon ||
-                  (category ? getSubforumIcon(category.label, category.rawName || category.name) : "albums-outline")
+                  category
+                    ? (category.rawCategory || category.category
+                        ? getSectionIcon(category.rawCategory || category.category)
+                        : null) ||
+                      category.icon ||
+                      getSubforumIcon(category.label, category.rawName || category.name) ||
+                      "albums-outline"
+                    : "albums-outline"
                 }
                 title={t("createPost.categoryLabel")}
                 theme={theme}

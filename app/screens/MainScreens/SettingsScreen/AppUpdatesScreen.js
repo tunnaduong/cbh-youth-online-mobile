@@ -330,6 +330,31 @@ export default function AppUpdatesScreen({ navigation }) {
                       "Quản trị viên đang yêu cầu cập nhật bắt buộc trên toàn hệ thống."
                     )}
                 </Text>
+                {(remoteForceOta.channel || remoteForceOta.min_version || remoteForceOta.max_version || remoteForceOta.min_build || remoteForceOta.max_build) && (
+                  <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                    {remoteForceOta.channel && (
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: isDarkMode ? "#FCA5A5" : "#991B1B" }}>
+                          {remoteForceOta.channel === "all" ? "Tất cả các nhánh" : `Nhánh: ${remoteForceOta.channel}`}
+                        </Text>
+                      </View>
+                    )}
+                    {(remoteForceOta.min_version || remoteForceOta.min_build) && (
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: isDarkMode ? "#FCA5A5" : "#991B1B" }}>
+                          ≥ {remoteForceOta.min_version || remoteForceOta.min_build}
+                        </Text>
+                      </View>
+                    )}
+                    {(remoteForceOta.max_version || remoteForceOta.max_build) && (
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: isDarkMode ? "#FCA5A5" : "#991B1B" }}>
+                          ≤ {remoteForceOta.max_version || remoteForceOta.max_build}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
           )}

@@ -121,9 +121,14 @@ export default function AppIconScreen({ navigation }) {
           >
             {t("appIcon.title", "Biểu tượng ứng dụng")}
           </Animated.Text>
-          <View style={{ width: 44 }}>
+          <View style={{ width: 44, alignItems: "flex-end" }}>
             {!isDefault && (
-              <LiquidButton providerId="AppIconScreenDefault" size={44} onPress={handleResetToDefault}>
+              <LiquidButton
+                providerId="AppIconScreen"
+                size={44}
+                scrollY={scrollY}
+                onPress={handleResetToDefault}
+              >
                 <Ionicons name="refresh-outline" size={20} color={theme.primary} />
               </LiquidButton>
             )}

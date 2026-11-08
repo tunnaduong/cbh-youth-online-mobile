@@ -356,6 +356,15 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **NewYear2027 Seasonal Icon, Category Row Icons, Tight Dropdown Spacing & AppIcon Reset Header Button**:
+  - `Dropdown.js`: Fixed huge spacing between icon and text on right-aligned trigger values (such as theme and category dropdowns) by justifying content to `flex-end` with compact 6px gap and preventing `flex: 1` text stretching. Tightened option icon container spacing (`width: 22, marginRight: 8`) in option rows.
+  - `PostComposerLayout.js` (Create & Edit Post): Dynamically updates the left Category row icon based on the active section/category (`getSectionIcon(category.rawCategory || category.category)`), changing dynamically as soon as a user selects a subforum in another section (e.g. `school` for academics, `game-controller` for entertainment, `flag` for union news, `bug` for feedback/bugs).
+  - `SettingsScreen/index.js`: Changed theme setting row icon to `color-palette-outline`.
+  - `AppIconScreen.js`: Styled the header reset-to-default button with `LiquidButton` matching the back button (`providerId="AppIconScreen"`, `scrollY={scrollY}`, `size={44}`).
+  - `NewYear2027 Icon`: Generated high-res assets (`2027-ios.png`, `2027-android.png`) featuring the gold 2027 medallion with the Year of the Goat (Đinh Mùi). Configured `NewYear2027` in `app.json`, `appIcons.js`, and localized preset names across `vi.json`, `en.json`, and `ru.json`.
+  - `otaService.js`: Enforced `min_version`, `max_version`, `min_build`, and `max_build` bounds for forced OTA directives, and handled `channel === "all"` to upgrade to the latest build of the device's own channel.
+
+
 - **Vector Theme Dropdown Icons, Localized Icon Changed Toast & Game/Webview Load Fixes**:
   - `SettingsScreen/index.js` & `Dropdown.js`: Replaced text emojis (`🌓`, `☀️`, `🌙`) with dedicated `MaterialCommunityIcons` vector icons (`theme-light-dark`, `weather-sunny`, `weather-night`) and custom accent colors.
   - `appIcons.js`: Localized the forced app icon change toast and system notification (`appIcon.systemIconChanged`) across `vi.json`, `en.json`, and `ru.json`.
