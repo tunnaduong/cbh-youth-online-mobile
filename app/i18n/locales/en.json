@@ -748,7 +748,9 @@
     "publishedAt": "Published at",
     "smoothUpdateNotice": "The update will be persisted permanently and applied even across app restarts.",
     "updateNow": "Update Now",
-    "downloadProgress": "Downloading: {{percent}}%"
+    "downloadProgress": "Downloading: {{percent}}%",
+    "updateCompleteTitle": "Update Complete!",
+    "updateCompleteMessage": "Update complete! Restart app to continue."
   },
   "chatConversation": {
     "you": "You",

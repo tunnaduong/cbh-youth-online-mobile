@@ -737,7 +737,9 @@
     "publishedAt": "Phát hành lúc",
     "smoothUpdateNotice": "Bản cập nhật sẽ được lưu vĩnh viễn và áp dụng ngay cả khi khởi động lại ứng dụng.",
     "updateNow": "Cập nhật ngay",
-    "downloadProgress": "Đang tải: {{percent}}%"
+    "downloadProgress": "Đang tải: {{percent}}%",
+    "updateCompleteTitle": "Cập nhật hoàn tất!",
+    "updateCompleteMessage": "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục."
   },
   "chatConversation": {
     "you": "Bạn",

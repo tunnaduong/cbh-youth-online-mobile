@@ -1,4 +1,4 @@
-import { Platform, ToastAndroid } from "react-native";
+import { Platform, ToastAndroid, BackHandler } from "react-native";
 import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import * as Notifications from "expo-notifications";
@@ -749,19 +749,33 @@ export async function checkAndFetchUpdate(channelOverride) {
 }
 
 /**
- * Relaunches the app to immediately apply the newly downloaded OTA bundle.
+ * Relaunches or shuts down the app to cleanly apply the newly downloaded OTA bundle.
+ * On Android, gracefully terminates the app process via BackHandler.exitApp() to
+ * avoid memory heap overflows and force a fresh cold-start loading the new bundle.
  */
 export async function reloadApp() {
-  if (__DEV__ || !Updates.isEnabled) {
-    console.log(`[OTA] reloadApp skipped (__DEV__: ${__DEV__}, Updates.isEnabled: ${Updates.isEnabled})`);
+  if (__DEV__) {
+    console.log("[OTA] reloadApp skipped in __DEV__");
     return;
   }
   try {
-    console.log("[OTA] Calling Updates.reloadAsync()...");
-    await Updates.reloadAsync();
-    console.log("[OTA] Updates.reloadAsync call returned.");
+    if (Platform.OS === "android") {
+      console.log("[OTA] Shutting down Android app to allow clean cold reload...");
+      BackHandler.exitApp();
+      return;
+    }
+    if (Updates.isEnabled) {
+      console.log("[OTA] Calling Updates.reloadAsync()...");
+      await Updates.reloadAsync();
+      console.log("[OTA] Updates.reloadAsync call returned.");
+    }
   } catch (err) {
-    console.error("[OTA] Updates.reloadAsync error:", err?.message || err);
+    console.error("[OTA] reloadApp error:", err?.message || err);
+    try {
+      if (Updates.isEnabled) {
+        await Updates.reloadAsync();
+      }
+    } catch {}
   }
 }
 

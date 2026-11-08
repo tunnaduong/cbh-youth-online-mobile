@@ -65,6 +65,13 @@ export default function ActiveCallModal({
       : null);
   const isVideo = call.type === "video";
 
+  const statusText =
+    callStatus === "connected"
+      ? formatDuration(callDuration)
+      : callStatus === "ringing" || callStatus === "ringingOutward"
+      ? t("call.callingStatus", "Đang đổ chuông...")
+      : t("call.connecting", "Đang kết nối...");
+
   // Minimized Floating Pill Overlay
   if (isMinimized) {
     return (
@@ -93,7 +100,7 @@ export default function ActiveCallModal({
             {displayName}
           </Text>
           <Text style={styles.pillTimer}>
-            {callStatus === "connected" ? formatDuration(callDuration) : t("call.connecting", "Đang kết nối...")}
+            {statusText}
           </Text>
         </View>
         <TouchableOpacity
@@ -163,9 +170,7 @@ export default function ActiveCallModal({
           <View style={styles.timerBadge}>
             <View style={[styles.statusDot, { backgroundColor: callStatus === "connected" ? "#22C55E" : "#EAB308" }]} />
             <Text style={styles.timerText}>
-              {callStatus === "connected"
-                ? formatDuration(callDuration)
-                : t("call.callingStatus", "Đang đổ chuông...")}
+              {statusText}
             </Text>
           </View>
         </View>

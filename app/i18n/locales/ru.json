@@ -758,7 +758,9 @@
     "publishedAt": "Опубликовано",
     "smoothUpdateNotice": "Обновление сохранится навсегда и будет действовать даже при перезапуске приложения.",
     "updateNow": "Обновить сейчас",
-    "downloadProgress": "Загрузка: {{percent}}%"
+    "downloadProgress": "Загрузка: {{percent}}%",
+    "updateCompleteTitle": "Обновление завершено!",
+    "updateCompleteMessage": "Обновление завершено! Пожалуйста, перезапустите приложение, чтобы продолжить."
   },
   "chatConversation": {
     "you": "Вы",

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
   Animated,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -156,26 +157,30 @@ export default function UpdatePromptModal({
 
       if (res.status === "downloaded") {
         setStatus(STATUS.RESTARTING);
-        console.log("[OTA Modal] State transitioned to RESTARTING. Triggering app reload in 800ms...");
+        console.log("[OTA Modal] State transitioned to RESTARTING.");
 
-        // Allow UI to render the restarting state before invoking native reload
+        Alert.alert(
+          t("ota.updateCompleteTitle", "Cập nhật hoàn tất!"),
+          t("ota.updateCompleteMessage", "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục."),
+          [
+            {
+              text: t("common.ok", "OK"),
+              onPress: () => {
+                reloadApp();
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+
+        // Fallback auto reload after 3s if user doesn't press OK
         setTimeout(async () => {
           try {
             await reloadApp();
           } catch (e) {
             console.error("[OTA Modal] reloadApp error:", e?.message || e);
           }
-        }, 800);
-
-        // Safety fallback: if app does not terminate within 3s, dismiss modal safely
-        setTimeout(() => {
-          onDismiss?.();
-          Toast.show({
-            type: "success",
-            text1: t("ota.updateSuccessTitle", "Cập nhật thành công!"),
-            text2: t("ota.updateAppliedNotice", "Bản cập nhật đã được áp dụng vĩnh viễn."),
-          });
-        }, 3200);
+        }, 3000);
       } else if (res.status === "up_to_date") {
         console.log("[OTA Modal] Client is already at latest version. Closing modal cleanly.");
         onDismiss?.();

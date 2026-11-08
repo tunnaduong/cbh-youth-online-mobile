@@ -156,6 +156,13 @@ export const CallProvider = ({ children }) => {
       const call = data?.call || data?.callData || data;
       if (!call || activeCallRef.current) return;
 
+      // In prod/demo mode, do NOT auto-popup dialog while user is doing anything or surfing in app.
+      // incoming call dialog only shows if user explicitly taps the push notification.
+      if (!CALL_FEATURES_ENABLED) {
+        console.log("[CallContext] In demo/prod mode: suppressing incoming call auto-popup from socket broadcast.");
+        return;
+      }
+
       setActiveCall(call);
       setCallType(call.type || "audio");
       setCallStatus("ringing");
@@ -303,6 +310,7 @@ export const CallProvider = ({ children }) => {
 
     const checkActiveCalls = async () => {
       try {
+        if (!CALL_FEATURES_ENABLED) return;
         if (activeCallRef.current) return;
         const res = await getActiveCallApi();
         const call = res?.data?.call;
@@ -389,12 +397,13 @@ export const CallProvider = ({ children }) => {
         if (callId) {
           const updatedCall = { ...callData, receiver: participant || callData.receiver };
           setActiveCall(updatedCall);
+          setCallStatus("ringingOutward");
           joinConversationPresence(conversationId, callId);
           // 10s connection timeout: Try connecting to callee for 10s
           clearConnectingTimeout();
           clearRingingTimeout();
           connectingTimeoutRef.current = setTimeout(() => {
-            if (callStatusRef.current === "calling") {
+            if (callStatusRef.current === "calling" || callStatusRef.current === "ringingOutward") {
               console.log("[CallContext] Callee unreachable after 10s.");
               Toast.show({
                 type: "info",
@@ -560,7 +569,7 @@ export const CallProvider = ({ children }) => {
 
       {/* Active Call Full-Screen / Minimized Pill Overlay */}
       <ActiveCallModal
-        visible={callStatus === "calling" || callStatus === "connected"}
+        visible={callStatus === "calling" || callStatus === "ringingOutward" || callStatus === "connected"}
         call={activeCall}
         callStatus={callStatus}
         callDuration={callDuration}

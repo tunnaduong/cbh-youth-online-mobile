@@ -15,6 +15,7 @@ import {
 import { AuthContext } from './AuthContext';
 import { resolveNotificationTarget } from '../utils/notificationRouting';
 import { rememberPushToken } from '../utils/pushToken';
+import { CALL_FEATURES_ENABLED } from '../services/call/callConfig';
 
 export const NotificationContext = createContext();
 
@@ -158,7 +159,9 @@ export const NotificationProvider = ({ children }) => {
 
   const handleNotificationReceived = (notification) => {
     const callData = notification?.request?.content?.data;
-    if (callData?.type === 'incoming_call') {
+    // In prod/demo mode, do NOT auto-popup the incoming call dialog when surfing in app.
+    // The call UI will only appear when the user explicitly taps the push notification.
+    if (callData?.type === 'incoming_call' && CALL_FEATURES_ENABLED) {
       DeviceEventEmitter.emit('INCOMING_CALL_PUSH', callData);
     }
     console.log('Notification received callback fired:', notification);
