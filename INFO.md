@@ -356,11 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
-- **Crash Screen OTA Diagnostics, 20/11 Light CYO Icon, Dynamic Splash Screen & WelcomeScreen Fix**:
+- **Crash Screen OTA Diagnostics, Human-Designed 20/11 CYO Icon, Native Splash & WelcomeScreen Fix**:
+  - **Authentic 20/11 CYO Icon**: Redesigned 20/11 Teachers' Day icon based 100% on the official CYO frog emblem from `cbh-youth-default.png`, adding only modern books with gold accents, golden fountain pen, and a sleek modern '20/11' badge in the top-right corner. Generated dedicated variants for iOS (`teachers-day-20-11.png`) and Android Adaptive (`teachers-day-android.png`) with safe margin framing.
+  - **Splash Screen Rules**: Native OS splash screen on Android 12+ (`?android:attr/icon`) and iOS dynamically reflects the active launcher icon, while the in-app `SplashScreen.js` strictly preserves the custom `splash.json` Lottie animation as-is without replacement.
   - **StartupErrorScreen Diagnostics**: Added OTA build number, channel, updateId, and embedded launch status directly into the diagnostic output beside the App version info (`App: 6.4.3 (1062) [OTA Build: ...]`).
   - **WelcomeScreen Fix**: Fixed `ReferenceError: Property 'useSafeAreaInsets' doesn't exist` by importing `useSafeAreaInsets` from `react-native-safe-area-context`.
-  - **Light 20/11 Teachers' Day Icon**: Redesigned 20/11 icon on a light pastel mint-green background featuring the CYO frog mascot with an academic mortarboard cap, open book of knowledge, golden fountain pen, red carnations, and '20/11' medal badge. Provided tailored variants for iOS squircle and Android adaptive format with `#D6F4E8` background.
-  - **Dynamic Splash Screen**: In `withNativeTweaks.js`, set `android:windowSplashScreenAnimatedIcon` to `?android:attr/icon` on Android 12+ so the native launch screen reflects the launcher icon of the active alias. In `SplashScreen.js`, dynamically displays the chosen app icon during the in-app loading phase.
   - **Settings Theme Dropdown Icons**: Added `🌓` Auto, `☀️` Light, and `🌙` Dark prefix icons in `SettingsScreen/index.js` matching the language dropdown style.
   - **Thumbnail & Custom Icon Reliability**: Switched `AppIconScreen.js` to React Native `Image` with dynamic keys to guarantee zero thumbnail loss on reset, and eliminated native alias re-selection on custom icon upload to prevent unwanted app restarts.
 
