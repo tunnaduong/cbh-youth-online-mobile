@@ -1138,12 +1138,14 @@ const CreateStoryScreen = ({ navigation }) => {
             }}
           >
             <TouchableOpacity
-              style={styles.headerGlassButton}
+              style={styles.headerCloseButton}
               onPress={handleBackPress}
               disabled={isUploading}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.close")}
             >
-              <Ionicons name="close" size={22} color="#fff" />
+              <Ionicons name="close" size={26} color="#fff" />
             </TouchableOpacity>
 
             <View style={styles.headerCenterPill}>
@@ -1167,7 +1169,7 @@ const CreateStoryScreen = ({ navigation }) => {
                 <Text style={styles.headerActionText}>{t("story.done")}</Text>
               </TouchableOpacity>
             ) : (
-              <View style={{ width: 38 }} />
+              <View style={{ width: 40 }} />
             )}
           </View>
         ) : (
@@ -1786,11 +1788,9 @@ const styles = StyleSheet.create({
   },
 
   // Editor Top Header Styles
-  headerGlassButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.18)",
+  headerCloseButton: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
