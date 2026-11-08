@@ -2,16 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Animated,
-  FlatList,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,6 +19,8 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
+import UserNameRow from "../../../../components/profile/UserNameRow";
+import { AvatarFrameWrap } from "../../../../components/profile/AvatarFrame";
 import {
   getStudyMaterialCategories,
   getStudyMaterials,
@@ -107,13 +106,14 @@ const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryL
         {
           backgroundColor: theme.surface,
           borderColor: theme.border,
+          borderWidth: StyleSheet.hairlineWidth,
         },
       ]}
       activeOpacity={0.88}
       onPress={() => navigation.navigate("StudyMaterialDetailScreen", { materialId: item.id })}
     >
-      {/* Ảnh xem trước tài liệu */}
-      <View style={[styles.previewContainer, { backgroundColor: isDarkMode ? "#15171C" : "#F3F4F6" }]}>
+      {/* Document preview container */}
+      <View style={[styles.previewContainer, { backgroundColor: theme.iconBackground }]}>
         {showPreview ? (
           <FastImage
             source={{ uri: previewUrl }}
@@ -127,21 +127,21 @@ const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryL
           </View>
         )}
 
-        {/* Nhãn giá / trạng thái */}
+        {/* Price / status badge */}
         <View style={styles.priceBadgeWrapper}>
           {item.is_purchased ? (
-            <View style={[styles.priceBadge, styles.purchasedBadge]}>
+            <View style={[styles.priceBadge, styles.purchasedBadge, { backgroundColor: isDarkMode ? "#0c2838" : "#E0F2FE" }]}>
               <Ionicons name="checkmark" size={12} color="#0284C7" style={{ marginRight: 2 }} />
               <Text style={styles.purchasedBadgeText}>{t("studyMaterial.purchased", "Đã mua")}</Text>
             </View>
           ) : item.is_free || item.price === 0 ? (
-            <View style={[styles.priceBadge, styles.freeBadge]}>
+            <View style={[styles.priceBadge, styles.freeBadge, { backgroundColor: isDarkMode ? "#122818" : "#DCFCE7" }]}>
               <Text style={[styles.freeBadgeText, { color: isDarkMode ? "#4ADE80" : "#15803D" }]}>
                 {t("studyMaterial.free", "Miễn phí")}
               </Text>
             </View>
           ) : (
-            <View style={[styles.priceBadge, styles.paidBadge]}>
+            <View style={[styles.priceBadge, styles.paidBadge, { backgroundColor: isDarkMode ? "#2e1e08" : "#FEF3C7" }]}>
               <Text style={[styles.paidBadgeText, { color: isDarkMode ? "#FBBF24" : "#B45309" }]}>
                 {t("studyMaterial.points", { value: item.price || 0, defaultValue: `${item.price} điểm` })}
               </Text>
@@ -150,7 +150,7 @@ const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryL
         </View>
       </View>
 
-      {/* Nội dung card */}
+      {/* Card Content */}
       <View style={styles.cardContent}>
         {/* Category & Time */}
         <View style={styles.categoryTimeRow}>
@@ -190,18 +190,24 @@ const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryL
         {/* Footer: Author & Stats */}
         <View style={[styles.cardFooter, { borderTopColor: theme.border }]}>
           <View style={styles.authorSection}>
-            {authorAvatar ? (
-              <FastImage source={{ uri: authorAvatar }} style={styles.authorAvatar} />
-            ) : (
-              <View style={[styles.authorAvatarFallback, { backgroundColor: theme.primary + "20" }]}>
-                <Text style={[styles.authorAvatarInitial, { color: theme.primary }]}>
-                  {authorName[0]?.toUpperCase() || "?"}
-                </Text>
-              </View>
-            )}
-            <Text style={[styles.authorNameText, { color: theme.text }]} numberOfLines={1}>
-              {authorName}
-            </Text>
+            <AvatarFrameWrap theme={author.profile_theme} size={24} style={{ marginRight: 6 }}>
+              {authorAvatar ? (
+                <FastImage source={{ uri: authorAvatar }} style={styles.authorAvatar} />
+              ) : (
+                <View style={[styles.authorAvatarFallback, { backgroundColor: `${theme.primary}20` }]}>
+                  <Text style={[styles.authorAvatarInitial, { color: theme.primary }]}>
+                    {authorName[0]?.toUpperCase() || "?"}
+                  </Text>
+                </View>
+              )}
+            </AvatarFrameWrap>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <UserNameRow
+                name={authorName}
+                theme={author.profile_theme}
+                style={{ fontSize: 13, fontWeight: "600", color: theme.text }}
+              />
+            </View>
           </View>
 
           <View style={styles.statsSection}>
@@ -220,7 +226,7 @@ const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryL
             {Number(item?.average_rating) > 0 ? (
               <View style={styles.statItem}>
                 <Ionicons name="star" size={13} color="#F59E0B" />
-                <Text style={[styles.statText, { color: "#F59E0B" }]}>
+                <Text style={[styles.statText, { color: "#F59E0B", fontWeight: "700" }]}>
                   {item.average_rating}
                 </Text>
               </View>
@@ -235,8 +241,8 @@ const MaterialCardItem = ({ item, navigation, theme, isDarkMode, t, getCategoryL
 const StudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  const { t } = useTranslation();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
+  const { t } = useTranslation();
 
   const [materials, setMaterials] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -247,6 +253,12 @@ const StudyMaterialScreen = ({ navigation }) => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedSort, setSelectedSort] = useState("newest");
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   const loadCategories = useCallback(async () => {
     try {
@@ -332,11 +344,6 @@ const StudyMaterialScreen = ({ navigation }) => {
 
     const aliasMap = {
       math: t("studyMaterial.categoriesList.mathematics"),
-      "địa-lý": t("studyMaterial.categoriesList.geography"),
-      "đia-ly": t("studyMaterial.categoriesList.geography"),
-      "dia-ly": t("studyMaterial.categoriesList.geography"),
-      "địa-ly-hoc": t("studyMaterial.categoriesList.geography"),
-      "dia-ly-hoc": t("studyMaterial.categoriesList.geography"),
       geography: t("studyMaterial.categoriesList.geography"),
       maths: t("studyMaterial.categoriesList.mathematics"),
       mathematics: t("studyMaterial.categoriesList.mathematics"),
@@ -347,23 +354,16 @@ const StudyMaterialScreen = ({ navigation }) => {
       literature: t("studyMaterial.categoriesList.literature"),
       "van-hoc": t("studyMaterial.categoriesList.literature"),
       "ngu-van": t("studyMaterial.categoriesList.literature"),
-      "ngữ-văn": t("studyMaterial.categoriesList.literature"),
       history: t("studyMaterial.categoriesList.history"),
       "lich-su": t("studyMaterial.categoriesList.history"),
       english: t("studyMaterial.categoriesList.english"),
       "tieng-anh": t("studyMaterial.categoriesList.english"),
       "tieng-nga": t("studyMaterial.categoriesList.foreign-language"),
-      "tiếng-nga": t("studyMaterial.categoriesList.foreign-language"),
       russian: t("studyMaterial.categoriesList.foreign-language"),
-      geography: t("studyMaterial.categoriesList.geography"),
-      "dia-ly": t("studyMaterial.categoriesList.geography"),
-      "đia-ly": t("studyMaterial.categoriesList.geography"),
       exam: t("studyMaterial.categoriesList.exam"),
       "on-thi": t("studyMaterial.categoriesList.exam"),
       general: t("studyMaterial.categoriesList.general"),
       other: t("studyMaterial.categoriesList.other"),
-      khac: t("studyMaterial.categoriesList.other"),
-      khác: t("studyMaterial.categoriesList.other"),
       technology: t("studyMaterial.categoriesList.technology"),
       "cong-nghe": t("studyMaterial.categoriesList.technology"),
       physics: t("studyMaterial.categoriesList.physics"),
@@ -372,26 +372,6 @@ const StudyMaterialScreen = ({ navigation }) => {
       "hoa-hoc": t("studyMaterial.categoriesList.chemistry"),
       biology: t("studyMaterial.categoriesList.biology"),
       "sinh-hoc": t("studyMaterial.categoriesList.biology"),
-      geography: t("studyMaterial.categoriesList.geography"),
-      "dia-ly": t("studyMaterial.categoriesList.geography"),
-      "đia-ly": t("studyMaterial.categoriesList.geography"),
-      "dia-ly-1": t("studyMaterial.categoriesList.geography"),
-      "đia-ly-1": t("studyMaterial.categoriesList.geography"),
-      "dia-ly-2": t("studyMaterial.categoriesList.geography"),
-      "đia-ly-2": t("studyMaterial.categoriesList.geography"),
-      "dia-ly-3": t("studyMaterial.categoriesList.geography"),
-      "đia-ly-3": t("studyMaterial.categoriesList.geography"),
-      "dia-ly-4": t("studyMaterial.categoriesList.geography"),
-      "đia-ly-4": t("studyMaterial.categoriesList.geography"),
-      "diai-ly": t("studyMaterial.categoriesList.geography"),
-      "đia-lyh": t("studyMaterial.categoriesList.geography"),
-      "dia-ly-hoc": t("studyMaterial.categoriesList.geography"),
-      "đia-ly-hoc": t("studyMaterial.categoriesList.geography"),
-      "geography-1": t("studyMaterial.categoriesList.geography"),
-      "địa-lý": t("studyMaterial.categoriesList.geography"),
-      "địa lý": t("studyMaterial.categoriesList.geography"),
-      "dia ly": t("studyMaterial.categoriesList.geography"),
-      "đia lý": t("studyMaterial.categoriesList.geography"),
       "computer-science": t("studyMaterial.categoriesList.computer-science"),
       "tin-hoc": t("studyMaterial.categoriesList.computer-science"),
       "social-science": t("studyMaterial.categoriesList.social-science"),
@@ -403,7 +383,7 @@ const StudyMaterialScreen = ({ navigation }) => {
       business: t("studyMaterial.categoriesList.business"),
       "kinh-doanh": t("studyMaterial.categoriesList.business"),
       law: t("studyMaterial.categoriesList.law"),
-      "luat": t("studyMaterial.categoriesList.law"),
+      luat: t("studyMaterial.categoriesList.law"),
       medicine: t("studyMaterial.categoriesList.medicine"),
       "y-hoc": t("studyMaterial.categoriesList.medicine"),
       engineering: t("studyMaterial.categoriesList.engineering"),
@@ -428,23 +408,60 @@ const StudyMaterialScreen = ({ navigation }) => {
     return t("exploreScreen.examDocuments") || "Chợ tài liệu";
   }, [t]);
 
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
-        <LiquidButton providerId="StudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
-          {headerTitle}
-        </Animated.Text>
-        <View style={styles.headerActions}>
-          <LiquidButton providerId="StudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.navigate("UploadStudyMaterialScreen")}>
-            <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
-          </LiquidButton>
+      {/* Floating Transparent Header */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+            paddingTop: insets.top,
+            height: 64 + insets.top,
+          }}
+        >
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: "600",
+              color: theme.primary,
+              opacity: headerTitleOpacity,
+            }}
+          >
+            {headerTitle}
+          </Animated.Text>
+          <View style={{ width: 44 }}>
+            <LiquidButton
+              size={44}
+              scrollY={scrollY}
+              onPress={() => navigation.navigate("UploadStudyMaterialScreen")}
+            >
+              <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
+            </LiquidButton>
+          </View>
         </View>
       </View>
 
+      {/* Atmospheric Top Gradient */}
       <LinearGradient
         colors={
           isDarkMode
@@ -457,245 +474,267 @@ const StudyMaterialScreen = ({ navigation }) => {
         pointerEvents="none"
       />
 
-      <AndroidGlassBackdrop providerId="StudyMaterialScreen" style={{ flex: 1 }}>
-      <Animated.ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: 70 + insets.top, paddingBottom: 40 + insets.bottom }}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadMaterials({ refresh: true })} colors={[theme.primary]} tintColor={theme.primary} />}
-      >
-        <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.heroTitle")}</Text>
-          <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.heroText")}</Text>
-        </View>
-
-        <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Ionicons name="search-outline" size={18} color={theme.subText} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder={t("studyMaterial.searchPlaceholder")}
-            placeholderTextColor={theme.placeholder}
-            style={[styles.searchInput, { color: theme.text }]}
-          />
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {filterOptions.map((filter) => {
-            const active = selectedFilter === filter.key;
-            return (
-              <TouchableOpacity
-                key={filter.key}
-                onPress={() => setSelectedFilter(filter.key)}
-                style={[styles.chip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-              >
-                <Text style={[styles.chipText, active ? { color: "#fff" } : { color: theme.text }]}>{t(`studyMaterial.filters.${filter.labelKey}`)}</Text>
-              </TouchableOpacity>
-            );
+      <AndroidGlassBackdrop style={{ flex: 1 }}>
+        <Animated.ScrollView
+          contentContainerStyle={{
+            padding: 16,
+            paddingTop: 64 + insets.top,
+            paddingBottom: insets.bottom + 32,
+          }}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: false,
           })}
-        </ScrollView>
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadMaterials({ refresh: true })}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
+            />
+          }
+        >
+          {/* Hero description */}
+          <Text style={[styles.description, { color: theme.subText }]}>
+            {t("studyMaterial.heroText", "Khám phá, chia sẻ tài liệu học tập chất lượng từ cộng đồng.")}
+          </Text>
 
-        <View style={styles.categoryRow}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.categories")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <TouchableOpacity
-              onPress={() => setSelectedCategory(null)}
-              style={[styles.categoryChip, !selectedCategory ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+          {/* Search box */}
+          <View
+            style={[
+              styles.searchBox,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Ionicons name="search-outline" size={18} color={theme.subText} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t("studyMaterial.searchPlaceholder", "Tìm kiếm tài liệu...")}
+              placeholderTextColor={theme.subText}
+              style={[styles.searchInput, { color: theme.text }]}
+            />
+            {Boolean(search) && (
+              <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={18} color={theme.subText} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Price / Type Filters */}
+          <View style={styles.sectionWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
             >
-              <Text style={[styles.categoryChipText, !selectedCategory ? { color: "#fff" } : { color: theme.text }]}>{t("studyMaterial.filters.all")}</Text>
-            </TouchableOpacity>
-            {categories.map((category) => {
-              const active = selectedCategory === category.id;
+              {filterOptions.map((filter) => {
+                const active = selectedFilter === filter.key;
+                return (
+                  <TouchableOpacity
+                    key={filter.key}
+                    onPress={() => setSelectedFilter(filter.key)}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? theme.primary : theme.iconBackground,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: active ? "#fff" : theme.text,
+                        fontWeight: "600",
+                        fontSize: 12,
+                        lineHeight: 16,
+                      }}
+                    >
+                      {t(`studyMaterial.filters.${filter.labelKey}`)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Categories Row */}
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+              {t("studyMaterial.categories", "Danh mục")}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+            >
+              <TouchableOpacity
+                onPress={() => setSelectedCategory(null)}
+                activeOpacity={0.8}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: !selectedCategory ? theme.primary : theme.iconBackground,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: !selectedCategory ? "#fff" : theme.text,
+                    fontWeight: "600",
+                    fontSize: 12,
+                    lineHeight: 16,
+                  }}
+                >
+                  {t("studyMaterial.filters.all", "Tất cả")}
+                </Text>
+              </TouchableOpacity>
+              {categories.map((category) => {
+                const active = selectedCategory === category.id;
+                return (
+                  <TouchableOpacity
+                    key={category.id}
+                    onPress={() => setSelectedCategory(category.id)}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? theme.primary : theme.iconBackground,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: active ? "#fff" : theme.text,
+                        fontWeight: "600",
+                        fontSize: 12,
+                        lineHeight: 16,
+                      }}
+                    >
+                      {getCategoryLabel(category)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Sort pills */}
+          <View style={styles.sortRow}>
+            {sortOptions.map((sort) => {
+              const active = selectedSort === sort.key;
               return (
                 <TouchableOpacity
-                  key={category.id}
-                  onPress={() => setSelectedCategory(category.id)}
-                  style={[styles.categoryChip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                  key={sort.key}
+                  onPress={() => setSelectedSort(sort.key)}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.sortChip,
+                    active
+                      ? { backgroundColor: `${theme.primary}1A` }
+                      : { backgroundColor: "transparent" },
+                  ]}
                 >
-                  <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>{getCategoryLabel(category)}</Text>
+                  <Text
+                    style={[
+                      styles.sortChipText,
+                      active ? { color: theme.primary, fontWeight: "700" } : { color: theme.subText },
+                    ]}
+                  >
+                    {t(`studyMaterial.sort.${sort.labelKey}`)}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
-        </View>
+          </View>
 
-        <View style={styles.sortRow}>
-          {sortOptions.map((sort) => {
-            const active = selectedSort === sort.key;
-            return (
-              <TouchableOpacity
-                key={sort.key}
-                onPress={() => setSelectedSort(sort.key)}
-                style={[styles.sortChip, active ? { backgroundColor: theme.primary + "15" } : { backgroundColor: "transparent" }]}
-              >
-                <Text style={[styles.sortChipText, active ? { color: theme.primary } : { color: theme.subText }]}>{t(`studyMaterial.sort.${sort.labelKey}`)}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[styles.loadingText, { color: theme.subText }]}>{t("studyMaterial.loading")}</Text>
-          </View>
-        ) : materials.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="library-outline" size={48} color={theme.placeholder} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("studyMaterial.emptyTitle")}</Text>
-            <Text style={[styles.emptyText, { color: theme.subText }]}>{t("studyMaterial.emptyText")}</Text>
-          </View>
-        ) : (
-          <View style={styles.listWrapper}>
-            {materials.map((item) => (
-              <MaterialCardItem
-                key={item.id}
-                item={item}
-                navigation={navigation}
-                theme={theme}
-                isDarkMode={isDarkMode}
-                t={t}
-                getCategoryLabel={getCategoryLabel}
-              />
-            ))}
-          </View>
-        )}
-      </Animated.ScrollView>
+          {/* List or Loading / Empty */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.primary} />
+              <Text style={[styles.loadingText, { color: theme.subText }]}>{t("studyMaterial.loading")}</Text>
+            </View>
+          ) : materials.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="library-outline" size={48} color={theme.placeholder} />
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("studyMaterial.emptyTitle")}</Text>
+              <Text style={[styles.emptyText, { color: theme.subText }]}>{t("studyMaterial.emptyText")}</Text>
+            </View>
+          ) : (
+            <View style={styles.listWrapper}>
+              {materials.map((item) => (
+                <MaterialCardItem
+                  key={item.id}
+                  item={item}
+                  navigation={navigation}
+                  theme={theme}
+                  isDarkMode={isDarkMode}
+                  t={t}
+                  getCategoryLabel={getCategoryLabel}
+                />
+              ))}
+            </View>
+          )}
+        </Animated.ScrollView>
       </AndroidGlassBackdrop>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    elevation: 10,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  largeTitle: {
-    fontSize: 30,
-    fontWeight: "800",
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  headerAction: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  heroCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  heroText: {
-    fontSize: 13,
+  container: { flex: 1 },
+  description: {
+    fontSize: 14,
     lineHeight: 20,
+    marginBottom: 16,
+    marginHorizontal: 4,
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    marginBottom: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
+    height: 44,
     borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 16,
   },
   searchInput: {
     flex: 1,
+    fontSize: 15,
     marginLeft: 8,
-    fontSize: 14,
+    padding: 0,
   },
-  chipRow: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
+  sectionWrap: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   chip: {
     borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  categoryRow: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  categoryChip: {
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: "600",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
   },
   sortRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     gap: 6,
+    marginHorizontal: 4,
   },
   sortChip: {
     borderRadius: 999,
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   sortChipText: {
     fontSize: 12,
@@ -725,18 +764,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   listWrapper: {
-    paddingHorizontal: 16,
+    marginTop: 4,
   },
   materialCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
-    borderWidth: 1,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   previewContainer: {
     width: "100%",
@@ -755,8 +788,8 @@ const styles = StyleSheet.create({
   },
   priceBadgeWrapper: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
     zIndex: 2,
   },
   priceBadge: {
@@ -764,40 +797,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 4.5,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingVertical: 4,
   },
   purchasedBadge: {
-    borderWidth: 1,
-    borderColor: "rgba(2, 132, 199, 0.2)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(2, 132, 199, 0.3)",
   },
   purchasedBadgeText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: "700",
     color: "#0284C7",
   },
   freeBadge: {
-    borderWidth: 1,
-    borderColor: "rgba(21, 128, 61, 0.2)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(21, 128, 61, 0.3)",
   },
   freeBadgeText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#15803D",
   },
   paidBadge: {
-    borderWidth: 1,
-    borderColor: "rgba(180, 83, 9, 0.2)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(180, 83, 9, 0.3)",
   },
   paidBadgeText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#B45309",
   },
   cardContent: {
     padding: 14,
@@ -816,7 +841,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 5,
+    marginRight: 6,
   },
   categoryNameText: {
     fontSize: 11,
@@ -824,7 +849,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   dotSeparator: {
-    marginHorizontal: 5,
+    marginHorizontal: 6,
     fontSize: 11,
   },
   timeAgoText: {
@@ -833,9 +858,9 @@ const styles = StyleSheet.create({
   },
   materialTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "600",
     lineHeight: 22,
-    marginBottom: 5,
+    marginBottom: 6,
   },
   materialDescription: {
     fontSize: 13,
@@ -847,7 +872,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingTop: 10,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   authorSection: {
     flexDirection: "row",
@@ -856,27 +881,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   authorAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginRight: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   authorAvatarFallback: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginRight: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
   authorAvatarInitial: {
     fontSize: 10,
     fontWeight: "700",
-  },
-  authorNameText: {
-    fontSize: 12,
-    fontWeight: "500",
-    flexShrink: 1,
   },
   statsSection: {
     flexDirection: "row",
@@ -886,10 +904,10 @@ const styles = StyleSheet.create({
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3.5,
+    gap: 4,
   },
   statText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: "500",
   },
 });

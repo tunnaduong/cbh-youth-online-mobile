@@ -1806,7 +1806,8 @@
     "joinError": "Không thể tham gia bài đố vui này.",
     "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}",
     "restartError": "Không thể làm lại bài đố vui này.",
-    "retrySame": "Làm lại bài này"
+    "retrySame": "Làm lại bài này",
+    "reviewQuestions": "Chi tiết câu hỏi"
   },
   "customQuiz": {
     "entryTitle": "Tạo bộ đề tùy chỉnh",

@@ -356,6 +356,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Modernized Explore Feature Screens (Games, Quiz, Custom Quiz, Study Materials)**:
+  - `GamesScreen/index.js`: Modernized header to the standard floating `LiquidButton` back button + fading title (`headerTitleOpacity`), integrated atmospheric gradient backdrop, updated search bar to rounded 12px card input with clear button, converted Now Playing and XP Leaderboard rows into grouped card surfaces with `AvatarFrameWrap` and `UserNameRow`, added podium rank styling (gold/silver/bronze), and aligned game cards with hairline border tokens.
+  - `QuizScreen/index.js`: Upgraded header with floating `LiquidButton` with close/back & share triggers, replaced raw layout with clean card sections and `SegmentedControl` for difficulty, added `UserNameRow` and `AvatarFrameWrap` to trivia leaderboard with top-3 badges, revamped question option rows with bold active states and clear feedback indicators, and polished result summary ring card and action buttons.
+  - `QuizScreen/CustomQuizCreateScreen.js`: Redesigned header to floating `LiquidButton`, unified mode toggles with `SegmentedControl`, updated inputs, toolbar and document upload dropzone to modern cards, and modernized success screen with primary and secondary button tokens.
+  - `StudyMaterialScreen/index.js`: Upgraded to standard floating header with `LiquidButton` back & upload action, added search box with clear button, refined category & price filter chips, updated author rows to `UserNameRow` and `AvatarFrameWrap`, and removed legacy box shadows in favor of sleek cards with `theme.border`.
+  - Added localized `reviewQuestions` key to `en.json`, `vi.json`, and `ru.json`.
+
 - **Version 6.5.4 & Build 1096**:
   - `app.json` and `package.json` version bumped to `6.5.4`.
   - Android `versionCode` and iOS `buildNumber` set to `1096`.
