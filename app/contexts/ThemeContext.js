@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
 import { Appearance, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
-import { getActiveLauncherIconKey, getCustomAppIconUri } from "../utils/appIcons";
+import { getActiveLauncherIconKey, getCustomAppIconUri, syncSeasonalLauncherIcon } from "../utils/appIcons";
+import axiosInstance from "../services/api/axiosInstance";
 
 export const ThemeContext = createContext();
 
@@ -96,6 +97,24 @@ export const ThemeProvider = ({ children }) => {
       setIsDarkMode(systemColorScheme === "dark");
     }
   }, [systemColorScheme, useSystemTheme]);
+
+  // Background seasonal & remote icon check on app launch
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const res = await syncSeasonalLauncherIcon(axiosInstance);
+        if (isMounted && res?.changed && res?.iconKey) {
+          setLauncherIconKeyState(res.iconKey);
+        }
+      } catch (err) {
+        // Silently preserve current icon without disrupting launch
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // iOS draws its own surfaces - the system tab bar (liquid glass on iOS 26),
   // action sheets, alerts, the keyboard - in the appearance of the window,

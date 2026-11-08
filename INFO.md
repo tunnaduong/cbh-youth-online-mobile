@@ -748,6 +748,11 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Search & Filter bar: rounded pill container with search icon, text input, clear button, and circular filter button (`options-outline`) supporting quick filter pills ("Tất cả", "Chưa đọc", "Nhóm").
   - Conversation card items: styled individual rounded cards (`borderRadius: 20`, subtle border, shadow) replacing flat separator rows; online dot indicator on avatars; double green checkmark `✓✓` for messages sent by the user and read; green pill badge for unread counts; muted bell icon for muted/casual group chats; localized timestamps ("HH:mm", "Hôm qua", "DD/MM").
 
+- **Server-driven seasonal launcher icon updates (20/11 & Christmas)**:
+  - App queries `GET /v1.0/app/config` on launch via `ThemeContext.js` and `appIcons.js:syncSeasonalLauncherIcon`.
+  - Icon transitions (TeachersDay during 20/11 week, Christmas before holidays, NewYear2026, or admin override) are calculated and pushed strictly from the server.
+  - Automatically and smoothly transitions users who have not explicitly chosen another preset (i.e. on default), with support for server `force: true` to override all users when needed.
+
 - **App Icon Settings simplification: remove custom upload option**:
   - Removed custom gallery image upload section from [`AppIconScreen.js`](file:///data/data/com.termux/files/home/cbh-youth-online-mobile/app/screens/MainScreens/SettingsScreen/AppIconScreen.js) since OS launcher icons on iOS and Android strictly require pre-bundled compiled assets. The screen now cleanly focuses on pre-bundled launcher presets and the default icon reset.
 

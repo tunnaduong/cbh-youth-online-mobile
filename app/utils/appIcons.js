@@ -12,6 +12,8 @@ try {
 
 export const LAUNCHER_STORAGE_KEY = "launcher_app_icon_name";
 export const CUSTOM_STORAGE_KEY = "custom_app_icon_uri";
+export const USER_EXPLICIT_ICON_KEY = "user_has_explicit_icon_choice";
+export const LAST_SERVER_ICON_SYNC_KEY = "last_server_icon_sync_date";
 
 /**
  * The standard default application icon.
@@ -164,8 +166,12 @@ export function getActiveIconDisplay(activeKey, customUri) {
 /**
  * Sets the OS launcher app icon or custom mode.
  * @param {string} iconKey - One of the keys in LAUNCHER_APP_ICONS, "default", or "custom"
+ * @param {object} [options]
+ * @param {boolean} [options.isExplicitUserAction=true] - Marks whether the user manually selected this
  */
-export async function applyLauncherIcon(iconKey) {
+export async function applyLauncherIcon(iconKey, options = {}) {
+  const { isExplicitUserAction = true } = options;
+
   if (iconKey === "default" || !iconKey) {
     let nativeApplied = false;
     try {
@@ -177,14 +183,19 @@ export async function applyLauncherIcon(iconKey) {
       console.warn("[AppIcon] Could not reset alternate app icon natively:", error?.message || error);
     }
     storage.set(LAUNCHER_STORAGE_KEY, "default");
+    if (isExplicitUserAction) {
+      // User explicitly wants the standard default
+      storage.delete(USER_EXPLICIT_ICON_KEY);
+    }
     return { key: "default", nativeApplied };
   }
 
   if (iconKey === "custom") {
     // Custom user images are displayed inside the application.
-    // We intentionally avoid calling native setAlternateAppIcon here to prevent Android
-    // from restarting the application process unexpectedly.
     storage.set(LAUNCHER_STORAGE_KEY, "custom");
+    if (isExplicitUserAction) {
+      storage.set(USER_EXPLICIT_ICON_KEY, "custom");
+    }
     return { key: "custom", nativeApplied: false };
   }
 
@@ -209,9 +220,75 @@ export async function applyLauncherIcon(iconKey) {
 
   try {
     storage.set(LAUNCHER_STORAGE_KEY, item.key);
+    if (isExplicitUserAction) {
+      storage.set(USER_EXPLICIT_ICON_KEY, item.key);
+    }
   } catch {}
 
   return { key: item.key, nativeApplied };
+}
+
+/**
+ * Synchronizes the app launcher icon according to directives pushed from the server.
+ * The server evaluates holiday dates (e.g., week of 20/11 -> TeachersDay, Christmas -> Christmas)
+ * or admin override with optional force mode.
+ *
+ * Rules:
+ * - If server sends `force: true`: applied to all users.
+ * - If server sends `force: false`: ONLY applied if the user hasn't explicitly chosen another icon
+ *   (i.e. user is using default).
+ *
+ * @param {object} axiosInstance - API client instance
+ * @returns {Promise<{ changed: boolean, iconKey: string }>}
+ */
+export async function syncSeasonalLauncherIcon(axiosInstance = null) {
+  if (!axiosInstance) {
+    return { changed: false, iconKey: "default" };
+  }
+
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const lastSyncDate = storage.getString(LAST_SERVER_ICON_SYNC_KEY);
+
+    // Read current state
+    const currentSavedKey = storage.getString(LAUNCHER_STORAGE_KEY) || "default";
+    const userExplicitChoice = storage.getString(USER_EXPLICIT_ICON_KEY);
+
+    // Fetch remote dynamic config strictly from server
+    const res = await axiosInstance.get("/v1.0/app/config", { timeout: 4000 });
+    const appIconDirective = res?.data?.app_icon;
+    if (!appIconDirective || !appIconDirective.target_icon) {
+      return { changed: false, iconKey: currentSavedKey };
+    }
+
+    const targetIcon = appIconDirective.target_icon;
+    const isForced = Boolean(appIconDirective.force);
+
+    // Determine eligibility:
+    // 1. If forced by server, change regardless of user's custom preference.
+    // 2. Otherwise, ONLY change if the user has NOT explicitly selected an alternate icon
+    //    (i.e., user is on the default track).
+    const isEligible = isForced || !userExplicitChoice || userExplicitChoice === "default";
+
+    if (!isEligible) {
+      return { changed: false, iconKey: currentSavedKey };
+    }
+
+    // If icon is already applied, avoid redundant native method calls
+    if (currentSavedKey === targetIcon) {
+      storage.set(LAST_SERVER_ICON_SYNC_KEY, todayStr);
+      return { changed: false, iconKey: currentSavedKey };
+    }
+
+    // Apply smoothly in the background without abrupt restarts
+    await applyLauncherIcon(targetIcon, { isExplicitUserAction: false });
+    storage.set(LAST_SERVER_ICON_SYNC_KEY, todayStr);
+
+    return { changed: true, iconKey: targetIcon };
+  } catch (error) {
+    // Silently fail without changing icon if offline or network error
+    return { changed: false, iconKey: "default" };
+  }
 }
 
 /**
