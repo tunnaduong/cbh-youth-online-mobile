@@ -29,6 +29,7 @@ import { WebRtcBridge } from "../components/call/WebRtcBridge";
 import IncomingCallModal from "../components/call/IncomingCallModal";
 import ActiveCallModal from "../components/call/ActiveCallModal";
 import Toast from "react-native-toast-message";
+import { CALL_FEATURES_ENABLED } from "../services/call/callConfig";
 
 export const CallContext = createContext(null);
 
@@ -41,6 +42,31 @@ export const useCall = () => {
 };
 
 export const CallProvider = ({ children }) => {
+  if (!CALL_FEATURES_ENABLED) {
+    return (
+      <CallContext.Provider
+        value={{
+          callStatus: "idle",
+          callType: "audio",
+          activeCall: null,
+          isMuted: false,
+          isSpeakerOn: false,
+          isMinimized: false,
+          callDuration: 0,
+          startCall: () => {},
+          answerCall: () => {},
+          rejectCall: () => {},
+          endCall: () => {},
+          toggleMute: () => {},
+          toggleSpeaker: () => {},
+          toggleMinimize: () => {},
+        }}
+      >
+        {children}
+      </CallContext.Provider>
+    );
+  }
+
   const { isLoggedIn, userInfo } = useContext(AuthContext);
 
   const [callStatus, setCallStatus] = useState("idle"); // 'idle' | 'calling' | 'ringing' | 'connected' | 'ended'

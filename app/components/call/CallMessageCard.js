@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCall } from "../../contexts/CallContext";
+import { CALL_FEATURES_ENABLED } from "../../services/call/callConfig";
 
 function formatSeconds(secs) {
   if (!secs && secs !== 0) return "";
@@ -66,6 +67,7 @@ export default function CallMessageCard({
     : t("call.ended", "Đã kết thúc");
 
   const handleCallback = () => {
+    if (!CALL_FEATURES_ENABLED) return;
     if (conversationId) {
       startCall(conversationId, isVideo ? "video" : "audio");
     }
@@ -146,7 +148,7 @@ export default function CallMessageCard({
         </View>
 
         {/* Callback Button */}
-        {conversationId && (
+        {CALL_FEATURES_ENABLED && conversationId && (
           <TouchableOpacity
             style={[
               styles.callbackBtn,

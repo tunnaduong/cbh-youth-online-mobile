@@ -356,6 +356,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **App.json minNativeBuild 1076 Bump & Temporary Calling Feature Gate**:
+  - `app.json`: Bumped `expo.extra.minNativeBuild` to `1076` aligning base requirement with forced OTA build directive.
+  - `app/services/call/callConfig.js`: Introduced master feature flag `CALL_FEATURES_ENABLED = false` to temporarily hide calling buttons, callback actions, active listeners, and modals before prod release while keeping the entire WebRTC codebase intact.
+  - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy ("Who can see it") row fixed at `eye-outline`).
+
+
 - **Unified Fixed Left Section Icons, Right-Aligned Dropdown Triggers & Build 1076 Forced OTA**:
   - `Dropdown.js`: Unified right-alignment behavior across all dropdowns. When `textAlign: "right"`, the touchable container applies `justifyContent: "flex-end"`, tightly clustering the selected option's icon and label with a 6px gap directly adjacent to the chevron down arrow with zero unwanted dead space, while modal sheet option items enforce strict `textAlign: "left"`.
   - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy ("Who can see it") row fixed at `eye-outline`).

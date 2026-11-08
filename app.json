@@ -121,7 +121,7 @@
       "eas": {
         "projectId": "172eec8c-8c58-453c-a375-258412496e09"
       },
-      "minNativeBuild": 1062
+      "minNativeBuild": 1076
     },
     "runtimeVersion": "7.4.10",
     "updates": {

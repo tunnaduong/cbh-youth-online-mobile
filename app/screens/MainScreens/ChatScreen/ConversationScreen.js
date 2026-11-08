@@ -53,6 +53,7 @@ import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import { useCall } from "../../../contexts/CallContext";
+import { CALL_FEATURES_ENABLED } from "../../../services/call/callConfig";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -3381,7 +3382,7 @@ const ConversationScreen = ({ navigation, route }) => {
         onPressTitle={uiActions.openTitle}
         onOptions={uiActions.showOptions}
         onCall={uiActions.callVoice}
-        canCall={!isGroupConversation && !Boolean(otherUser?.is_ai) && (otherUser?.role !== "ai") && !Boolean(otherUser?.username?.startsWith("ai_"))}
+        canCall={CALL_FEATURES_ENABLED && !isGroupConversation && !Boolean(otherUser?.is_ai) && (otherUser?.role !== "ai") && !Boolean(otherUser?.username?.startsWith("ai_"))}
         hasCustomBackground={Boolean(chatBackgroundUrl)}
       />
 
