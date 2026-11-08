@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Animated,
   DeviceEventEmitter,
+  BackHandler,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -1102,7 +1103,21 @@ const CreateStoryScreen = ({ navigation }) => {
     } else {
       navigation.goBack();
     }
-  }, [isDrawing, hasContent]);
+  }, [isDrawing, hasContent, navigation, t]);
+
+  useEffect(() => {
+    const onHardwareBackPress = () => {
+      handleBackPress();
+      return true;
+    };
+
+    const backHandlerSub = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onHardwareBackPress
+    );
+
+    return () => backHandlerSub.remove();
+  }, [handleBackPress]);
 
   const headerRightButton = (
     <TouchableOpacity
