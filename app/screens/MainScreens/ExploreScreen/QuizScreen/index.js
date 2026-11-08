@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import FastImage from "../../../../components/FastImage";
+import Svg, { Circle, G } from "react-native-svg";
 import {
   View,
   Text,
@@ -765,23 +766,114 @@ const QuizScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {phase === "result" && result && quiz && (
-            <View>
-              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
-                <Text style={[styles.resultLabel, { color: theme.subText }]}>{t("quiz.result", "Kết quả")}</Text>
-                <View style={[styles.resultRing, { borderColor: theme.primary }]}>
-                  <Text style={[styles.resultScore, { color: theme.primary }]}>
-                    {result.score}/{result.total}
-                  </Text>
-                  <Text style={[styles.resultPercent, { color: theme.subText }]}>
-                    {Math.round((result.score / Math.max(1, result.total)) * 100)}%
-                  </Text>
-                </View>
-                {result.points != null && (
-                  <Text style={[styles.resultPoints, { color: theme.text }]}>
-                    {t("quiz.pointsEarned", "+{{points}} điểm", { points: result.points })}
-                  </Text>
-                )}
+          {phase === "result" && result && quiz && (() => {
+            const score = Math.max(0, Number(result.score) || 0);
+            const total = Math.max(1, Number(result.total) || 1);
+            const wrong = Math.max(0, total - score);
+            const percent = Math.round((score / total) * 100);
+            const correctRatio = score / total;
+            const wrongRatio = wrong / total;
+            const size = 144;
+            const strokeWidth = 9;
+            const center = size / 2;
+            const radius = (size - strokeWidth) / 2;
+            const circumference = 2 * Math.PI * radius;
+            const correctColor = theme.primary || "#319527";
+            const wrongColor = "#ef4444";
+            const trackColor = isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+            const gap = Math.min(8, (circumference * Math.min(correctRatio, wrongRatio)) / 3);
+            const correctLength = Math.max(1, correctRatio * circumference - gap);
+            const wrongLength = Math.max(1, wrongRatio * circumference - gap);
+
+            return (
+              <View>
+                <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
+                  <Text style={[styles.resultLabel, { color: theme.subText }]}>{t("quiz.result", "Kết quả")}</Text>
+                  <View style={styles.resultRingWrapper}>
+                    <Svg width={size} height={size}>
+                      <Circle
+                        cx={center}
+                        cy={center}
+                        r={radius}
+                        stroke={trackColor}
+                        strokeWidth={strokeWidth}
+                        fill="none"
+                      />
+                      <G rotation="-90" origin={`${center}, ${center}`}>
+                        {score === total ? (
+                          <Circle
+                            cx={center}
+                            cy={center}
+                            r={radius}
+                            stroke={correctColor}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={`${circumference} ${circumference}`}
+                            fill="none"
+                          />
+                        ) : score === 0 ? (
+                          <Circle
+                            cx={center}
+                            cy={center}
+                            r={radius}
+                            stroke={wrongColor}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={`${circumference} ${circumference}`}
+                            fill="none"
+                          />
+                        ) : (
+                          <>
+                            <Circle
+                              cx={center}
+                              cy={center}
+                              r={radius}
+                              stroke={correctColor}
+                              strokeWidth={strokeWidth}
+                              strokeDasharray={`${correctLength} ${circumference}`}
+                              strokeDashoffset={0}
+                              strokeLinecap="round"
+                              fill="none"
+                            />
+                            <Circle
+                              cx={center}
+                              cy={center}
+                              r={radius}
+                              stroke={wrongColor}
+                              strokeWidth={strokeWidth}
+                              strokeDasharray={`${wrongLength} ${circumference}`}
+                              strokeDashoffset={-(correctRatio * circumference)}
+                              strokeLinecap="round"
+                              fill="none"
+                            />
+                          </>
+                        )}
+                      </G>
+                    </Svg>
+                    <View style={styles.resultRingCenter}>
+                      <Text style={[styles.resultScore, { color: percent >= 50 ? correctColor : wrongColor }]}>
+                        {score}/{total}
+                      </Text>
+                      <Text style={[styles.resultPercent, { color: theme.subText }]}>
+                        {percent}%
+                      </Text>
+                      {total > 0 && (
+                        <View style={styles.resultBreakdownRow}>
+                          <Text style={[styles.resultBreakdownText, { color: correctColor }]}>
+                            ✓ {score}
+                          </Text>
+                          {wrong > 0 && (
+                            <Text style={[styles.resultBreakdownText, { color: wrongColor }]}>
+                              ✗ {wrong}
+                            </Text>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  {result.points != null && (
+                    <Text style={[styles.resultPoints, { color: theme.text }]}>
+                      {t("quiz.pointsEarned", "+{{points}} điểm", { points: result.points })}
+                    </Text>
+                  )}
                 <Text style={[styles.resultTopic, { color: theme.subText }]}>
                   {t("quiz.topicResult", "Chủ đề: {{topic}}", { topic: getTopicLabel(quiz.topic) })}
                 </Text>
@@ -858,7 +950,8 @@ const QuizScreen = ({ navigation, route }) => {
                 );
               })}
             </View>
-          )}
+            );
+          })()}
         </ScrollView>
         )}
       </AndroidGlassBackdrop>
@@ -969,17 +1062,31 @@ const styles = StyleSheet.create({
   dot: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   resultCard: { alignItems: "center" },
   resultLabel: { fontSize: 13, marginBottom: 12 },
-  resultRing: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    borderWidth: 4,
+  resultRingWrapper: {
+    width: 144,
+    height: 144,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
+    position: "relative",
+  },
+  resultRingCenter: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
   },
   resultScore: { fontSize: 30, fontWeight: "800" },
   resultPercent: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  resultBreakdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  resultBreakdownText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
   resultPoints: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
   resultTopic: { fontSize: 13, marginBottom: 16 },
   restartButton: {

@@ -2471,6 +2471,7 @@
     "presets": "Bộ sưu tập biểu tượng",
     "launcherNotice": "Chọn biểu tượng hiển thị trên màn hình chính của thiết bị.",
     "resetDefault": "Đặt lại mặc định",
+    "systemIconChanged": "Biểu tượng ứng dụng đã được thay đổi",
     "updatedTitle": "Đã đổi biểu tượng ứng dụng",
     "updatedDesc": "Biểu tượng màn hình chính của bạn đã được cập nhật.",
     "appliedStorage": "Đã lưu lựa chọn biểu tượng màn hình chính.",

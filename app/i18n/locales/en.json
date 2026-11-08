@@ -2484,6 +2484,7 @@
     "presets": "Launcher Icon Collection",
     "launcherNotice": "Choose the icon displayed on your device home screen.",
     "resetDefault": "Reset to Default",
+    "systemIconChanged": "App icon has been updated",
     "updatedTitle": "App Icon Changed",
     "updatedDesc": "Your home screen app icon has been updated.",
     "appliedStorage": "Home screen icon preference saved.",
