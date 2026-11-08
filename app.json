@@ -261,7 +261,7 @@
             "ios": "./app/assets/teachers-day-20-11.png",
             "android": {
               "foregroundImage": "./app/assets/teachers-day-android.png",
-              "backgroundColor": "#F4FBF7"
+              "backgroundColor": "#FDE6D0"
             }
           },
           {

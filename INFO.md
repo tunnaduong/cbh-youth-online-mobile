@@ -748,6 +748,11 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Search & Filter bar: rounded pill container with search icon, text input, clear button, and circular filter button (`options-outline`) supporting quick filter pills ("Tất cả", "Chưa đọc", "Nhóm").
   - Conversation card items: styled individual rounded cards (`borderRadius: 20`, subtle border, shadow) replacing flat separator rows; online dot indicator on avatars; double green checkmark `✓✓` for messages sent by the user and read; green pill badge for unread counts; muted bell icon for muted/casual group chats; localized timestamps ("HH:mm", "Hôm qua", "DD/MM").
 
+- **20/11 Teachers' Day icon update, bundle size reduction & Settings bugfix**:
+  - **New 20/11 Icon**: Integrated the user-provided Gemini-generated 20/11 icon artwork for both iOS full-bleed (`teachers-day-20-11.png`, 1024x1024) and Android adaptive (`teachers-day-android.png`, 1024x1024 with 682px safe zone and background `#FDE6D0`). Shows properly in Settings app icon thumbnails and applies to launcher presets.
+  - **Asset Size Optimization**: Removed ~10MB of unused legacy duplicate assets (`cbh-youth-iOS-*`), optimized PNG compression across all launcher icons and adaptive icons, reducing bundle footprint.
+  - **SettingsScreen Crash Fix**: Fixed `ReferenceError: Property 'languageCode' doesn't exist` by properly re-declaring `languageCode = i18n.language?.split("-")[0] || "vi"`.
+
 - **Android adaptive launcher icons with safe zone & dynamic theme icon in Settings**:
   - **Android Adaptive Icons**: Generated dedicated Android foreground assets (`*-android.png`) for all launcher presets with artwork centered inside the official 72dp/108dp (682px diameter on 1024x1024 canvas with 171px margins) safe zone. This prevents OEM launcher masks (Samsung OneUI circle, Pixel rounded rectangle, Xiaomi squircle) from cropping edges. Updated `app.json` adaptive icon configuration and `expo-alternate-app-icons` plugin entries with matching background colors.
   - **Reverted native splash override**: Restored native splash screen to use default branding across platforms; preserved user custom splash Lottie animation in `SplashScreen.js` as-is.

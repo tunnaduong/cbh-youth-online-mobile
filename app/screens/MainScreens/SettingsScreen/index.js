@@ -142,6 +142,7 @@ export default function SettingsScreen({ navigation }) {
     : isDarkMode
     ? "moon-outline"
     : "sunny-outline";
+  const languageCode = i18n.language?.split("-")[0] || "vi";
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
   const currentThemeLabel = useSystemTheme
     ? `🌓 ${t("settings.auto")}`
