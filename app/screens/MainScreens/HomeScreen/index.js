@@ -1776,14 +1776,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   // auto-recorded view, unlike the dedicated /stories/{id}/viewers endpoint
   // used by the viewers-list modal, so it must be excluded here to match.
   const getStoryViewersCount = (story) => {
-    const viewers = story?.viewers || [];
-    return viewers.filter((viewer) => {
-      const viewerId = viewer?.id ?? viewer?.user_id;
-      if (viewerId != null && userInfo?.id != null) {
-        return String(viewerId) !== String(userInfo.id);
-      }
-      return viewer?.username !== userInfo?.username;
-    }).length;
+    if (Array.isArray(story?.viewers) && story.viewers.length > 0) {
+      return story.viewers.filter((viewer) => {
+        const viewerId = viewer?.id ?? viewer?.user_id;
+        if (viewerId != null && userInfo?.id != null) {
+          return String(viewerId) !== String(userInfo.id);
+        }
+        return viewer?.username !== userInfo?.username;
+      }).length;
+    }
+    const rawCount = Number(story?.viewers_count ?? story?.views_count ?? story?.view_count ?? 0);
+    return Math.max(0, isNaN(rawCount) ? 0 : rawCount);
   };
 
   const transformStoriesData = (apiResponse) => {
