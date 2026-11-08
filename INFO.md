@@ -356,6 +356,9 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Fix OTA Manifest Direct Check ReferenceError**:
+  - `app/services/ota/otaService.js`: Replaced obsolete variable `effectiveCurrentBuild` with `currentActiveBuild` in the HTTP manifest check. Prevents `ReferenceError: Property 'effectiveCurrentBuild' doesn't exist` from crashing the check and erroneously falling back to `status: "disabled"` on standalone builds.
+
 - **Android Gesture Navigation & BackHandler in CreateStoryScreen**:
   - `CreateStoryScreen/index.js`: Registered hardware back button listener (`BackHandler.addEventListener("hardwareBackPress")`) hooked to `handleBackPress`, enabling Android system back navigation (swipe from left/right edge or hardware back button) to safely navigate back on the initial picker or prompt for discard confirmation when editing content/drawing.
 
