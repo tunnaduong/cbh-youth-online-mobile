@@ -161,26 +161,28 @@ export default function UpdatePromptModal({
 
         Alert.alert(
           t("ota.updateCompleteTitle", "Cập nhật hoàn tất!"),
-          t("ota.updateCompleteMessage", "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục."),
+          t("ota.updateCompleteMessage", "Cập nhật hoàn tất! Nhấn OK để khởi động lại ứng dụng với phiên bản mới."),
           [
             {
               text: t("common.ok", "OK"),
-              onPress: () => {
-                reloadApp();
+              onPress: async () => {
+                onDismiss?.();
+                await reloadApp();
               },
             },
           ],
           { cancelable: false }
         );
 
-        // Fallback auto reload after 3s if user doesn't press OK
+        // Fallback auto reload after 4s if user doesn't press OK
         setTimeout(async () => {
           try {
+            onDismiss?.();
             await reloadApp();
           } catch (e) {
             console.error("[OTA Modal] reloadApp error:", e?.message || e);
           }
-        }, 3000);
+        }, 4000);
       } else if (res.status === "up_to_date") {
         console.log("[OTA Modal] Client is already at latest version. Closing modal cleanly.");
         onDismiss?.();

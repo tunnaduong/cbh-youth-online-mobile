@@ -749,9 +749,9 @@ export async function checkAndFetchUpdate(channelOverride) {
 }
 
 /**
- * Relaunches or shuts down the app to cleanly apply the newly downloaded OTA bundle.
- * On Android, gracefully terminates the app process via BackHandler.exitApp() to
- * avoid memory heap overflows and force a fresh cold-start loading the new bundle.
+ * Relaunches the app via Expo Updates to apply the newly downloaded OTA bundle.
+ * Updates.reloadAsync() tells the Expo native loader to restart the React runtime
+ * using the newly cached JS bundle.
  */
 export async function reloadApp() {
   if (__DEV__) {
@@ -759,21 +759,21 @@ export async function reloadApp() {
     return;
   }
   try {
-    if (Platform.OS === "android") {
-      console.log("[OTA] Shutting down Android app to allow clean cold reload...");
-      BackHandler.exitApp();
-      return;
-    }
     if (Updates.isEnabled) {
       console.log("[OTA] Calling Updates.reloadAsync()...");
       await Updates.reloadAsync();
       console.log("[OTA] Updates.reloadAsync call returned.");
+      return;
+    }
+    // If Updates is not enabled (e.g. standalone dev build), fallback to exitApp
+    if (Platform.OS === "android") {
+      BackHandler.exitApp();
     }
   } catch (err) {
     console.error("[OTA] reloadApp error:", err?.message || err);
     try {
-      if (Updates.isEnabled) {
-        await Updates.reloadAsync();
+      if (Platform.OS === "android") {
+        BackHandler.exitApp();
       }
     } catch {}
   }

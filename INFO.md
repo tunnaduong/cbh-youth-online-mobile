@@ -740,12 +740,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 - **Modern & aesthetic Search screen revamp**:
   - `SearchScreen/index.js`: Comprehensive visual and UX redesign conforming to CYO design system.
-  - **Aesthetic Top Bar & Ambient Glow**: Added smooth status bar radial gradient bleed, liquid glass capsule search bar with focused search icon and quick clear button, and back button powered by `LiquidButton`.
+  - **Clean Solid Capsule Search Bar**: Removed liquid glass overlay on search input bar, matching the clean solid filter pills style (`rgba(255,255,255,0.06)` / `rgba(0,0,0,0.04)` with fine border) for unified look and smooth typing.
+  - **Server-driven Suggested Topics**: Suggestions are now fetched live from `GET /v1.0/search/suggestions` API endpoint rather than hardcoded on the client, showing real trending hashtags with topic counts.
   - **Interactive Segmented Filter Carousel**: Replaced hidden pop-up menu with clean horizontal filter chips (All, Users, Posts) featuring distinct active states and icons for instant filtering.
   - **Recent Search History & Persistence**: Saves past search terms in MMKV with quick chip taps, individual remove (`close`), and "Xóa lịch sử" bulk clear.
-  - **Curated Suggested & Trending Topics**: Displays quick-filter chips for popular hashtags (`#thptchuyenbienhoa`, `#hoatdongdoan`, `#hoctap`, etc.) and friendly empty discover artwork card.
-  - **Card-based Elevated Results**: User items now render as rounded translucent cards with `AvatarFrameWrap`, `UserNameRow`, bio preview, and forward indicator; post items feature clean rounded image thumbnails with formatted metadata.
-  - Localized all new search strings in `vi.json`, `en.json`, and `ru.json`.
+  - **Card-based Elevated Results**: User items render as rounded translucent cards with `AvatarFrameWrap`, `UserNameRow`, bio preview, and forward indicator; post items feature clean rounded image thumbnails with formatted metadata.
+  - **OTA Restart Fix**: `otaService.js` and `UpdatePromptModal.js` dismiss prompt modal and invoke `Updates.reloadAsync()` directly on reload confirmation, correctly reloading the newly cached bundle without getting stuck on restarting modal.
 
 - **Call timeouts (10s connect, 45s ringing), remove restart on account switch (OTA only), incoming call loophole & outward ringing status**:
   - `UpdatePromptModal.js` & `otaService.js`: After an OTA update bundle is downloaded and applied, presents Alert: "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục." ("Update complete! Restart app to continue.") and calls `BackHandler.exitApp()` on Android (or reload) so on restart it loads cleanly from cold start, preventing memory heap overflow.

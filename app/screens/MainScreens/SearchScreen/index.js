@@ -15,16 +15,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { searchQuery } from "../../../services/api/Api";
+import { searchQuery, getSearchSuggestions } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
 import LiquidButton from "../../../components/LiquidButton";
-import {
-  AndroidGlassBackdrop,
-  LiquidGlassView,
-  glassTint,
-  androidGlassPerfProps,
-} from "../../../components/GlassModules";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
@@ -34,18 +29,8 @@ import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { storage } from "../../../global/storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SearchPillWrapper = LiquidGlassView ?? View;
 const RECENT_SEARCHES_KEY = "recent_search_queries_v1";
 const MAX_RECENT_SEARCHES = 8;
-
-const SUGGESTED_TAGS = [
-  { label: "thptchuyenbienhoa", icon: "sparkles" },
-  { label: "hoatdongdoan", icon: "megaphone" },
-  { label: "hoctap", icon: "book" },
-  { label: "caulacbo", icon: "people" },
-  { label: "thptqg", icon: "school" },
-  { label: "tamchuyen", icon: "chatbubbles" },
-];
 
 export default function SearchScreen({ navigation, route }) {
   const inset = useSafeAreaInsets();
@@ -61,6 +46,7 @@ export default function SearchScreen({ navigation, route }) {
   ); // "all", "user", "post", "hashtag"
   const [hashtagTag, setHashtagTag] = useState(null);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [suggestedTopics, setSuggestedTopics] = useState([]);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const inputRef = useRef(null);
@@ -76,6 +62,20 @@ export default function SearchScreen({ navigation, route }) {
         }
       }
     } catch {}
+  }, []);
+
+  // Fetch suggested topics & hashtags from server API
+  useEffect(() => {
+    getSearchSuggestions()
+      .then((res) => {
+        const topics = res?.data?.data?.topics || res?.data?.topics;
+        if (Array.isArray(topics) && topics.length > 0) {
+          setSuggestedTopics(topics);
+        }
+      })
+      .catch((err) => {
+        console.warn("[SearchScreen] Failed to load suggestions from server:", err?.message || err);
+      });
   }, []);
 
   const saveRecentSearch = useCallback((searchTerm) => {
@@ -314,19 +314,14 @@ export default function SearchScreen({ navigation, route }) {
             <Ionicons name="chevron-back" color={theme.text} size={22} />
           </LiquidButton>
 
-          {/* Liquid Glass Search Input Field */}
-          <SearchPillWrapper
-            {...(LiquidGlassView
-              ? { variant: "clear", tintColor: glassTint(isDarkMode), borderRadius: 20, ...androidGlassPerfProps }
-              : {})}
+          {/* Plain Solid Pill Input Field (Matching Filter Pill styling without liquid glass) */}
+          <View
             style={[
               styles.searchInputPill,
-              LiquidGlassView
-                ? { borderColor: isDarkMode ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.10)" }
-                : {
-                    backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.92)",
-                    borderColor: isDarkMode ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.10)",
-                  },
+              {
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+              },
             ]}
           >
             <Ionicons name="search" size={18} color={theme.primary} style={{ marginLeft: 4 }} />
@@ -354,7 +349,7 @@ export default function SearchScreen({ navigation, route }) {
                 <Ionicons name="close-circle" size={18} color={theme.subText} />
               </TouchableOpacity>
             )}
-          </SearchPillWrapper>
+          </View>
         </View>
 
         {/* Filter Pills Carousel */}
@@ -472,38 +467,40 @@ export default function SearchScreen({ navigation, route }) {
                 </View>
               )}
 
-              {/* Trending / Suggested Topics */}
-              <View style={styles.discoverSection}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.sectionTitleWithIcon}>
-                    <Ionicons name="trending-up-outline" size={17} color={theme.primary} />
-                    <Text style={[styles.discoverSectionTitle, { color: theme.text }]}>
-                      {t("search.popularTopics", "Chủ đề gợi ý")}
-                    </Text>
+              {/* Trending / Suggested Topics fetched from Server */}
+              {suggestedTopics.length > 0 && (
+                <View style={styles.discoverSection}>
+                  <View style={styles.sectionHeaderRow}>
+                    <View style={styles.sectionTitleWithIcon}>
+                      <Ionicons name="trending-up-outline" size={17} color={theme.primary} />
+                      <Text style={[styles.discoverSectionTitle, { color: theme.text }]}>
+                        {t("search.popularTopics", "Chủ đề gợi ý")}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.popularTagsGrid}>
+                    {suggestedTopics.map((item, idx) => (
+                      <TouchableOpacity
+                        key={`${item.label}-${idx}`}
+                        activeOpacity={0.75}
+                        onPress={() => handleChipPress(item.label?.startsWith("#") ? item.label : `#${item.label}`)}
+                        style={[
+                          styles.suggestedChip,
+                          {
+                            backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.10)" : "rgba(34, 197, 94, 0.08)",
+                            borderColor: isDarkMode ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.20)",
+                          },
+                        ]}
+                      >
+                        <Ionicons name={item.icon || "pricetag-outline"} size={14} color={theme.primary} style={{ marginRight: 6 }} />
+                        <Text style={[styles.suggestedChipText, { color: theme.primary }]}>
+                          {item.label?.startsWith("#") ? item.label : `#${item.label}`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
-                <View style={styles.popularTagsGrid}>
-                  {SUGGESTED_TAGS.map((tag) => (
-                    <TouchableOpacity
-                      key={tag.label}
-                      activeOpacity={0.75}
-                      onPress={() => handleChipPress(`#${tag.label}`)}
-                      style={[
-                        styles.suggestedChip,
-                        {
-                          backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.10)" : "rgba(34, 197, 94, 0.08)",
-                          borderColor: isDarkMode ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.20)",
-                        },
-                      ]}
-                    >
-                      <Ionicons name={tag.icon} size={15} color={theme.primary} style={{ marginRight: 6 }} />
-                      <Text style={[styles.suggestedChipText, { color: theme.primary }]}>
-                        #{tag.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+              )}
 
               {/* Friendly Mascot Art & Prompt */}
               <View style={styles.emptyPromptCard}>
