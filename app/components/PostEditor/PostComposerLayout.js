@@ -322,7 +322,7 @@ export default function PostComposerLayout({
                   headerIcon="clover"
                 />
               </SettingRow>
-              <SettingRow icon={privacy?.icon || "earth"} title={t("createPost.privacyLabel")} theme={theme}>
+              <SettingRow icon="eye-outline" title={t("createPost.privacyLabel")} theme={theme}>
                 <Dropdown
                   options={privacyOptions}
                   placeholder={t("createPost.privacyPublic")}
@@ -333,7 +333,7 @@ export default function PostComposerLayout({
                   textStyle={styles.rowDropdownText}
                   arrowSize={16}
                   modalTitle={t("createPost.privacyLabel")}
-                  headerIcon={privacy?.icon || "earth"}
+                  headerIcon="eye-outline"
                 />
               </SettingRow>
               <SettingRow

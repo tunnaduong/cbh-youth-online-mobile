@@ -358,7 +358,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 - **Unified Fixed Left Section Icons, Right-Aligned Dropdown Triggers & Build 1076 Forced OTA**:
   - `Dropdown.js`: Unified right-alignment behavior across all dropdowns. When `textAlign: "right"`, the touchable container applies `justifyContent: "flex-end"`, tightly clustering the selected option's icon and label with a 6px gap directly adjacent to the chevron down arrow with zero unwanted dead space, while modal sheet option items enforce strict `textAlign: "left"`.
-  - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy row fixed at `earth`).
+  - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy ("Who can see it") row fixed at `eye-outline`).
   - `SettingsScreen/index.js`: Theme row icon fixed at `color-palette-outline`, Language row icon fixed at `language-outline`. Trigger container adjusted to `alignItems: "flex-end"` to pin the right-aligned dropdown seamlessly against the right edge.
   - `otaService.js`: Refined minimum build/version forced upgrade logic: devices already running at or above `min_build` (1076) without a `max_build` cap are marked up to date, while devices running older builds are forced to upgrade.
 
