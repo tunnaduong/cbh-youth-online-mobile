@@ -134,7 +134,9 @@
     "replySent": "Đã gửi",
     "replySentBody": "Tin nhắn đã được gửi đến người dùng.",
     "replySendError": "Không thể gửi tin nhắn. Vui lòng thử lại.",
-    "views": "{{count}} lượt xem"
+    "views": "{{count}} lượt xem",
+    "views_zero": "Chưa có lượt xem",
+    "views_other": "{{count}} lượt xem"
   },
   "chat": {
     "title": "Tin nhắn",
@@ -1360,7 +1362,9 @@
     "loadError": "Không thể tải kho lưu trữ.",
     "privacyNotice": "Tin đã lưu trữ sẽ chỉ hiển thị với mình bạn.",
     "empty": "Chưa có story nào",
-    "viewersCount": "{{count}} người xem"
+    "viewersCount": "{{count}} người xem",
+    "viewersCount_zero": "Chưa có người xem",
+    "viewersCount_other": "{{count}} người xem"
   },
   "dropdown": {
     "selectOption": "Chọn một tùy chọn",

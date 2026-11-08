@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Story Views Translation & Zero-View Polish Across Languages**:
+  - `app/i18n/locales/{en,vi,ru}.json`: Added zero-plural keys and correct grammatical forms for story views and archive viewer counters (`home.views_zero`, `archive.viewersCount_zero`, as well as English singular/plural and Russian `_0`/`_1`/`_2`/`_one`/`_few`/`_many` forms). When a story has 0 viewers, it displays natural localized phrases ("No views yet", "Chưa có lượt xem", "Пока нет просмотров" / "No viewers yet", "Chưa có người xem", "Пока никто не просмотрел") instead of awkward literal numbers like "0 views" or "0 lượt xem".
+  - `HomeScreen/index.js`: Enhanced `getStoryViewersCount(story)` fallback logic to safely check for raw view counter fields (`story.viewers_count`, `story.views_count`, `story.view_count`) when the embedded `story.viewers` array is missing or empty, ensuring accurate view counts are passed to the story viewer bar.
+
 - **Story Overhaul Refinement, Bug Fixes & Design System Revamp**:
   - `CreateStoryScreen/index.js`:
     - **Header Navigation**: Replaced `LiquidButton` with a clean, borderless `TouchableOpacity` back button on the static initial creation header and removed the bottom border. Replaced the editor's circular glass button with a plain, normal close icon button (`headerCloseButton`) matching Forum and Search with no glass backdrop because there is no scrolling header. Removed the duplicate top-right share button during composing, leaving a single thumb-reachable bottom share action (only showing "Done" when actively drawing).

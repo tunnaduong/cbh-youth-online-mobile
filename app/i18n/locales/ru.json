@@ -149,6 +149,7 @@
     "replySentBody": "Сообщение отправлено пользователю.",
     "replySendError": "Не удалось отправить сообщение. Попробуйте снова.",
     "views": "{{count}} просмотров",
+    "views_zero": "Пока нет просмотров",
     "views_0": "{{count}} просмотр",
     "views_1": "{{count}} просмотра",
     "views_2": "{{count}} просмотров",
@@ -1385,9 +1386,14 @@
     "privacyNotice": "Сохранённые истории будут видны только вам.",
     "empty": "Пока нет историй",
     "viewersCount": "{{count}} просмотров",
+    "viewersCount_zero": "Пока никто не просмотрел",
     "viewersCount_0": "{{count}} просмотр",
     "viewersCount_1": "{{count}} просмотра",
-    "viewersCount_2": "{{count}} просмотров"
+    "viewersCount_2": "{{count}} просмотров",
+    "viewersCount_one": "{{count}} просмотр",
+    "viewersCount_few": "{{count}} просмотра",
+    "viewersCount_many": "{{count}} просмотров",
+    "viewersCount_other": "{{count}} просмотров"
   },
   "dropdown": {
     "selectOption": "Выберите опцию",

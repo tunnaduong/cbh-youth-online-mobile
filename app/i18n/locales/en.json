@@ -142,6 +142,7 @@
     "replySentBody": "Message has been sent to the user.",
     "replySendError": "Could not send message. Please try again.",
     "views": "{{count}} views",
+    "views_zero": "No views yet",
     "views_singular": "{{count}} view",
     "views_plural": "{{count}} views",
     "views_one": "{{count}} view",
@@ -1372,7 +1373,10 @@
     "loadError": "Could not load archive.",
     "privacyNotice": "Archived stories will only be visible to you.",
     "empty": "No stories yet",
-    "viewersCount": "{{count}} viewers"
+    "viewersCount": "{{count}} viewers",
+    "viewersCount_zero": "No viewers yet",
+    "viewersCount_one": "{{count}} viewer",
+    "viewersCount_other": "{{count}} viewers"
   },
   "dropdown": {
     "selectOption": "Select an option",
