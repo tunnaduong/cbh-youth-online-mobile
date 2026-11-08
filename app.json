@@ -18,7 +18,7 @@
         "tinted": "./app/assets/cbh-youth-cleardark.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "1012",
+      "buildNumber": "1087",
       "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
@@ -111,7 +111,7 @@
       },
       "package": "com.fatties.youth",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 1012,
+      "versionCode": 1087,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -131,7 +131,7 @@
       "fallbackToCacheTimeout": 0,
       "disableAntiBrickingMeasures": true,
       "requestHeaders": {
-        "expo-channel-name": "preview"
+        "expo-channel-name": "production"
       }
     },
     "plugins": [
