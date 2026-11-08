@@ -182,13 +182,20 @@
     "all": "Tất cả",
     "users": "Người dùng",
     "posts": "Bài viết",
-    "placeholder": "Tìm kiếm trên CYO",
-    "hint": "Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, loa lớn...",
+    "placeholder": "Tìm kiếm trên CYO...",
+    "hint": "Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, chủ đề...",
     "searching": "Đang tìm kiếm...",
     "noResults": "Không tìm thấy kết quả nào cho \"{{query}}\"",
     "noUsersForQuery": "Không tìm thấy người dùng nào cho \"{{query}}\"",
     "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\"",
-    "hashtagResultsTitle": "Kết quả cho #{{tag}}"
+    "hashtagResultsTitle": "Kết quả cho #{{tag}}",
+    "recentSearches": "Tìm kiếm gần đây",
+    "clearRecent": "Xóa lịch sử",
+    "clearRecentConfirm": "Bạn có chắc muốn xóa toàn bộ lịch sử tìm kiếm?",
+    "popularTopics": "Chủ đề gợi ý",
+    "trending": "Thịnh hành",
+    "emptySearchTitle": "Khám phá thế giới CYO",
+    "emptySearchDesc": "Nhập tên bạn bè, chủ đề yêu thích hoặc #hashtag để bắt đầu tìm kiếm."
   },
   "follow": {
     "followers": "N. theo dõi",

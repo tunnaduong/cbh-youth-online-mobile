@@ -193,13 +193,20 @@
     "all": "All",
     "users": "Users",
     "posts": "Posts",
-    "placeholder": "Search on CYO",
-    "hint": "Try searching for users, posts, loudspeaker news...",
+    "placeholder": "Search on CYO...",
+    "hint": "Try searching for users, posts, topics...",
     "searching": "Searching...",
     "noResults": "No results found for \"{{query}}\"",
     "noUsersForQuery": "No users found for \"{{query}}\"",
     "noPostsForQuery": "No posts found for \"{{query}}\"",
-    "hashtagResultsTitle": "Results for #{{tag}}"
+    "hashtagResultsTitle": "Results for #{{tag}}",
+    "recentSearches": "Recent searches",
+    "clearRecent": "Clear history",
+    "clearRecentConfirm": "Are you sure you want to clear your search history?",
+    "popularTopics": "Suggested topics",
+    "trending": "Trending",
+    "emptySearchTitle": "Explore CYO",
+    "emptySearchDesc": "Type a friend's name, favorite topic or #hashtag to start searching."
   },
   "follow": {
     "followers": "Followers",

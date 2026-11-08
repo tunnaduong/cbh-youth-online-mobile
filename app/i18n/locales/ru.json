@@ -203,13 +203,20 @@
     "all": "Все",
     "users": "Пользователи",
     "posts": "Посты",
-    "placeholder": "Поиск в CYO",
-    "hint": "Попробуйте искать пользователей, посты или новости громкоговорителя...",
+    "placeholder": "Поиск в CYO...",
+    "hint": "Попробуйте искать пользователей, посты или темы...",
     "searching": "Поиск...",
     "noResults": "Результаты не найдены для \"{{query}}\"",
     "noUsersForQuery": "Пользователи не найдены для \"{{query}}\"",
     "noPostsForQuery": "Посты не найдены для \"{{query}}\"",
-    "hashtagResultsTitle": "Результаты для #{{tag}}"
+    "hashtagResultsTitle": "Результаты для #{{tag}}",
+    "recentSearches": "Недавние поиски",
+    "clearRecent": "Очистить историю",
+    "clearRecentConfirm": "Вы уверены, что хотите очистить историю поиска?",
+    "popularTopics": "Рекомендуемые темы",
+    "trending": "В тренде",
+    "emptySearchTitle": "Исследуйте мир CYO",
+    "emptySearchDesc": "Введите имя друга, интересную тему или #хэштег для начала поиска."
   },
   "follow": {
     "followers": "Подписчики",
