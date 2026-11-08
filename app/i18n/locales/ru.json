@@ -734,6 +734,11 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
   },
   "ota": {
+    "forceUpdateTitle": "Обязательное обновление",
+    "forceUpdatingToast": "Система автоматически загружает обязательное обновление...",
+    "forceUpdatedToast": "Обновление загружено. Приложение сейчас перезагрузится...",
+    "forceUpdateNotification": "Приложение автоматически обновляется по требованию системы.",
+    "forceUpdateActiveBanner": "Администратор установил обязательное обновление для всех устройств.",
     "updateAvailableTitle": "Доступно новое обновление!",
     "downloadingTitle": "Обновление...",
     "downloadingDesc": "Загрузка пакета обновления. Пожалуйста, не закрывайте приложение...",

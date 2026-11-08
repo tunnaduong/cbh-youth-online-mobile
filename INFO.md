@@ -356,6 +356,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Remote Forced OTA Auto-Update Directives & Management**:
+  - `otaService.js`: Added `checkAndExecuteForcedOtaUpdate(otaDirective)` and `syncRemoteOtaConfig(axiosInstance)`. When server sends `ota_update.force = true`, the client immediately checks and executes OTA download + reload, bypassing all client in-app disable toggles (`isOtaEnabled()`, `isStartupCheckEnabled()`).
+  - Added native Android Toast (`ToastAndroid.showWithGravity`) and local notification banner alerts (`Notifications.scheduleNotificationAsync`) informing the user during download and automatic reload.
+  - `ThemeContext.js`: Background sync runs on initial startup and automatically triggers on app resume (`AppState.addEventListener("change", (state) => state === "active")`).
+  - `AppUpdatesScreen.js`: Displays a prominent warning banner when forced OTA is active from the server, and allows manual checks even if OTA toggles were locally disabled.
+  - Added localization keys (`ota.forceUpdate*`) across `vi.json`, `en.json`, and `ru.json`.
+
 - **Crash Screen OTA Diagnostics, Human-Designed 20/11 CYO Icon, Native Splash & WelcomeScreen Fix**:
   - **Authentic 20/11 CYO Icon**: Redesigned 20/11 Teachers' Day icon based 100% on the official CYO frog emblem from `cbh-youth-default.png`, adding only modern books with gold accents, golden fountain pen, and a sleek modern '20/11' badge in the top-right corner. Generated dedicated variants for iOS (`teachers-day-20-11.png`) and Android Adaptive (`teachers-day-android.png`) with safe margin framing.
   - **Splash Screen Rules**: Native OS splash screen on Android 12+ (`?android:attr/icon`) and iOS dynamically reflects the active launcher icon, while the in-app `SplashScreen.js` strictly preserves the custom `splash.json` Lottie animation as-is without replacement.

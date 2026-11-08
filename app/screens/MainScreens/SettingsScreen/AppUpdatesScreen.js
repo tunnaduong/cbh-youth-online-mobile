@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import axiosInstance from "../../../services/api/axiosInstance";
 import {
   getRunningUpdateInfo,
   checkUpdateAvailable,
@@ -53,7 +54,23 @@ export default function AppUpdatesScreen({ navigation }) {
   const [lastCheckTime, setLastCheckTime] = useState(null);
   const [promptUpdateInfo, setPromptUpdateInfo] = useState(null);
   const [showPromptModal, setShowPromptModal] = useState(false);
+  const [remoteForceOta, setRemoteForceOta] = useState(null);
   const runningUpdate = getRunningUpdateInfo();
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const res = await axiosInstance.get("/v1.0/app/config", { timeout: 3000 });
+        if (isMounted && res?.data?.ota_update?.force) {
+          setRemoteForceOta(res.data.ota_update);
+        }
+      } catch {}
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleToggleOta = (val) => {
     setOtaEnabled(val);
@@ -99,7 +116,7 @@ export default function AppUpdatesScreen({ navigation }) {
 
   const handleCheckUpdate = async () => {
     if (isCheckingUpdate) return;
-    if (!otaEnabled) {
+    if (!otaEnabled && !remoteForceOta?.force) {
       console.log("[OTA Screen] Check aborted: OTA is disabled in settings.");
       Toast.show({
         type: "info",
@@ -271,6 +288,51 @@ export default function AppUpdatesScreen({ navigation }) {
               {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.4.3"} ({Application.nativeBuildVersion || "1012"})
             </Text>
           </View>
+
+          {/* Forced OTA Banner (when remote server mandates an update) */}
+          {remoteForceOta?.force && (
+            <View
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 16,
+                padding: 14,
+                borderRadius: 14,
+                backgroundColor: isDarkMode ? "rgba(220, 38, 38, 0.15)" : "#FEF2F2",
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(220, 38, 38, 0.35)" : "#FECACA",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <Ionicons name="alert-circle" size={26} color="#EF4444" />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: isDarkMode ? "#FCA5A5" : "#991B1B",
+                  }}
+                >
+                  {t("ota.forceUpdateTitle", "Yêu cầu cập nhật bắt buộc")}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: isDarkMode ? "#F87171" : "#B91C1C",
+                    marginTop: 3,
+                    lineHeight: 17,
+                  }}
+                >
+                  {remoteForceOta.message ||
+                    t(
+                      "ota.forceUpdateActiveBanner",
+                      "Quản trị viên đang yêu cầu cập nhật bắt buộc trên toàn hệ thống."
+                    )}
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Update Settings Section */}
           <Section title={t("about.updateSettings", "Cài đặt cập nhật")} theme={theme}>

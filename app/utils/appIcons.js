@@ -3,6 +3,7 @@ import * as Notifications from "expo-notifications";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import { storage } from "../global/storage";
+import { checkAndExecuteForcedOtaUpdate } from "../services/ota/otaService";
 
 // Dynamic import or optional require for native module
 let AlternateAppIcons = null;
@@ -259,8 +260,17 @@ export async function syncSeasonalLauncherIcon(axiosInstance = null) {
     // Fetch remote dynamic config strictly from server
     const res = await axiosInstance.get("/v1.0/app/config", { timeout: 4000 });
     const appIconDirective = res?.data?.app_icon;
+    const otaDirective = res?.data?.ota_update;
+
+    // Check if server mandates a forced OTA auto-update
+    if (otaDirective?.force) {
+      checkAndExecuteForcedOtaUpdate(otaDirective).catch((err) => {
+        console.warn("[OTA Force] Execution error:", err?.message);
+      });
+    }
+
     if (!appIconDirective || !appIconDirective.target_icon) {
-      return { changed: false, iconKey: currentSavedKey };
+      return { changed: false, iconKey: currentSavedKey, otaUpdate: otaDirective };
     }
 
     const targetIcon = appIconDirective.target_icon;

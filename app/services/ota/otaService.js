@@ -1,9 +1,11 @@
-import { Platform } from "react-native";
+import { Platform, ToastAndroid } from "react-native";
 import * as Application from "expo-application";
 import * as Updates from "expo-updates";
+import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { storage } from "../../global/storage";
 import { MIN_NATIVE_BUILD_REQUIRED, getEmbeddedDefaultChannel } from "./otaConfig";
+import i18n from "../../i18n";
 
 /**
  * Service for managing Over-The-Air (OTA) updates fetched from the self-hosted
@@ -760,5 +762,145 @@ export async function reloadApp() {
     console.log("[OTA] Updates.reloadAsync call returned.");
   } catch (err) {
     console.error("[OTA] Updates.reloadAsync error:", err?.message || err);
+  }
+}
+
+let isForcedUpdateInProgress = false;
+let lastOtaCheckTimestamp = 0;
+
+/**
+ * Checks if server has issued a forced OTA update directive and executes it immediately,
+ * bypassing user in-app toggles.
+ *
+ * @param {object} otaDirective { force: boolean, min_build?: number|null, channel?: string|null, message?: string|null }
+ * @returns {Promise<{ enforced: boolean, updated?: boolean, upToDate?: boolean, error?: string }>}
+ */
+export async function checkAndExecuteForcedOtaUpdate(otaDirective) {
+  if (!otaDirective || !otaDirective.force) {
+    return { enforced: false };
+  }
+
+  if (isForcedUpdateInProgress) {
+    console.log("[OTA Force] Forced update already in progress. Skipping duplicate call.");
+    return { enforced: true, inProgress: true };
+  }
+
+  if (__DEV__) {
+    console.log("[OTA Force] App in __DEV__ mode. Skipping forced OTA.");
+    return { enforced: false, devMode: true };
+  }
+
+  if (!Updates.isEnabled) {
+    console.log("[OTA Force] Updates.isEnabled is false in this environment.");
+    return { enforced: false, disabled: true };
+  }
+
+  const currentActiveBuild = getRunningOtaBuildNumber();
+
+  // If min_build is specified and current active build satisfies it, no force needed
+  if (otaDirective.min_build && currentActiveBuild >= otaDirective.min_build) {
+    console.log(
+      `[OTA Force] Active build (${currentActiveBuild}) already meets or exceeds required min_build (${otaDirective.min_build}). Up to date.`
+    );
+    return { enforced: false, upToDate: true };
+  }
+
+  const targetChannel = otaDirective.channel || getOtaChannel();
+  isForcedUpdateInProgress = true;
+
+  try {
+    console.log(
+      `[OTA Force] Executing forced OTA update check on channel "${targetChannel}" (activeBuild=${currentActiveBuild}, minBuildRequired=${otaDirective.min_build || "any"})...`
+    );
+
+    // Call checkUpdateAvailable with force = true to bypass isOtaEnabled()
+    const checkResult = await checkUpdateAvailable(targetChannel, true);
+
+    if (checkResult.status === "available" && checkResult.updateInfo) {
+      const updatingToast = i18n?.t
+        ? i18n.t("ota.forceUpdatingToast", "Hệ thống đang tự động tải bản cập nhật mới...")
+        : "Hệ thống đang tự động tải bản cập nhật mới...";
+      const updatedToast = i18n?.t
+        ? i18n.t("ota.forceUpdatedToast", "Bản cập nhật đã tải xong. Ứng dụng sẽ tự khởi động lại...")
+        : "Bản cập nhật đã tải xong. Ứng dụng sẽ tự khởi động lại...";
+
+      // Native Toast on Android
+      if (Platform.OS === "android") {
+        try {
+          ToastAndroid.showWithGravity(updatingToast, ToastAndroid.LONG, ToastAndroid.BOTTOM);
+        } catch {}
+      }
+
+      // Schedule system notification
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "CBH Youth Online",
+            body: otaDirective.message || updatingToast,
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: null,
+        });
+      } catch {}
+
+      console.log(`[OTA Force] Downloading forced update bundle (ID: ${checkResult.updateInfo.id})...`);
+      const downloadResult = await downloadAndApplyUpdate(checkResult.channel, checkResult.updateInfo);
+
+      if (downloadResult.status === "downloaded") {
+        if (Platform.OS === "android") {
+          try {
+            ToastAndroid.showWithGravity(updatedToast, ToastAndroid.LONG, ToastAndroid.BOTTOM);
+          } catch {}
+        }
+
+        console.log("[OTA Force] Update downloaded successfully. Triggering app reload in 1500ms...");
+        setTimeout(() => {
+          reloadApp();
+        }, 1500);
+
+        return { enforced: true, updated: true };
+      } else {
+        console.error("[OTA Force] Download failed:", downloadResult.error);
+        return { enforced: true, error: downloadResult.error };
+      }
+    } else if (checkResult.status === "up_to_date") {
+      console.log("[OTA Force] App is already on the latest available OTA bundle.");
+      return { enforced: false, upToDate: true };
+    } else if (checkResult.status === "native_base_outdated") {
+      console.warn("[OTA Force] Native base APK outdated for forced OTA bundle:", checkResult.error);
+      return { enforced: true, baseOutdated: true, error: checkResult.error };
+    }
+
+    return { enforced: false, status: checkResult.status };
+  } catch (err) {
+    console.error("[OTA Force] Exception in forced OTA update:", err?.message || err);
+    return { enforced: false, error: err?.message };
+  } finally {
+    isForcedUpdateInProgress = false;
+  }
+}
+
+/**
+ * Fetches remote app config and executes forced OTA if server mandated it.
+ * Throttled to at most once per 30 seconds.
+ */
+export async function syncRemoteOtaConfig(axiosInstance = null) {
+  const now = Date.now();
+  if (now - lastOtaCheckTimestamp < 30000) {
+    return { throttled: true };
+  }
+  lastOtaCheckTimestamp = now;
+
+  try {
+    const api = axiosInstance || require("../api/axiosInstance").default;
+    const res = await api.get("/v1.0/app/config", { timeout: 4000 });
+    const otaDirective = res?.data?.ota_update;
+    if (otaDirective?.force) {
+      return await checkAndExecuteForcedOtaUpdate(otaDirective);
+    }
+    return { enforced: false, config: otaDirective };
+  } catch (err) {
+    return { enforced: false, error: err?.message };
   }
 }

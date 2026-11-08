@@ -713,6 +713,11 @@
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
   },
   "ota": {
+    "forceUpdateTitle": "Yêu cầu cập nhật bắt buộc",
+    "forceUpdatingToast": "Hệ thống đang tự động tải bản cập nhật mới...",
+    "forceUpdatedToast": "Bản cập nhật đã tải xong. Ứng dụng sẽ tự khởi động lại...",
+    "forceUpdateNotification": "Ứng dụng đang tự động cập nhật phiên bản mới theo chỉ thị từ hệ thống.",
+    "forceUpdateActiveBanner": "Quản trị viên đang yêu cầu cập nhật bắt buộc trên toàn hệ thống.",
     "updateAvailableTitle": "Có bản cập nhật mới!",
     "downloadingTitle": "Đang cập nhật...",
     "downloadingDesc": "Đang tải dữ liệu bản cập nhật mới. Vui lòng giữ ứng dụng mở trong giây lát...",

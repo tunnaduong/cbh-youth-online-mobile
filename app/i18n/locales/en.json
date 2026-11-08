@@ -724,6 +724,11 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
   },
   "ota": {
+    "forceUpdateTitle": "Mandatory Update Required",
+    "forceUpdatingToast": "System is automatically downloading a mandatory update...",
+    "forceUpdatedToast": "Update downloaded. The app will restart now...",
+    "forceUpdateNotification": "The app is automatically updating to a new version as required by the system.",
+    "forceUpdateActiveBanner": "Administrator has mandated an immediate update across the system.",
     "updateAvailableTitle": "New Update Available!",
     "downloadingTitle": "Updating...",
     "downloadingDesc": "Downloading update package. Please keep the app open for a moment...",

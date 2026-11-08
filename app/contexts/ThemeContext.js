@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
-import { Appearance, Platform, useColorScheme } from "react-native";
+import { Appearance, AppState, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
 import { getActiveLauncherIconKey, getCustomAppIconUri, syncSeasonalLauncherIcon } from "../utils/appIcons";
 import axiosInstance from "../services/api/axiosInstance";
@@ -98,21 +98,31 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [systemColorScheme, useSystemTheme]);
 
-  // Background seasonal & remote icon check on app launch
+  // Background seasonal & remote icon and forced OTA check on launch & resume
   useEffect(() => {
     let isMounted = true;
-    (async () => {
+    const runSync = async () => {
       try {
         const res = await syncSeasonalLauncherIcon(axiosInstance);
         if (isMounted && res?.changed && res?.iconKey) {
           setLauncherIconKeyState(res.iconKey);
         }
       } catch (err) {
-        // Silently preserve current icon without disrupting launch
+        // Silently preserve state without disrupting launch
       }
-    })();
+    };
+
+    runSync();
+
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        runSync();
+      }
+    });
+
     return () => {
       isMounted = false;
+      sub.remove();
     };
   }, []);
 
