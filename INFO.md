@@ -748,6 +748,9 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Search & Filter bar: rounded pill container with search icon, text input, clear button, and circular filter button (`options-outline`) supporting quick filter pills ("Tất cả", "Chưa đọc", "Nhóm").
   - Conversation card items: styled individual rounded cards (`borderRadius: 20`, subtle border, shadow) replacing flat separator rows; online dot indicator on avatars; double green checkmark `✓✓` for messages sent by the user and read; green pill badge for unread counts; muted bell icon for muted/casual group chats; localized timestamps ("HH:mm", "Hôm qua", "DD/MM").
 
+- **App Icon Settings simplification: remove custom upload option**:
+  - Removed custom gallery image upload section from [`AppIconScreen.js`](file:///data/data/com.termux/files/home/cbh-youth-online-mobile/app/screens/MainScreens/SettingsScreen/AppIconScreen.js) since OS launcher icons on iOS and Android strictly require pre-bundled compiled assets. The screen now cleanly focuses on pre-bundled launcher presets and the default icon reset.
+
 - **20/11 Teachers' Day icon update, bundle size reduction & Settings bugfix**:
   - **New 20/11 Icon**: Integrated the user-provided Gemini-generated 20/11 icon artwork for both iOS full-bleed (`teachers-day-20-11.png`, 1024x1024) and Android adaptive (`teachers-day-android.png`, 1024x1024 with 682px safe zone and background `#FDE6D0`). Shows properly in Settings app icon thumbnails and applies to launcher presets.
   - **Asset Size Optimization**: Removed ~10MB of unused legacy duplicate assets (`cbh-youth-iOS-*`), optimized PNG compression across all launcher icons and adaptive icons, reducing bundle footprint.
