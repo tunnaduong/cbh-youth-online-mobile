@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Fix Google Play Store / AAB Disabled OTA Updates & Native Logs**:
+  - `plugins/withNativeTweaks.js`: Added `withDirectUpdatesMetadata` config plugin to inject literal `expo.modules.updates.EXPO_RUNTIME_VERSION`, `EXPO_UPDATE_URL`, and `ENABLED` directly into `AndroidManifest.xml`. Prevents Google Play Store's `.aab` resource splitting and shrinking from failing to resolve `@string/expo_runtime_version` (which caused `Updates.isEnabled` to evaluate to `false` and disable OTA on store installs).
+  - `app/services/ota/otaService.js`: Added `logNativeUpdatesLogs()` utilizing `Updates.readLogEntriesAsync()` to retrieve and print native `expo-updates` initialization diagnostic logs whenever `Updates.isEnabled` is `false`.
+
 - **Modernized Explore Feature Screens (Games, Quiz, Custom Quiz, Study Materials)**:
   - `GamesScreen/index.js`: Modernized header to the standard floating `LiquidButton` back button + fading title (`headerTitleOpacity`), integrated atmospheric gradient backdrop, updated search bar to rounded 12px card input with clear button, converted Now Playing and XP Leaderboard rows into grouped card surfaces with `AvatarFrameWrap` and `UserNameRow`, added podium rank styling (gold/silver/bronze), and aligned game cards with hairline border tokens.
   - `QuizScreen/index.js`: Upgraded header with floating `LiquidButton` with close/back & share triggers, replaced raw layout with clean card sections and `SegmentedControl` for difficulty, added `UserNameRow` and `AvatarFrameWrap` to trivia leaderboard with top-3 badges, revamped question option rows with bold active states and clear feedback indicators, and polished result summary ring card and action buttons.
