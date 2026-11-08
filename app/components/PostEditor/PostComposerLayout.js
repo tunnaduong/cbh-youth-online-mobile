@@ -305,16 +305,7 @@ export default function PostComposerLayout({
             <Text style={[styles.sectionTitle, { color: theme.subText }]}>{t("createPost.sectionSettings")}</Text>
             <View style={cardStyle}>
               <SettingRow
-                icon={
-                  category
-                    ? (category.rawCategory || category.category
-                        ? getSectionIcon(category.rawCategory || category.category)
-                        : null) ||
-                      category.icon ||
-                      getSubforumIcon(category.label, category.rawName || category.name) ||
-                      "albums-outline"
-                    : "albums-outline"
-                }
+                icon="albums-outline"
                 title={t("createPost.categoryLabel")}
                 theme={theme}
               >
@@ -538,7 +529,7 @@ const styles = StyleSheet.create({
   rowTextWide: { flex: 1, marginLeft: 12, marginRight: 12 },
   rowTitle: { fontSize: 16 },
   rowHint: { fontSize: 13, lineHeight: 18, marginTop: 2 },
-  rowDropdownContainer: { flex: 1, marginVertical: 0, marginLeft: 12 },
+  rowDropdownContainer: { flex: 1, marginVertical: 0, marginLeft: 12, alignItems: "flex-end" },
   rowDropdown: {
     borderWidth: 0,
     paddingVertical: 0,
@@ -546,7 +537,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     backgroundColor: "transparent",
   },
-  rowDropdownText: { fontSize: 15, textAlign: "right", marginRight: 4 },
+  rowDropdownText: { fontSize: 15, textAlign: "right" },
   attachActions: { flexDirection: "row", gap: 8, padding: 12 },
   attachAction: {
     flex: 1,

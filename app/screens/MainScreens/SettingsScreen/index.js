@@ -296,7 +296,7 @@ export default function SettingsScreen({ navigation }) {
               }}
               onValueChange={(item) => setThemeMode(item.value)}
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
-              containerStyle={{ marginVertical: 0, minWidth: 100 }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
               modalTitle={t("settings.theme")}
             />
@@ -327,7 +327,7 @@ export default function SettingsScreen({ navigation }) {
               }}
               onValueChange={(item) => changeLanguage(item.value)}
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
-              containerStyle={{ marginVertical: 0, minWidth: 120 }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
             />
           </View>

@@ -161,7 +161,7 @@ const Dropdown = ({
         <Text
           style={[
             styles.optionText,
-            { color: theme.text },
+            { color: theme.text, textAlign: "left" },
             selected && styles.optionTextSelected,
           ]}
           numberOfLines={1}
@@ -212,6 +212,7 @@ const Dropdown = ({
           styles.dropdown,
           { backgroundColor: theme.background, borderColor: theme.border },
           style,
+          isRightAligned && { justifyContent: "flex-end" },
         ]}
         onPress={openModal}
       >
@@ -220,9 +221,8 @@ const Dropdown = ({
             flexDirection: "row",
             alignItems: "center",
             justifyContent: isRightAligned ? "flex-end" : "flex-start",
-            flex: isFitContent || isRightAligned ? 0 : 1,
-            marginRight: isRightAligned ? 6 : 0,
-            maxWidth: isRightAligned ? "88%" : "100%",
+            flexShrink: 1,
+            marginRight: 6,
           }}
         >
           {leftIcon ? (
@@ -243,9 +243,6 @@ const Dropdown = ({
             <View style={{ marginRight: 6 }}>
               <Ionicons
                 name={
-                  (selectedValue.rawCategory || selectedValue.category
-                    ? getSectionIcon(selectedValue.rawCategory || selectedValue.category)
-                    : null) ||
                   selectedValue.icon ||
                   getSubforumIcon(selectedValue.label, selectedValue.rawName || selectedValue.name)
                 }
@@ -259,7 +256,7 @@ const Dropdown = ({
               styles.dropdownText,
               { color: selectedValue ? theme.text : theme.subText },
               textStyle,
-              { flex: isFitContent || isRightAligned ? 0 : 1, flexShrink: 1 },
+              { flex: isFitContent ? 0 : isRightAligned ? 0 : 1, flexShrink: 1 },
             ]}
             numberOfLines={1}
           >
@@ -558,6 +555,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "400",
+    textAlign: "left",
   },
   optionTextSelected: {
     fontWeight: "600",

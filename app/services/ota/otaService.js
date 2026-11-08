@@ -830,24 +830,24 @@ export async function checkAndExecuteForcedOtaUpdate(otaDirective) {
   // When channel is "all", client updates to the latest version in its own active branch/channel!
   const targetChannel = (!directiveChannel || directiveChannel === "all") ? currentChannel : directiveChannel;
 
-  // 2. Minimum version/build check (Oldest version affected):
-  // Clients older than min_version/min_build are NOT forced to upgrade.
+  // 2. Minimum build/version check:
+  // If device is already at or above the minimum required version/build, it is already up to date.
   const minBound = otaDirective.min_version ?? otaDirective.min_build;
   if (minBound !== undefined && minBound !== null && minBound !== "") {
     if (!isNaN(minBound)) {
       const minBuildNum = parseInt(minBound, 10);
-      if (currentActiveBuild < minBuildNum) {
+      if (currentActiveBuild >= minBuildNum && (!otaDirective.max_version && !otaDirective.max_build)) {
         console.log(
-          `[OTA Force] Current active build (${currentActiveBuild}) is older than minimum affected build (${minBuildNum}). Skipping.`
+          `[OTA Force] Current active build (${currentActiveBuild}) is already at or above minimum required build (${minBuildNum}). Already up to date.`
         );
-        return { enforced: false, belowMinVersion: true };
+        return { enforced: false, aboveMinVersion: true, upToDate: true };
       }
     } else {
-      if (compareSemver(currentAppVersion, String(minBound)) < 0) {
+      if (compareSemver(currentAppVersion, String(minBound)) >= 0 && (!otaDirective.max_version && !otaDirective.max_build)) {
         console.log(
-          `[OTA Force] Current app version (${currentAppVersion}) is older than minimum affected version (${minBound}). Skipping.`
+          `[OTA Force] Current app version (${currentAppVersion}) is already at or above minimum required version (${minBound}). Already up to date.`
         );
-        return { enforced: false, belowMinVersion: true };
+        return { enforced: false, aboveMinVersion: true, upToDate: true };
       }
     }
   }
