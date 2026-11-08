@@ -129,6 +129,7 @@
       "url": "https://api.chuyenbienhoa.com/v1.0/ota/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0,
+      "disableAntiBrickingMeasures": true,
       "requestHeaders": {
         "expo-channel-name": "preview"
       }
