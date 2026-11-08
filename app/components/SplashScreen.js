@@ -4,19 +4,23 @@ import LottieView from "lottie-react-native";
 import * as NativeSplashScreen from "expo-splash-screen";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { getActiveIconDisplay } from "../utils/appIcons";
 
 // This is our Splash Screen component
 const SplashScreen = ({ onFinish }) => {
   const animation = useRef(null);
-  const { theme } = useTheme();
+  const { theme, launcherIconKey, customAppIconUri } = useTheme();
   const { t } = useTranslation();
+
+  const isDefaultIcon = !launcherIconKey || launcherIconKey === "default";
+  const activeIcon = getActiveIconDisplay(launcherIconKey, customAppIconUri);
 
   useEffect(() => {
     // Hide native splash screen immediately when JS splash mounts
     NativeSplashScreen.hideAsync().catch(() => {});
 
     // Start the animation when component mounts
-    if (animation.current) {
+    if (animation.current && isDefaultIcon) {
       animation.current.play();
     }
 
@@ -37,7 +41,7 @@ const SplashScreen = ({ onFinish }) => {
         }
       }
     };
-  }, []);
+  }, [isDefaultIcon]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -45,13 +49,23 @@ const SplashScreen = ({ onFinish }) => {
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <LottieView
-            ref={animation}
-            source={require("../assets/splash.json")}
-            style={styles.animation}
-            autoPlay={false}
-            loop={false}
-          />
+          {isDefaultIcon ? (
+            <LottieView
+              ref={animation}
+              source={require("../assets/splash.json")}
+              style={styles.animation}
+              autoPlay={false}
+              loop={false}
+            />
+          ) : (
+            <View style={styles.iconSplashWrap}>
+              <Image
+                source={activeIcon.source}
+                style={styles.iconSplashImage}
+                resizeMode="contain"
+              />
+            </View>
+          )}
           <Text style={styles.appName.subheading}>{t('app.subtitle')}</Text>
           <Text style={styles.appName.heading}>{t('app.name')}</Text>
         </View>
@@ -79,6 +93,22 @@ const styles = StyleSheet.create({
   animation: {
     width: 200,
     height: 200,
+  },
+  iconSplashWrap: {
+    width: 140,
+    height: 140,
+    borderRadius: 32,
+    overflow: "hidden",
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  iconSplashImage: {
+    width: "100%",
+    height: "100%",
   },
   appName: {
     heading: { fontSize: 24.5, fontWeight: "bold", color: "#319527" },

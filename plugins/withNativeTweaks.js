@@ -153,9 +153,54 @@ const withImageModuleClasses = (config) =>
     return cfg;
   });
 
+const withDynamicSplash = (config) =>
+  withDangerousMod(config, [
+    "android",
+    (cfg) => {
+      const v31StylesPath = path.join(
+        cfg.modRequest.platformProjectRoot,
+        "app",
+        "src",
+        "main",
+        "res",
+        "values-v31",
+        "styles.xml"
+      );
+      if (fs.existsSync(v31StylesPath)) {
+        let content = fs.readFileSync(v31StylesPath, "utf8");
+        content = content.replace(
+          /<item name="android:windowSplashScreenAnimatedIcon">[^<]+<\/item>/g,
+          '<item name="android:windowSplashScreenAnimatedIcon">?android:attr/icon</item>'
+        );
+        fs.writeFileSync(v31StylesPath, content);
+      }
+
+      const stylesPath = path.join(
+        cfg.modRequest.platformProjectRoot,
+        "app",
+        "src",
+        "main",
+        "res",
+        "values",
+        "styles.xml"
+      );
+      if (fs.existsSync(stylesPath)) {
+        let content = fs.readFileSync(stylesPath, "utf8");
+        content = content.replace(
+          /<item name="android:windowSplashScreenAnimatedIcon">[^<]+<\/item>/g,
+          '<item name="android:windowSplashScreenAnimatedIcon">?android:attr/icon</item>'
+        );
+        fs.writeFileSync(stylesPath, content);
+      }
+      return cfg;
+    },
+  ]);
+
 module.exports = (config) =>
-  withImageModuleClasses(
-    withIncomingCallLockscreenFlags(
-      withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+  withDynamicSplash(
+    withImageModuleClasses(
+      withIncomingCallLockscreenFlags(
+        withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+      )
     )
   );

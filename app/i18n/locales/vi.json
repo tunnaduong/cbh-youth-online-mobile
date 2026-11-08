@@ -2469,6 +2469,7 @@
     "updatedTitle": "Đã đổi biểu tượng ứng dụng",
     "updatedDesc": "Biểu tượng màn hình chính của bạn đã được cập nhật.",
     "appliedStorage": "Đã lưu lựa chọn biểu tượng màn hình chính.",
+    "nativeBuildNotice": "Biểu tượng đã được lưu trong ứng dụng và sẽ kích hoạt trên launcher sau bản build native mới.",
     "customSection": "Biểu tượng tùy chỉnh",
     "customDesc": "Tải ảnh từ thiết bị để tạo biểu tượng theo ý thích.",
     "customUploaded": "Ảnh tùy chỉnh của bạn",

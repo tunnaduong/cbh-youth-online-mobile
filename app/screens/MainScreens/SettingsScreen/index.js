@@ -140,10 +140,10 @@ export default function SettingsScreen({ navigation }) {
   const languageCode = i18n.language?.split("-")[0] || "vi";
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
   const currentThemeLabel = useSystemTheme
-    ? t("settings.auto")
+    ? `🌓 ${t("settings.auto")}`
     : isDarkMode
-    ? t("settings.dark")
-    : t("settings.light");
+    ? `🌙 ${t("settings.dark")}`
+    : `☀️ ${t("settings.light")}`;
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -261,9 +261,9 @@ export default function SettingsScreen({ navigation }) {
             </View>
             <Dropdown
               options={[
-                { label: t("settings.auto"), value: "system" },
-                { label: t("settings.light"), value: "light" },
-                { label: t("settings.dark"), value: "dark" },
+                { label: `🌓 ${t("settings.auto")}`, value: "system" },
+                { label: `☀️ ${t("settings.light")}`, value: "light" },
+                { label: `🌙 ${t("settings.dark")}`, value: "dark" },
               ]}
               selectedValue={{
                 label: currentThemeLabel,

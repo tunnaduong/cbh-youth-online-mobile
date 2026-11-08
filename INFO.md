@@ -356,6 +356,15 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Crash Screen OTA Diagnostics, 20/11 Light CYO Icon, Dynamic Splash Screen & WelcomeScreen Fix**:
+  - **StartupErrorScreen Diagnostics**: Added OTA build number, channel, updateId, and embedded launch status directly into the diagnostic output beside the App version info (`App: 6.4.3 (1062) [OTA Build: ...]`).
+  - **WelcomeScreen Fix**: Fixed `ReferenceError: Property 'useSafeAreaInsets' doesn't exist` by importing `useSafeAreaInsets` from `react-native-safe-area-context`.
+  - **Light 20/11 Teachers' Day Icon**: Redesigned 20/11 icon on a light pastel mint-green background featuring the CYO frog mascot with an academic mortarboard cap, open book of knowledge, golden fountain pen, red carnations, and '20/11' medal badge. Provided tailored variants for iOS squircle and Android adaptive format with `#D6F4E8` background.
+  - **Dynamic Splash Screen**: In `withNativeTweaks.js`, set `android:windowSplashScreenAnimatedIcon` to `?android:attr/icon` on Android 12+ so the native launch screen reflects the launcher icon of the active alias. In `SplashScreen.js`, dynamically displays the chosen app icon during the in-app loading phase.
+  - **Settings Theme Dropdown Icons**: Added `🌓` Auto, `☀️` Light, and `🌙` Dark prefix icons in `SettingsScreen/index.js` matching the language dropdown style.
+  - **Thumbnail & Custom Icon Reliability**: Switched `AppIconScreen.js` to React Native `Image` with dynamic keys to guarantee zero thumbnail loss on reset, and eliminated native alias re-selection on custom icon upload to prevent unwanted app restarts.
+
+
 - **Default Icon Variants, 20/11 Teachers' Day Icon, Custom Icon & Launcher Simplification**:
   - **Default Icon & Variants**: Kept current iOS default (`cbh-youth-default.png`) as the official default icon with direct "Đặt lại mặc định" button in hero card and header (disabled/inactive when already default, no separate default card in grid). Added official variants as alternate options: `Dark`, `ClearDark`, `ClearLight`, `TintedDark`, `TintedLight`.
   - **Classic CYO Option**: Kept Classic CYO frog icon (`icon.png`) as an independent selectable option in the collection.

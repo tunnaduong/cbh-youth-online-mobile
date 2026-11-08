@@ -8,6 +8,7 @@ import {
   Animated,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,7 +18,6 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
-import FastImage from "../../../components/FastImage";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
   LAUNCHER_APP_ICONS,
@@ -58,14 +58,24 @@ export default function AppIconScreen({ navigation }) {
 
     setSwitching(true);
     try {
-      await applyLauncherIcon(key);
+      const res = await applyLauncherIcon(key);
       setLauncherIconKey(key);
-      Toast.show({
-        type: "success",
-        text1: t("appIcon.updatedTitle", "Đã đổi biểu tượng ứng dụng"),
-        text2: t("appIcon.updatedDesc", "Biểu tượng màn hình chính của bạn đã được cập nhật."),
-        visibilityTime: 3000,
-      });
+
+      if (res?.nativeApplied || key === "default") {
+        Toast.show({
+          type: "success",
+          text1: t("appIcon.updatedTitle", "Đã đổi biểu tượng ứng dụng"),
+          text2: t("appIcon.updatedDesc", "Biểu tượng màn hình chính và khởi động đã được cập nhật."),
+          visibilityTime: 3000,
+        });
+      } else {
+        Toast.show({
+          type: "info",
+          text1: t("appIcon.updatedTitle", "Đã chọn biểu tượng"),
+          text2: t("appIcon.nativeBuildNotice", "Biểu tượng đã lưu trong ứng dụng và sẽ kích hoạt trên launcher ở bản build native tiếp theo."),
+          visibilityTime: 3500,
+        });
+      }
     } catch (err) {
       console.warn("[AppIcon] Switch error:", err);
       Toast.show({
@@ -116,7 +126,7 @@ export default function AppIconScreen({ navigation }) {
       Toast.show({
         type: "success",
         text1: t("appIcon.customSetTitle", "Đã lưu biểu tượng tùy chỉnh"),
-        text2: t("appIcon.customSetDesc", "Biểu tượng tùy chỉnh của bạn đã được thiết lập."),
+        text2: t("appIcon.customSetDesc", "Biểu tượng tùy chỉnh của bạn đã được thiết lập trong ứng dụng."),
         visibilityTime: 2500,
       });
     } catch (error) {
@@ -223,7 +233,8 @@ export default function AppIconScreen({ navigation }) {
           {/* Current Active Icon Hero Banner */}
           <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.iconPreviewWrap}>
-              <FastImage
+              <Image
+                key={activeIconItem.key}
                 source={activeIconItem.source}
                 style={styles.heroIconImage}
                 resizeMode="cover"
@@ -285,7 +296,7 @@ export default function AppIconScreen({ navigation }) {
                 ]}
               >
                 {customAppIconUri ? (
-                  <FastImage source={{ uri: customAppIconUri }} style={styles.customThumbImage} resizeMode="cover" />
+                  <Image source={{ uri: customAppIconUri }} style={styles.customThumbImage} resizeMode="cover" />
                 ) : (
                   <Ionicons name="image-outline" size={24} color={theme.subText} />
                 )}
@@ -380,7 +391,8 @@ export default function AppIconScreen({ navigation }) {
                   disabled={switching}
                 >
                   <View style={styles.gridIconWrap}>
-                    <FastImage
+                    <Image
+                      key={item.key}
                       source={item.source}
                       style={styles.gridIconImage}
                       resizeMode="cover"

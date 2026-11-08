@@ -2482,6 +2482,7 @@
     "updatedTitle": "App Icon Changed",
     "updatedDesc": "Your home screen app icon has been updated.",
     "appliedStorage": "Home screen icon preference saved.",
+    "nativeBuildNotice": "Icon saved in app and will activate on launcher after the next native build.",
     "customSection": "Custom App Icon",
     "customDesc": "Upload a photo from device to create your custom icon.",
     "customUploaded": "Your custom photo",

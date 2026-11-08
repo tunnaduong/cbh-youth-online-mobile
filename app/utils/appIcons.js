@@ -167,50 +167,51 @@ export function getActiveIconDisplay(activeKey, customUri) {
  */
 export async function applyLauncherIcon(iconKey) {
   if (iconKey === "default" || !iconKey) {
+    let nativeApplied = false;
     try {
       if (typeof AlternateAppIcons?.setAlternateAppIcon === "function") {
         await AlternateAppIcons.setAlternateAppIcon(null);
+        nativeApplied = true;
       }
     } catch (error) {
       console.warn("[AppIcon] Could not reset alternate app icon natively:", error?.message || error);
     }
     storage.set(LAUNCHER_STORAGE_KEY, "default");
-    return "default";
+    return { key: "default", nativeApplied };
   }
 
   if (iconKey === "custom") {
-    // Custom uploaded icons cannot directly register as OS activity-alias at runtime,
-    // so we reset native alternate icon to null / default while saving custom mode in app.
-    try {
-      if (typeof AlternateAppIcons?.setAlternateAppIcon === "function") {
-        await AlternateAppIcons.setAlternateAppIcon(null);
-      }
-    } catch {}
+    // Custom user images are displayed inside the application.
+    // We intentionally avoid calling native setAlternateAppIcon here to prevent Android
+    // from restarting the application process unexpectedly.
     storage.set(LAUNCHER_STORAGE_KEY, "custom");
-    return "custom";
+    return { key: "custom", nativeApplied: false };
   }
 
   const item = LAUNCHER_APP_ICONS.find((i) => i.key === iconKey);
   if (!item) {
     storage.set(LAUNCHER_STORAGE_KEY, "default");
-    return "default";
+    return { key: "default", nativeApplied: false };
   }
 
   const targetNative = item.nativeName;
+  let nativeApplied = false;
 
   try {
     if (typeof AlternateAppIcons?.setAlternateAppIcon === "function") {
       await AlternateAppIcons.setAlternateAppIcon(targetNative);
+      nativeApplied = true;
     }
   } catch (error) {
     console.warn("[AppIcon] Could not set alternate app icon natively:", error?.message || error);
+    nativeApplied = false;
   }
 
   try {
     storage.set(LAUNCHER_STORAGE_KEY, item.key);
   } catch {}
 
-  return item.key;
+  return { key: item.key, nativeApplied };
 }
 
 /**
