@@ -362,9 +362,9 @@ Every new or changed screen must follow this section. If a screen you touch does
   - `MessageRow.js`: Passed `width: "100%", alignSelf: "stretch"` to preview card components.
 
 
-- **App.json minNativeBuild 1076 Bump & Temporary Calling Feature Gate**:
+- **App.json minNativeBuild 1076 Bump & Calling Feature Gate with Notification Loophole**:
   - `app.json`: Bumped `expo.extra.minNativeBuild` to `1076` aligning base requirement with forced OTA build directive.
-  - `app/services/call/callConfig.js`: Introduced master feature flag `CALL_FEATURES_ENABLED = false` to temporarily hide calling buttons, callback actions, active listeners, and modals before prod release while keeping the entire WebRTC codebase intact.
+  - `app/services/call/callConfig.js` & `CallContext.js`: Outgoing call triggers (header button, callback action) are hidden from public chat UI. Incoming call push notification tap triggers the incoming call UI (`IncomingCallModal`) with authentic OPPO ringtone, while tapping either Answer ("call") or Deny ("reject") safely stops the ringtone and exits cleanly.
   - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy ("Who can see it") row fixed at `eye-outline`).
 
 

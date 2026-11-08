@@ -42,31 +42,6 @@ export const useCall = () => {
 };
 
 export const CallProvider = ({ children }) => {
-  if (!CALL_FEATURES_ENABLED) {
-    return (
-      <CallContext.Provider
-        value={{
-          callStatus: "idle",
-          callType: "audio",
-          activeCall: null,
-          isMuted: false,
-          isSpeakerOn: false,
-          isMinimized: false,
-          callDuration: 0,
-          startCall: () => {},
-          answerCall: () => {},
-          rejectCall: () => {},
-          endCall: () => {},
-          toggleMute: () => {},
-          toggleSpeaker: () => {},
-          toggleMinimize: () => {},
-        }}
-      >
-        {children}
-      </CallContext.Provider>
-    );
-  }
-
   const { isLoggedIn, userInfo } = useContext(AuthContext);
 
   const [callStatus, setCallStatus] = useState("idle"); // 'idle' | 'calling' | 'ringing' | 'connected' | 'ended'
@@ -307,8 +282,20 @@ export const CallProvider = ({ children }) => {
       }
     });
 
-    return () => sub.remove();
-  }, [joinConversationPresence]);
+    const subAnswer = DeviceEventEmitter.addListener("INCOMING_CALL_ANSWER_ACTION", () => {
+      answerCall();
+    });
+
+    const subDecline = DeviceEventEmitter.addListener("INCOMING_CALL_DECLINE_ACTION", () => {
+      rejectCall();
+    });
+
+    return () => {
+      sub.remove();
+      subAnswer.remove();
+      subDecline.remove();
+    };
+  }, [answerCall, joinConversationPresence, rejectCall]);
 
   // Check active calls when app resumes or logs in
   useEffect(() => {
@@ -374,6 +361,14 @@ export const CallProvider = ({ children }) => {
   // Actions
   const startCall = useCallback(
     async (conversationId, type = "audio", participant = null) => {
+      if (!CALL_FEATURES_ENABLED) {
+        Toast.show({
+          type: "info",
+          text1: "Tính năng gọi đang trong giai đoạn thử nghiệm",
+          visibilityTime: 2500,
+        });
+        return;
+      }
       try {
         if (!conversationId) return;
         setCallType(type);
@@ -426,8 +421,23 @@ export const CallProvider = ({ children }) => {
   const answerCall = useCallback(async () => {
     clearRingingTimeout();
     bridgeRef.current?.sendMessage("STOP_RINGING");
+    stopRingtoneVibration();
+
+    if (!CALL_FEATURES_ENABLED) {
+      // Loophole mode: incoming call UI and ringtone play, but pressing call/answer exits
+      playCallEndedHaptic();
+      const call = activeCallRef.current;
+      cleanupCallState();
+      if (call?.id) {
+        try {
+          await answerCallApi(call.id);
+          await endCallApi(call.id);
+        } catch {}
+      }
+      return;
+    }
+
     try {
-      stopRingtoneVibration();
       const call = activeCallRef.current;
       if (!call?.id) return;
 
@@ -449,6 +459,8 @@ export const CallProvider = ({ children }) => {
   }, [callType, cleanupCallState, startTimer]);
 
   const rejectCall = useCallback(async () => {
+    clearRingingTimeout();
+    bridgeRef.current?.sendMessage("STOP_RINGING");
     try {
       stopRingtoneVibration();
       playCallEndedHaptic();
