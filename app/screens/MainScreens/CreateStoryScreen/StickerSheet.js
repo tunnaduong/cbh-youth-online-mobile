@@ -23,9 +23,9 @@ const StickerSheet = ({
   const pack = STICKER_PACKS.find((item) => item.id === activePack) || STICKER_PACKS[0];
 
   const actions = [
-    { id: "mention", icon: "at", label: t("story.mention"), onPress: onRequestMention },
-    { id: "link", icon: "link", label: t("story.link"), onPress: onRequestLink },
-    { id: "music", icon: "musical-notes", label: t("story.music"), onPress: onRequestMusic },
+    { id: "mention", icon: "at", label: t("story.mention"), onPress: onRequestMention, color: "#3B82F6" },
+    { id: "link", icon: "link", label: t("story.link"), onPress: onRequestLink, color: "#10B981" },
+    { id: "music", icon: "musical-notes", label: t("story.music"), onPress: onRequestMusic, color: "#EC4899" },
   ];
 
   return (
@@ -33,7 +33,9 @@ const StickerSheet = ({
       <View style={styles.actionRow}>
         {actions.map((action) => (
           <TouchableOpacity key={action.id} style={styles.actionButton} onPress={action.onPress}>
-            <Ionicons name={action.icon} size={22} color="#fff" />
+            <View style={[styles.actionIconWrap, { backgroundColor: `${action.color}25` }]}>
+              <Ionicons name={action.icon} size={18} color={action.color} />
+            </View>
             <Text style={styles.actionLabel}>{action.label}</Text>
           </TouchableOpacity>
         ))}
@@ -84,14 +86,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  actionIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   actionLabel: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 13,
   },
   packRow: {
     paddingHorizontal: 16,

@@ -356,6 +356,15 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Revamped Story Creation Experience & Editor UI (`CreateStoryScreen`)**:
+  - `CreateStoryScreen/index.js`:
+    - **Replaced raw boxy buttons with a modern creation hub**: Added an interactive Hero Banner ("Tạo tin mới · 24 Giờ"), three distinct creation cards with gradient icon circles (Gallery with 'Phổ biến' badge, Camera with direct capture, Text Story with gradient preview) and a creative tools feature showcase grid (Music, Filters, Drawing, Stickers).
+    - **Header & Navigation**: Integrated `LiquidButton` back button on the initial screen with design system tokens and adaptive status bar (light in picker mode, white over black in editor mode). When editing, added glass circle close button, centered status pill, and primary pill action button.
+    - **ToolsBar & Bottom Actions**: Redesigned right-rail floating dock with rounded pill glass frame, high-contrast icons, active dots for music/filters/drawing, and volume mute indicator. Added a dedicated bottom action bar with quick-discard button, active music badge, and prominent thumb-reachable "Chia sẻ lên Tin" pill button.
+  - `CreateStoryScreen/EditorSheet.js`: Modernized bottom sheet container with drag handle indicator (`styles.handle`), 24px top radii, subtle border highlight, and circular close button.
+  - `CreateStoryScreen/StickerSheet.js`: Added colorful icon accents to Mention, Link, and Music action buttons with refined chips.
+  - Localized all new story creation keys across `app/i18n/locales/{en,vi,ru}.json`.
+
 - **Responsive Link & Post Preview Card Alignment in Chat Bubbles**:
   - `LinkPreviewCard.js`: Replaced rigid `compact: { width: 240 }` with responsive `width: "100%", minWidth: 220, maxWidth: "100%", alignSelf: "stretch"`. When messages have long links or text, the preview card now stretches to 100% of the bubble interior symmetrically with equal padding instead of getting stuck at fixed 240px width with an awkward gap on the right.
   - `SharedPostCard.js`: Added `width: "100%", alignSelf: "stretch"` ensuring shared post cards also stretch responsively to match bubble width.

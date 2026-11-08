@@ -70,10 +70,17 @@ const EditorSheet = ({ visible, title, onClose, children, heightRatio = 0.62 }) 
           },
         ]}
       >
+        <View style={styles.handleWrap}>
+          <View style={styles.handle} />
+        </View>
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={24} color="#fff" />
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close" size={20} color="rgba(255,255,255,0.8)" />
           </TouchableOpacity>
         </View>
         {children}
@@ -85,21 +92,44 @@ const EditorSheet = ({ visible, title, onClose, children, heightRatio = 0.62 }) 
 const styles = StyleSheet.create({
   wrapper: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
     zIndex: 30000,
   },
   sheet: {
-    backgroundColor: "#1c1c1e",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    backgroundColor: "#18181b",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  handleWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 2,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
+  },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     color: "#fff",
