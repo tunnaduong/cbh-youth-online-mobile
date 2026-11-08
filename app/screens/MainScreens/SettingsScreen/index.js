@@ -29,6 +29,7 @@ import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 
 const SettingItem = ({
   icon,
+  iconComponent,
   title,
   onPress,
   onLongPress,
@@ -53,7 +54,7 @@ const SettingItem = ({
   >
     <View style={styles.settingItemLeft}>
       <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-        <Ionicons name={icon} size={20} color={theme.primary} />
+        {iconComponent || <Ionicons name={icon} size={20} color={theme.primary} />}
       </View>
       <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
     </View>
@@ -353,7 +354,7 @@ export default function SettingsScreen({ navigation }) {
             onPress={setShakeToReportEnabled}
           />
           <SettingItem
-            icon="images-outline"
+            icon="apps-outline"
             title={t("settings.appIcon", "Biểu tượng ứng dụng")}
             onPress={() => navigation.navigate("AppIconScreen")}
           />
