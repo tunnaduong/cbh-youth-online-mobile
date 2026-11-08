@@ -44,6 +44,7 @@ const StickerSheet = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={styles.packRow}
       >
         {STICKER_PACKS.map((item) => (
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   actionButton: {
     flex: 1,
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   packRow: {
     paddingHorizontal: 16,
     gap: 8,
-    paddingBottom: 6,
+    paddingVertical: 2,
     alignItems: "center",
   },
   packChip: {
@@ -134,7 +135,9 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   emojiCell: {
     width: "16.66%",

@@ -5,20 +5,18 @@ import {
   Animated,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
-  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { getStoryViewers } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
@@ -132,7 +130,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
       {/* Floating header: glass back button appears once the list scrolls under it */}
       <View pointerEvents="box-none" style={styles.headerWrap}>
         <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
-          <LiquidButton size={44} scrollY={scrollY} providerId="StoryViewersScreen" onPress={() => navigation.goBack()}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
           <Animated.Text
@@ -145,29 +143,17 @@ const StoryViewersScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: (insets?.top || 0) + 140, zIndex: 0 }}
-        pointerEvents="none"
-      />
-
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoading size="medium" />
         </View>
       ) : viewers.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="eye-outline" size={64} color={theme.subText} />
+          <Ionicons name="eye-outline" size={56} color={theme.subText} />
           <Text style={[styles.emptyText, { color: theme.subText }]}>{t('storyViewers.empty')}</Text>
         </View>
       ) : (
-        <AndroidGlassBackdrop providerId="StoryViewersScreen" style={{ flex: 1 }}>
+        <AndroidGlassBackdrop style={{ flex: 1 }}>
           <Animated.FlatList
             data={viewers}
             renderItem={renderViewerItem}
@@ -176,7 +162,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
               useNativeDriver: false,
             })}
-            contentContainerStyle={[styles.listContent, { paddingTop: 64 + insets.top, paddingBottom: (insets?.bottom || 0) + 8 }]}
+            contentContainerStyle={[styles.listContent, { paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }]}
           />
         </AndroidGlassBackdrop>
       )}
@@ -187,7 +173,6 @@ const StoryViewersScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: {
@@ -200,7 +185,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   loadingContainer: {
     flex: 1,
@@ -213,9 +197,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#999",
+    marginTop: 12,
+    fontSize: 15,
   },
   listContent: {
     paddingVertical: 8,
@@ -224,9 +207,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
     width: 50,
@@ -242,17 +224,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   reactionsText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
   },
   viewerName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#333",
   },
   viewedAt: {
     fontSize: 12,
-    color: "#999",
   },
 });
 
