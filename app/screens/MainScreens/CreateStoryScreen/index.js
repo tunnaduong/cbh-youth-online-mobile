@@ -1156,28 +1156,19 @@ const CreateStoryScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.headerActionPill,
-                { backgroundColor: isDrawing ? "rgba(255,255,255,0.2)" : theme.primary },
-                (!hasContent || isUploading) && { opacity: 0.6 }
-              ]}
-              onPress={() => (isDrawing ? saveDrawing() : uploadStory())}
-              disabled={!hasContent || isUploading}
-            >
-              {isUploading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Text style={styles.headerActionText}>
-                    {isDrawing ? t("story.done") : t("story.share")}
-                  </Text>
-                  {!isDrawing && (
-                    <Ionicons name="arrow-forward" size={15} color="#fff" style={{ marginLeft: 4 }} />
-                  )}
-                </>
-              )}
-            </TouchableOpacity>
+            {isDrawing ? (
+              <TouchableOpacity
+                style={[
+                  styles.headerActionPill,
+                  { backgroundColor: "rgba(255,255,255,0.2)" }
+                ]}
+                onPress={saveDrawing}
+              >
+                <Text style={styles.headerActionText}>{t("story.done")}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ width: 38 }} />
+            )}
           </View>
         ) : (
           <View
@@ -1217,12 +1208,12 @@ const CreateStoryScreen = ({ navigation }) => {
           </View>
         )}
 
-        <View
-          style={{ flex: 1 }}
-          onLayout={(event) => setContentAreaHeight(event.nativeEvent.layout.height)}
-        >
-          {hasContent ? (
-            <View style={{ flex: 1 }}>
+        {hasContent ? (
+          <View style={{ flex: 1 }}>
+            <View
+              style={{ flex: 1 }}
+              onLayout={(event) => setContentAreaHeight(event.nativeEvent.layout.height)}
+            >
               <View style={styles.aspectRatioContainer}>
                 {/* The snapshot is taken of this plain, exactly-sized View.
                     A ScrollView cannot be the capture target: React Native
@@ -1381,31 +1372,42 @@ const CreateStoryScreen = ({ navigation }) => {
                   )}
 
                   <TrashZone visible={isDraggingItem} isOver={isOverTrash} t={t} />
-
-                  {/* Modern Bottom Action Bar */}
-                  {!showFilters && !isDraggingItem && (
-                    <View
-                      style={[
-                        styles.bottomActionBar,
-                        { paddingBottom: Math.max(insets.bottom, 14) }
-                      ]}
-                      pointerEvents="box-none"
-                    >
-                      <TouchableOpacity
-                        style={[styles.bottomShareButton, { backgroundColor: theme.primary }]}
-                        onPress={uploadStory}
-                        disabled={isUploading}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name="paper-plane" size={16} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.bottomShareText}>{t("story.shareStory")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </>
               )}
             </View>
-          ) : (
+
+            {/* Bottom Share Button (Non-overlapping footer) */}
+            {!isDrawing && !showFilters && !isDraggingItem && (
+              <View
+                style={[
+                  styles.bottomActionBar,
+                  { paddingBottom: Math.max(insets.bottom, 12) }
+                ]}
+                pointerEvents="box-none"
+              >
+                <TouchableOpacity
+                  style={[styles.bottomShareButton, { backgroundColor: theme.primary }]}
+                  onPress={uploadStory}
+                  disabled={isUploading}
+                  activeOpacity={0.85}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="paper-plane" size={16} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={styles.bottomShareText}>{t("story.shareStory")}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View
+            style={{ flex: 1 }}
+            onLayout={(event) => setContentAreaHeight(event.nativeEvent.layout.height)}
+          >
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{
@@ -1554,33 +1556,55 @@ const CreateStoryScreen = ({ navigation }) => {
                   {t("story.creativeToolsDesc")}
                 </Text>
                 <View style={styles.featureGrid}>
-                  {[
-                    { icon: "musical-notes", label: t("story.featMusic"), color: "#EC4899" },
-                    { icon: "color-filter", label: t("story.featFilters"), color: "#8B5CF6" },
-                    { icon: "brush", label: t("story.featDrawing"), color: "#F59E0B" },
-                    { icon: "happy", label: t("story.featStickers"), color: "#06B6D4" },
-                  ].map((feat, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.featureChip,
-                        {
-                          backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-                          borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                        }
-                      ]}
-                    >
-                      <Ionicons name={feat.icon} size={15} color={feat.color} />
-                      <Text style={[styles.featureChipText, { color: theme.text }]}>
-                        {feat.label}
-                      </Text>
-                    </View>
-                  ))}
+                  <View style={styles.featureRow}>
+                    {[
+                      { icon: "musical-notes", label: t("story.featMusic"), color: "#EC4899" },
+                      { icon: "color-filter", label: t("story.featFilters"), color: "#8B5CF6" },
+                    ].map((feat, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.featureChip,
+                          {
+                            backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                            borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                          }
+                        ]}
+                      >
+                        <Ionicons name={feat.icon} size={15} color={feat.color} />
+                        <Text numberOfLines={1} style={[styles.featureChipText, { color: theme.text }]}>
+                          {feat.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.featureRow}>
+                    {[
+                      { icon: "brush", label: t("story.featDrawing"), color: "#F59E0B" },
+                      { icon: "happy", label: t("story.featStickers"), color: "#06B6D4" },
+                    ].map((feat, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.featureChip,
+                          {
+                            backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                            borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                          }
+                        ]}
+                      >
+                        <Ionicons name={feat.icon} size={15} color={feat.color} />
+                        <Text numberOfLines={1} style={[styles.featureChipText, { color: theme.text }]}>
+                          {feat.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               </View>
             </ScrollView>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Hear the chosen track while composing, the way it will play in the
             story - paused while a picker is open on top of the canvas. */}
@@ -1730,21 +1754,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   featureGrid: {
+    gap: 8,
+  },
+  featureRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
   },
   featureChip: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    flexGrow: 1,
   },
   featureChipText: {
+    flex: 1,
     fontSize: 12,
     fontWeight: "500",
   },
@@ -1838,20 +1865,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#4ADE80",
   },
 
-  // Bottom Floating Action Bar
+  // Bottom Action Bar
   bottomActionBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#000",
   },
   bottomShareButton: {
     flex: 1,
@@ -1860,13 +1881,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
-    height: 46,
-    borderRadius: 23,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    height: 48,
+    borderRadius: 24,
   },
   bottomShareText: {
     color: "#fff",
@@ -1884,7 +1900,7 @@ const styles = StyleSheet.create({
   },
   trashZone: {
     position: "absolute",
-    bottom: 74,
+    bottom: 30,
     alignSelf: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
