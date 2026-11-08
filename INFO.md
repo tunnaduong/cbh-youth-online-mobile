@@ -356,8 +356,9 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
-- **Fix Google Play Store / AAB Disabled OTA Updates & Native Logs**:
-  - `plugins/withNativeTweaks.js`: Added `withDirectUpdatesMetadata` config plugin to inject literal `expo.modules.updates.EXPO_RUNTIME_VERSION`, `EXPO_UPDATE_URL`, and `ENABLED` directly into `AndroidManifest.xml`. Prevents Google Play Store's `.aab` resource splitting and shrinking from failing to resolve `@string/expo_runtime_version` (which caused `Updates.isEnabled` to evaluate to `false` and disable OTA on store installs).
+- **Force Native Expo Updates Always Enabled & Google Play Store AAB Fix**:
+  - `patches/expo-updates+55.0.26.patch`: Patched `expo-updates` library (`UpdatesConfiguration.kt`) via `patch-package` to force `getIsEnabled` to return `true` unconditionally, safe-resolve string resource IDs, fallback to `"7.4.10"` and `"https://api.chuyenbienhoa.com/v1.0/ota/manifest"`, and force configuration validation to `VALID` so `EnabledUpdatesController` is always created.
+  - `plugins/withNativeTweaks.js`: Added `withDirectUpdatesMetadata` config plugin to inject literal `expo.modules.updates.EXPO_RUNTIME_VERSION`, `EXPO_UPDATE_URL`, and `ENABLED` directly into `AndroidManifest.xml`. Prevents Google Play Store's `.aab` resource splitting and shrinking from failing to resolve `@string/expo_runtime_version`.
   - `app/services/ota/otaService.js`: Added `logNativeUpdatesLogs()` utilizing `Updates.readLogEntriesAsync()` to retrieve and print native `expo-updates` initialization diagnostic logs whenever `Updates.isEnabled` is `false`.
 
 - **Modernized Explore Feature Screens (Games, Quiz, Custom Quiz, Study Materials)**:
