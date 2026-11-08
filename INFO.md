@@ -752,6 +752,7 @@ Every new or changed screen must follow this section. If a screen you touch does
   - App queries `GET /v1.0/app/config` on launch via `ThemeContext.js` and `appIcons.js:syncSeasonalLauncherIcon`.
   - Icon transitions (TeachersDay during 20/11 week, Christmas before holidays, NewYear2026, or admin override) are calculated and pushed strictly from the server.
   - Automatically and smoothly transitions users who have not explicitly chosen another preset (i.e. on default), with support for server `force: true` to override all users when needed.
+  - **Native System Toast & Notification on Forced Switch**: When the server forces an icon change (`force: true`), displays native `ToastAndroid.showWithGravity` (on Android) and triggers an immediate high-priority system notification (for both iOS & Android) notifying the user that the event icon has updated and to re-open the app if the launcher relaunched the process.
 
 - **App Icon Settings simplification: remove custom upload option**:
   - Removed custom gallery image upload section from [`AppIconScreen.js`](file:///data/data/com.termux/files/home/cbh-youth-online-mobile/app/screens/MainScreens/SettingsScreen/AppIconScreen.js) since OS launcher icons on iOS and Android strictly require pre-bundled compiled assets. The screen now cleanly focuses on pre-bundled launcher presets and the default icon reset.

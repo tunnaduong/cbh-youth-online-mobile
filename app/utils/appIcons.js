@@ -1,3 +1,5 @@
+import { Platform, ToastAndroid, Alert } from "react-native";
+import * as Notifications from "expo-notifications";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import { storage } from "../global/storage";
@@ -280,7 +282,36 @@ export async function syncSeasonalLauncherIcon(axiosInstance = null) {
       return { changed: false, iconKey: currentSavedKey };
     }
 
-    // Apply smoothly in the background without abrupt restarts
+    // If server forced the icon change, alert the user using a native system toast
+    // and local notification so they know the system icon changed.
+    if (isForced) {
+      const noticeText = "Biểu tượng ứng dụng đã được thay đổi";
+
+      if (Platform.OS === "android") {
+        try {
+          ToastAndroid.showWithGravity(
+            noticeText,
+            ToastAndroid.LONG,
+            ToastAndroid.BOTTOM
+          );
+        } catch {}
+      }
+
+      // Schedule instant system notification for both iOS and Android notification shade
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "CBH Youth Online",
+            body: noticeText,
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: null, // show immediately
+        });
+      } catch {}
+    }
+
+    // Apply icon
     await applyLauncherIcon(targetIcon, { isExplicitUserAction: false });
     storage.set(LAST_SERVER_ICON_SYNC_KEY, todayStr);
 
