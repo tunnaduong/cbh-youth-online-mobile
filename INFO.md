@@ -738,6 +738,10 @@ Every new or changed screen must follow this section. If a screen you touch does
   - `ReportScreen/Step2.js`: the type chips toggle (`selectedTypes`), and "Other" adds any number of typed or suggested ones (`selectedTags`) - at most `MAX_VIOLATION_TYPES` (8) together. Step 3 shows them comma-separated in the app's language.
   - What goes to `POST /violation-reports` as `violation_type` is `violationTypeVi`: the same choices looked up by position in `vi.json` (`report.studentViolationTypes` / `classViolationTypes` / `mockViolations`, imported directly, not through `t()`), joined with ", " and cut at the API's 255 characters. Text the reporter typed is sent as typed. **Keep those three lists in the same order in vi / en / ru** - the lookup is by index.
 
+- **Re-enable WebRTC Calling app-wide (`CALL_FEATURES_ENABLED = true`)**:
+  - `callConfig.js`: Switched `CALL_FEATURES_ENABLED` to `true` following successful PR #43 merge into `main`.
+  - Re-activated voice & video call buttons in 1-1 chat header (`ConversationScreen.js`), callback triggers in `CallMessageCard.js`, live Echo private channel broadcast listeners, active call checks on app resume, and real two-way WebRTC streaming.
+
 - **Modern & aesthetic Search screen revamp**:
   - `SearchScreen/index.js`: Comprehensive visual and UX redesign conforming to CYO design system.
   - **Clean Solid Capsule Search Bar**: Removed liquid glass overlay on search input bar, matching the clean solid filter pills style (`rgba(255,255,255,0.06)` / `rgba(0,0,0,0.04)` with fine border) for unified look and smooth typing.
