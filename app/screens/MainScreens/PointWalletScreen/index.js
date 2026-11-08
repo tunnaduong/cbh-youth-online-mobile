@@ -148,6 +148,17 @@ export default function PointWalletScreen({ navigation }) {
       </View>
 
       <AndroidGlassBackdrop providerId="PointWalletScreen" style={{ flex: 1 }}>
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.ambientGlow, { height: insets.top + 140 }]}
+          pointerEvents="none"
+        />
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 90 + insets.top, paddingHorizontal: 16, paddingBottom: 36 + insets.bottom }}
@@ -250,6 +261,13 @@ function EmptyState({ text, theme }) {
 }
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {

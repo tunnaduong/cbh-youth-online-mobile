@@ -1,20 +1,25 @@
-import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback, useContext } from "react";
 import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
 import Sidebar from "../../components/Sidebar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import HomeScreen from "./HomeScreen";
-import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
-import MenuScreen from "./ForumScreen";
+import ExploreScreen from "./ExploreScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
+import ProfileScreen from "./ProfileScreen";
+import FastImage from "../../components/FastImage";
+import { AvatarFrameWrap } from "../../components/profile/AvatarFrame";
+import { useOwnProfileTheme } from "../../utils/ownProfileTheme";
+import { AuthContext } from "../../contexts/AuthContext";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LiquidGlassView, AndroidGlassBackdrop, glassTint, androidGlassPerfProps } from "../../components/GlassModules";
+import { markAllNotificationsAsRead } from "../../services/api/Api";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -26,11 +31,10 @@ const ScreenWrapper = ({ children }) => {
 };
 
 const Tab = createBottomTabNavigator();
-const DummyComponent = () => null;
 
 const ANDROID_ICON_MAP = {
   Home: { focused: "home", outline: "home-outline" },
-  Forum: { focused: "people", outline: "people-outline" },
+  Explore: { focused: "compass", outline: "compass-outline" },
   Chat: { focused: "chatbubble", outline: "chatbubble-outline" },
   Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
@@ -38,14 +42,16 @@ const ANDROID_ICON_MAP = {
 // Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
-const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
+const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl, username }) => {
   const { theme, isDarkMode, hideTabLabels, liquidGlassEnabled } = useTheme();
+  const ownTheme = useOwnProfileTheme(username);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const prevRouteRef = useRef(activeRouteName);
   const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
 
-  const LEFT_ROUTES = ["Home", "Forum", "Chat", "Notifications"];
+  const LEFT_ROUTES = ["Home", "Explore", "Chat", "Notifications"];
   const leftRoutes = LEFT_ROUTES.map((name) => ({
     name,
     label: t(`navigation.${name.toLowerCase()}`),
@@ -56,13 +62,25 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   const indicatorTarget = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: indicatorTarget,
-      duration: 180,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  }, [indicatorTarget]);
+    const wasProfile = prevRouteRef.current === "Profile";
+    prevRouteRef.current = activeRouteName;
+
+    if (activeLeftIndex >= 0) {
+      if (wasProfile) {
+        // Jumping from Me ("Tôi" - separated circle) to tabs in the float bar:
+        // teleport instantly to the tab without sliding animation.
+        slideAnim.setValue(indicatorTarget);
+      } else {
+        // Switching between tabs inside the float bar: smooth slide animation.
+        Animated.timing(slideAnim, {
+          toValue: indicatorTarget,
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  }, [indicatorTarget, activeLeftIndex, activeRouteName]);
 
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
   const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
@@ -70,10 +88,11 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
   const activeColor = theme.primary;
   const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
-  const opacity = activeRouteName === "Create" ? 0 : 1;
+  const isProfileFocused = activeRouteName === "Profile";
+  const opacity = activeLeftIndex >= 0 ? 1 : 0;
 
-  // The pill's real content (sliding indicator + tab buttons, or the "+"
-  // icon) must be actual React children of <LiquidGlassView> - not siblings
+  // The pill's real content (sliding indicator + tab buttons, or the "Tôi"
+  // avatar/icon) must be actual React children of <LiquidGlassView> - not siblings
   // drawn over an absoluteFill glass layer - both so the library composites
   // them crisply on top instead of also sweeping them into its captured-and-
   // blurred backdrop, and so `interactive` (the touch-following specular
@@ -157,13 +176,16 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
         })}
       </NavGlassWrapper>
 
-      {/* Right pill: create button */}
+      {/* Right pill: Me ("Tôi") button */}
       <TouchableOpacity
-        onPress={onCreatePress}
+        onPress={() => onTabPress("Profile")}
         activeOpacity={0.8}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isProfileFocused }}
+        accessibilityLabel={t("navigation.profile")}
         style={[{
           width: 53, height: 53, borderRadius: 26.5,
-          overflow: "hidden",
+          overflow: "visible",
         },
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
@@ -176,10 +198,48 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
             alignItems: "center", justifyContent: "center",
             elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
             shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+            overflow: "visible",
           },
           flatGlass && { elevation: 0, shadowOpacity: 0 }]}
         >
-          <Ionicons name="add" size={28} color={activeColor} />
+          {isProfileFocused && (
+            <View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, { backgroundColor: indicator, borderRadius: 26.5 }]}
+            />
+          )}
+          {avatarUrl ? (
+            <AvatarFrameWrap
+              theme={ownTheme}
+              size={42}
+              style={{ alignItems: "center", justifyContent: "center" }}
+            >
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 21,
+                  borderWidth: isProfileFocused ? 2 : 1,
+                  borderColor: isProfileFocused ? activeColor : border,
+                  overflow: "hidden",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: surface,
+                }}
+              >
+                <FastImage
+                  source={{ uri: avatarUrl }}
+                  style={{ width: 42, height: 42, borderRadius: 21 }}
+                />
+              </View>
+            </AvatarFrameWrap>
+          ) : (
+            <Ionicons
+              name={isProfileFocused ? "person-circle" : "person-circle-outline"}
+              size={42}
+              color={isProfileFocused ? activeColor : inactiveColor}
+            />
+          )}
         </NavGlassWrapper>
       </TouchableOpacity>
     </View>
@@ -194,12 +254,6 @@ const tabIcon = (sfFilled, sfOutline, materialName) => ({ focused }) =>
     android: { type: "materialSymbol", name: materialName },
   });
 
-// Approximate content height of the native bottom tab bar (excludes the
-// safe-area bottom inset, which the OS adds on top of this). Used to anchor
-// the create menu just above the tab bar — react-navigation v8's native
-// bottom tabs don't yet expose a reliable useBottomTabBarHeight() for this.
-const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
-
 // Defined outside MainScreens so its identity is stable across re-renders.
 // Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
 // react-native-liquid-glassmorphism needs no ancestor provider (each
@@ -207,7 +261,6 @@ const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
 const TabWrapper = ({ children }) => children;
 
 export default function MainScreens({ navigation: stackNavigation }) {
-  const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
   // iOS 26+ keeps react-navigation's native system tab bar (real native
   // UIGlassEffect with the OS's own scroll-collapse behavior, which
@@ -221,57 +274,20 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // like Android and iPhone.
   const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
   const [currentRoute, setCurrentRoute] = useState("Home");
-  const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  // Sidebar used to stay mounted permanently (just slid off-screen via
-  // transform), which on Android means its LiquidGlassView keeps running a
-  // full-screen-height AGSL shader pass every frame the whole time the app
-  // is open, not just while the drawer is actually visible - real, sustained
-  // GPU/perf cost for a screen most sessions never open. Mount it only while
-  // opening/open, and keep it mounted through the close animation so it
-  // doesn't just vanish mid-slide - unmount once that finishes.
-  const [shouldRenderSidebar, setShouldRenderSidebar] = useState(false);
 
-  useEffect(() => {
-    if (setting) setShouldRenderSidebar(true);
-
-    Animated.timing(drawerTranslateX, {
-      toValue: setting ? 0 : -Dimensions.get('window').width,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!setting && finished) setShouldRenderSidebar(false);
-    });
-
-    Animated.timing(backdropOpacity, {
-      toValue: setting ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [setting, drawerTranslateX, backdropOpacity]);
-
-  // None of the sidebar's ~9 menu items (Profile, Settings, etc.) ever
-  // closed the drawer themselves before navigating - each just called
-  // navigation.navigate() directly. The drawer stayed fully open/mounted
-  // (including its own LiquidGlassView, if glass is on) behind whatever
-  // screen you navigated to, indefinitely, until manually dismissed - not
-  // just a visual glitch, a real extra glass surface + mounted subtree
-  // still costing GPU/JS time the entire time you're on that screen. Fixed
-  // centrally here instead of touching every menu item: close the drawer
-  // automatically on any navigation state change while it's open.
-  useEffect(() => {
-    const unsubscribe = stackNavigation.addListener("state", () => {
-      setSetting((prev) => (prev ? false : prev));
-    });
-    return unsubscribe;
+  // Opens the forum screen from the HomeScreen top-left button
+  const openForum = useCallback(() => {
+    stackNavigation.navigate("ForumScreen");
   }, [stackNavigation]);
 
-  const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
-  const createMenuRef = useRef(null);
+  const { chatUnreadCount, notificationUnreadCount, setNotificationUnreadCount } = useUnreadCountsContext();
+  const { username, getAvatarUrl } = useContext(AuthContext);
+  const avatarUrl = username && getAvatarUrl ? getAvatarUrl(username) : null;
   const homeScreenScrollTriggerRef = useRef(null);
-  const forumScrollTriggerRef = useRef(null);
+  const exploreScrollTriggerRef = useRef(null);
   const chatScrollTriggerRef = useRef(null);
   const notificationScrollTriggerRef = useRef(null);
+  const profileScrollTriggerRef = useRef(null);
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
 
@@ -281,9 +297,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }
   };
 
-  const triggerForumScrollOrReload = () => {
-    if (forumScrollTriggerRef.current) {
-      forumScrollTriggerRef.current(Date.now());
+  const triggerExploreScrollOrReload = () => {
+    if (exploreScrollTriggerRef.current) {
+      exploreScrollTriggerRef.current(Date.now());
     }
   };
 
@@ -299,15 +315,22 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }
   };
 
+  const triggerProfileScrollOrReload = () => {
+    if (profileScrollTriggerRef.current) {
+      profileScrollTriggerRef.current(Date.now());
+    }
+  };
+
   // Re-tapping the already-active tab scrolls/reloads it instead of
   // navigating (mirrors each Tab.Screen's own `listeners.tabPress` above),
   // since this tab bar is a standalone sibling rather than react-navigation's
   // tabBar render prop and so no longer emits its tabPress events.
   const TAB_RELOAD_TRIGGERS = {
     Home: triggerHomeScrollOrReload,
-    Forum: triggerForumScrollOrReload,
+    Explore: triggerExploreScrollOrReload,
     Chat: triggerChatScrollOrReload,
     Notifications: triggerNotificationScrollOrReload,
+    Profile: triggerProfileScrollOrReload,
   };
   // Long-pressing the Home button (tab bar or header logo) opens the
   // feedback form - a quick way to report a bug from anywhere.
@@ -317,6 +340,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
   }, [stackNavigation]);
 
   const handleAndroidTabPress = (routeName) => {
+    if (routeName === "Notifications") {
+      setNotificationUnreadCount(0);
+      markAllNotificationsAsRead().catch(() => {});
+    }
     if (currentRoute === routeName) {
       TAB_RELOAD_TRIGGERS[routeName]?.();
     } else {
@@ -338,14 +365,11 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return unsubscribe;
   }, [stackNavigation]);
 
-
-  const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
-
-  const setHomeScrollTrigger = useCallback((triggerFn) => {
+  const setHomeScreenScrollTrigger = useCallback((triggerFn) => {
     homeScreenScrollTriggerRef.current = triggerFn;
   }, []);
-  const setForumScrollTrigger = useCallback((triggerFn) => {
-    forumScrollTriggerRef.current = triggerFn;
+  const setExploreScrollTrigger = useCallback((triggerFn) => {
+    exploreScrollTriggerRef.current = triggerFn;
   }, []);
   const setChatScrollTrigger = useCallback((triggerFn) => {
     chatScrollTriggerRef.current = triggerFn;
@@ -353,20 +377,23 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const setNotificationScrollTrigger = useCallback((triggerFn) => {
     notificationScrollTriggerRef.current = triggerFn;
   }, []);
+  const setProfileScrollTrigger = useCallback((triggerFn) => {
+    profileScrollTriggerRef.current = triggerFn;
+  }, []);
 
   const renderHomeScreen = useCallback((props) => (
     <ScreenWrapper>
       <AndroidGlassBackdrop providerId="Home" style={{ flex: 1 }}>
-        <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+        <HomeScreen {...props} scrollTriggerRef={setHomeScreenScrollTrigger} />
       </AndroidGlassBackdrop>
     </ScreenWrapper>
-  ), [setHomeScrollTrigger]);
+  ), [setHomeScreenScrollTrigger]);
 
-  const renderForumScreen = useCallback((props) => (
+  const renderExploreScreen = useCallback((props) => (
     <ScreenWrapper>
-      <MenuScreen {...props} scrollTriggerRef={setForumScrollTrigger} />
+      <ExploreScreen {...props} isTab={true} scrollTriggerRef={setExploreScrollTrigger} />
     </ScreenWrapper>
-  ), [setForumScrollTrigger]);
+  ), [setExploreScrollTrigger]);
 
   const renderChatScreen = useCallback((props) => (
     <ScreenWrapper>
@@ -379,6 +406,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <NotificationScreen {...props} scrollTriggerRef={setNotificationScrollTrigger} />
     </ScreenWrapper>
   ), [setNotificationScrollTrigger]);
+
+  const renderProfileScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <AndroidGlassBackdrop providerId="Profile" style={{ flex: 1 }}>
+        <Sidebar {...props} isTab scrollTriggerRef={setProfileScrollTrigger} />
+      </AndroidGlassBackdrop>
+    </ScreenWrapper>
+  ), [setProfileScrollTrigger]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -423,22 +458,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
             name="Home"
             options={{
               title: t('navigation.home'),
-              headerShown: true,
-              headerBackButtonMenuEnabled: false,
+              headerShown: false,
               tabBarIcon: tabIcon("house.fill", "house", "home"),
-              headerTitle: () => (
-                <View style={{ width: Dimensions.get("window").width }}>
-                  <SameHeader
-                    icon="search"
-                    action={() => stackNavigation.navigate("SearchScreen")}
-                    havingIcon
-                    setSetting={setSetting}
-                    onLogoPress={triggerHomeScrollOrReload}
-                    onLogoLongPress={openFeedback}
-                    providerId="Home"
-                  />
-                </View>
-              ),
             }}
             listeners={{
               tabPress: () => {
@@ -454,41 +475,22 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
 
           <Tab.Screen
-            name="Forum"
+            name="Explore"
             options={{
-              title: t('navigation.forum'),
+              title: t('navigation.explore', 'Khám phá'),
               headerShown: false,
-              tabBarIcon: tabIcon("person.2.fill", "person.2", "group"),
+              tabBarIcon: tabIcon("safari.fill", "safari", "explore"),
             }}
             listeners={{
               tabPress: () => {
-                if (currentRoute === "Forum") {
-                  triggerForumScrollOrReload();
+                if (currentRoute === "Explore") {
+                  triggerExploreScrollOrReload();
                 }
               },
             }}
           >
-            {renderForumScreen}
+            {renderExploreScreen}
           </Tab.Screen>
-
-          <Tab.Screen
-            name="Create"
-            component={DummyComponent}
-            options={{
-              title: t('navigation.create'),
-              headerShown: false,
-              tabBarIcon: tabIcon("plus", "plus", "add"),
-              // Native tab bars don't allow preventDefault on tabPress; this
-              // stops the tab from ever being selected so tapping just opens
-              // the create menu instead of navigating to the dummy screen.
-              tabBarSelectionEnabled: false,
-            }}
-            listeners={{
-              tabPress: () => {
-                stackNavigation.navigate("CreatePostScreen")
-              },
-            }}
-          />
 
           <Tab.Screen
             name="Chat"
@@ -519,6 +521,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
             listeners={{
               tabPress: () => {
+                setNotificationUnreadCount(0);
+                markAllNotificationsAsRead().catch(() => {});
                 if (currentRoute === "Notifications") {
                   triggerNotificationScrollOrReload();
                 }
@@ -526,6 +530,24 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {renderNotificationScreen}
+          </Tab.Screen>
+
+          <Tab.Screen
+            name="Profile"
+            options={{
+              title: t('navigation.profile'),
+              headerShown: false,
+              tabBarIcon: tabIcon("person.crop.circle.fill", "person.crop.circle", "person"),
+            }}
+            listeners={{
+              tabPress: () => {
+                if (currentRoute === "Profile") {
+                  triggerProfileScrollOrReload();
+                }
+              },
+            }}
+          >
+            {renderProfileScreen}
           </Tab.Screen>
         </Tab.Navigator>
       </View>
@@ -538,34 +560,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
           notificationUnreadCount={notificationUnreadCount}
           onTabPress={handleAndroidTabPress}
           onHomeLongPress={openFeedback}
-          onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
+          avatarUrl={avatarUrl}
+          username={username}
         />
       )}
-
-      {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
-          it opens this glass menu via the ref instead of navigating. */}
-      <CustomTabBarButton
-        ref={createMenuRef}
-        showButton={false}
-        bottomOffset={createButtonBottomOffset}
-        currentRoute={currentRoute}
-      />
-
-      {/* Overlay Backdrop */}
-      <TouchableWithoutFeedback onPress={() => setSetting(false)}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, opacity: backdropOpacity }]} pointerEvents={setting ? "auto" : "none"} />
-      </TouchableWithoutFeedback>
-
-      {/* Floating Sidebar Content */}
-      <Animated.View style={{
-        position: 'absolute',
-        top: 0, bottom: 0, left: 0,
-        width: Dimensions.get('window').width * 0.75,
-        zIndex: 101,
-        transform: [{ translateX: drawerTranslateX }]
-      }}>
-        {shouldRenderSidebar && <Sidebar providerId={currentRoute} isOpen={setting} />}
-      </Animated.View>
     </View>
   );
 }

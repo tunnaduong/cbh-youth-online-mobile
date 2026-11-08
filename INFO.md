@@ -38,7 +38,7 @@ How they connect:
 - **Feed & posts**: infinite home feed, create/edit post (rich text, images, video upload, YouTube/SoundCloud share), votes with voter lists, comments with mentions and slash commands, saved/liked posts, share/forward, OG link preview cards (`LinkPreviewCard`, `utils/linkPreview.js`), link-safety interstitial for external URLs (`LinkSafetyScreen`).
 - **Forum**: categories/subforums (`ForumScreen`, `CategoryScreen`), Youth Union news category.
 - **Stories**: Instagram-style stories (create with overlays/music, react, reply, viewers sheet, archive).
-- **Chat**: 1-1 and group conversations, realtime via Laravel Echo + Reverb (`ChatSocketContext`, `services/echo`), typing, reactions, replies, forwarding, media gallery, chat backgrounds, group info / invites.
+- **Chat**: 1-1 and group conversations, realtime via Laravel Echo + Reverb (`ChatSocketContext`, `services/echo`), WebRTC voice and video calls (`CallContext`, `services/call`), typing, reactions, replies, forwarding, media gallery, chat backgrounds, group info / invites.
 - **Notifications**: moderation notices (`content_warning` opens the content, `content_deleted` only informs), Expo push (`services/notifications/ExpoNotificationService.js`, `NotificationContext`), unread badges (`UnreadCountsContext`), tap routing (`utils/notificationRouting.js`).
 - **Profile**: profile/detail screens, edit profile, photo gallery (a "Photos" view of the Posts tab: `components/profile/ProfilePhotoGallery.js`, `GET /v1.0/users/{username}/photos`), Discord-style customization (avatar frames, name fonts/effects, profile effects, and at the Pro tier a name icon and a `@username` styled like the name; `ProfileCustomizerScreen`, `components/profile` - `UserNameRow` / `NameIcon` / `StyledUsername` draw a user's name everywhere, `utils/profileTheme.js`), points milestones, member ranking.
 - **Points**: point wallet, deposit/withdraw, gift points (`GiftPointsModal`).
@@ -78,7 +78,7 @@ app/
   screens/
     WelcomeScreen, LanguageSelectScreen, FirstLaunchSettingsScreen, LoginScreen, SignupScreen, ForgotPasswordScreen, TwoFactorChallengeScreen
     MainScreens/
-      index.js             Bottom tabs: Home, Forum, Create, Chat, Notifications
+      index.js             Bottom tabs: Home, Explore ("Khám phá"), Chat, Notifications, Profile ("Cá nhân")
       HomeScreen, ForumScreen, PostScreen, CreatePostScreen, PostEditScreen, CreateStoryScreen
       ChatScreen/          Conversation list, ConversationScreen, groups, MediaGalleryScreen
         conversation/      Pieces of ConversationScreen: ConversationHeader, ChatComposer, ChatGlassBar, MessagesListContent, MessageRow, SeenByModal, TypingIndicator, chatUtils, styles...
@@ -354,7 +354,262 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ---
 
-## 6. Recent work (newest first, as of 2026-10)
+## 6. Recent work (newest first, as of 2026-11)
+
+- **Responsive Link & Post Preview Card Alignment in Chat Bubbles**:
+  - `LinkPreviewCard.js`: Replaced rigid `compact: { width: 240 }` with responsive `width: "100%", minWidth: 220, maxWidth: "100%", alignSelf: "stretch"`. When messages have long links or text, the preview card now stretches to 100% of the bubble interior symmetrically with equal padding instead of getting stuck at fixed 240px width with an awkward gap on the right.
+  - `SharedPostCard.js`: Added `width: "100%", alignSelf: "stretch"` ensuring shared post cards also stretch responsively to match bubble width.
+  - `MessageRow.js`: Passed `width: "100%", alignSelf: "stretch"` to preview card components.
+
+
+- **App.json minNativeBuild 1076 Bump & Calling Feature Gate with Notification Loophole**:
+  - `app.json`: Bumped `expo.extra.minNativeBuild` to `1076` aligning base requirement with forced OTA build directive.
+  - `app/services/call/callConfig.js` & `CallContext.js`: Outgoing call triggers (header button, callback action) are hidden from public chat UI. Incoming call push notification tap triggers the incoming call UI (`IncomingCallModal`) with authentic OPPO ringtone, while tapping either Answer ("call") or Deny ("reject") safely stops the ringtone and exits cleanly.
+  - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy ("Who can see it") row fixed at `eye-outline`).
+
+
+- **Unified Fixed Left Section Icons, Right-Aligned Dropdown Triggers & Build 1076 Forced OTA**:
+  - `Dropdown.js`: Unified right-alignment behavior across all dropdowns. When `textAlign: "right"`, the touchable container applies `justifyContent: "flex-end"`, tightly clustering the selected option's icon and label with a 6px gap directly adjacent to the chevron down arrow with zero unwanted dead space, while modal sheet option items enforce strict `textAlign: "left"`.
+  - `PostComposerLayout.js`: Section row icons kept strictly static and unchanging across option selections (Category row fixed at `albums-outline`, Privacy ("Who can see it") row fixed at `eye-outline`).
+  - `SettingsScreen/index.js`: Theme row icon fixed at `color-palette-outline`, Language row icon fixed at `language-outline`. Trigger container adjusted to `alignItems: "flex-end"` to pin the right-aligned dropdown seamlessly against the right edge.
+  - `otaService.js`: Refined minimum build/version forced upgrade logic: devices already running at or above `min_build` (1076) without a `max_build` cap are marked up to date, while devices running older builds are forced to upgrade.
+
+
+- **NewYear2027 Seasonal Icon, Category Row Icons, Tight Dropdown Spacing & AppIcon Reset Header Button**:
+  - `Dropdown.js`: Fixed huge spacing between icon and text on right-aligned trigger values (such as theme and category dropdowns) by justifying content to `flex-end` with compact 6px gap and preventing `flex: 1` text stretching. Tightened option icon container spacing (`width: 22, marginRight: 8`) in option rows.
+  - `PostComposerLayout.js` (Create & Edit Post): Dynamically updates the left Category row icon based on the active section/category (`getSectionIcon(category.rawCategory || category.category)`), changing dynamically as soon as a user selects a subforum in another section (e.g. `school` for academics, `game-controller` for entertainment, `flag` for union news, `bug` for feedback/bugs).
+  - `SettingsScreen/index.js`: Changed theme setting row icon to `color-palette-outline`.
+  - `AppIconScreen.js`: Styled the header reset-to-default button with `LiquidButton` matching the back button (`providerId="AppIconScreen"`, `scrollY={scrollY}`, `size={44}`).
+  - `NewYear2027 Icon`: Generated high-res assets (`2027-ios.png`, `2027-android.png`) featuring the gold 2027 medallion with the Year of the Goat (Đinh Mùi). Configured `NewYear2027` in `app.json`, `appIcons.js`, and localized preset names across `vi.json`, `en.json`, and `ru.json`.
+  - `otaService.js`: Enforced `min_version`, `max_version`, `min_build`, and `max_build` bounds for forced OTA directives, and handled `channel === "all"` to upgrade to the latest build of the device's own channel.
+
+
+- **Vector Theme Dropdown Icons, Localized Icon Changed Toast & Game/Webview Load Fixes**:
+  - `SettingsScreen/index.js` & `Dropdown.js`: Replaced text emojis (`🌓`, `☀️`, `🌙`) with dedicated `MaterialCommunityIcons` vector icons (`theme-light-dark`, `weather-sunny`, `weather-night`) and custom accent colors.
+  - `appIcons.js`: Localized the forced app icon change toast and system notification (`appIcon.systemIconChanged`) across `vi.json`, `en.json`, and `ru.json`.
+  - `GamePlayScreen.js` & `WebAppScreen/index.js`: Fixed `onShouldStartLoadWithRequest` on Android to support game iframes (`famobi.com`, `is-a.dev`, `github.io`) and allowed all `*.chuyenbienhoa.com` subdomains to prevent webview loading failures.
+
+- **Remote Forced OTA Auto-Update Directives & Management**:
+  - `otaService.js`: Added `checkAndExecuteForcedOtaUpdate(otaDirective)` and `syncRemoteOtaConfig(axiosInstance)`. When server sends `ota_update.force = true`, the client immediately checks and executes OTA download + reload, bypassing all client in-app disable toggles (`isOtaEnabled()`, `isStartupCheckEnabled()`).
+  - Added native Android Toast (`ToastAndroid.showWithGravity`) and local notification banner alerts (`Notifications.scheduleNotificationAsync`) informing the user during download and automatic reload.
+  - `ThemeContext.js`: Background sync runs on initial startup and automatically triggers on app resume (`AppState.addEventListener("change", (state) => state === "active")`).
+  - `AppUpdatesScreen.js`: Displays a prominent warning banner when forced OTA is active from the server, and allows manual checks even if OTA toggles were locally disabled.
+  - Added localization keys (`ota.forceUpdate*`) across `vi.json`, `en.json`, and `ru.json`.
+
+- **Crash Screen OTA Diagnostics, Human-Designed 20/11 CYO Icon, Native Splash & WelcomeScreen Fix**:
+  - **Authentic 20/11 CYO Icon**: Redesigned 20/11 Teachers' Day icon based 100% on the official CYO frog emblem from `cbh-youth-default.png`, adding only modern books with gold accents, golden fountain pen, and a sleek modern '20/11' badge in the top-right corner. Generated dedicated variants for iOS (`teachers-day-20-11.png`) and Android Adaptive (`teachers-day-android.png`) with safe margin framing.
+  - **Splash Screen Rules**: Native OS splash screen on Android 12+ (`?android:attr/icon`) and iOS dynamically reflects the active launcher icon, while the in-app `SplashScreen.js` strictly preserves the custom `splash.json` Lottie animation as-is without replacement.
+  - **StartupErrorScreen Diagnostics**: Added OTA build number, channel, updateId, and embedded launch status directly into the diagnostic output beside the App version info (`App: 6.4.3 (1062) [OTA Build: ...]`).
+  - **WelcomeScreen Fix**: Fixed `ReferenceError: Property 'useSafeAreaInsets' doesn't exist` by importing `useSafeAreaInsets` from `react-native-safe-area-context`.
+  - **Settings Theme Dropdown Icons**: Added `🌓` Auto, `☀️` Light, and `🌙` Dark prefix icons in `SettingsScreen/index.js` matching the language dropdown style.
+  - **Thumbnail & Custom Icon Reliability**: Switched `AppIconScreen.js` to React Native `Image` with dynamic keys to guarantee zero thumbnail loss on reset, and eliminated native alias re-selection on custom icon upload to prevent unwanted app restarts.
+
+
+- **Default Icon Variants, 20/11 Teachers' Day Icon, Custom Icon & Launcher Simplification**:
+  - **Default Icon & Variants**: Kept current iOS default (`cbh-youth-default.png`) as the official default icon with direct "Đặt lại mặc định" button in hero card and header (disabled/inactive when already default, no separate default card in grid). Added official variants as alternate options: `Dark`, `ClearDark`, `ClearLight`, `TintedDark`, `TintedLight`.
+  - **Classic CYO Option**: Kept Classic CYO frog icon (`icon.png`) as an independent selectable option in the collection.
+  - **Vietnamese Teachers' Day (20/11) Icon**: Designed a new 1024x1024 icon celebrating Ngày Nhà giáo Việt Nam 20/11 (`teachers-day-20-11.png` / `teachers-day-android.png`) featuring an illuminated open book of knowledge, golden fountain pen, celebratory red roses, and embossed '20-11' medallion on an emerald-to-forest-green gradient.
+  - **Custom Icon Support**: Added custom icon upload card with `expo-image-picker` and `expo-image-manipulator` (1:1 square crop, local documents storage, use and delete actions).
+  - **Native Plugin Configuration**: Updated `expo-alternate-app-icons` in `app.json` with all 10 alternate presets and cleaned asset paths in `expo-splash-screen` and `ios.icon`.
+  - **Localization**: Added copy for 20/11, variants, custom icon, and default states across `vi.json`, `en.json`, and `ru.json`.
+
+
+- **OS Launcher Alternate App Icons (`expo-alternate-app-icons`) & Min Native OTA Build 1062 Bump**:
+  - **OS Launcher Icon Switching**: Configured `expo-alternate-app-icons` in `app.json` plugins for Android `activity-alias` and iOS `CFBundleAlternateIcons`. Supports 5 launcher icons: Default CYO Frog, Classic Edition (`ios-light.png` / `adaptive-icon.png`), Christmas Edition (`christmas-ios.png` / `christmas-android.png`), New Year 2026 Edition (`2026-ios.png` / `2026-android.png`), and School Crest (`school-logo-removebg.png`).
+  - **App Icon Settings Screen**: Built dedicated launcher icon switcher in `AppIconScreen.js` with instant "Đặt lại mặc định" (Reset to Default) button, active icon hero card, and clean `FastImage` rendering for all thumbnails.
+  - **Revert In-App Icon Overrides**: Preserved all internal app mascots and headers with official `logo.png`.
+  - **Bump Min Native Build**: Updated `minNativeBuild` to `1062` in `app.json`.
+  - **i18n & Metro Validation**: Localized strings in `vi.json`, `en.json`, and `ru.json`; validated Metro bundling and Babel parse.
+
+- **Fix OTA Channel Downgrade Bug & Metro Asset Resolution**:
+  - **OTA Channel Downgrade Bug**: Fixed update availability check in `otaService.js` (`checkUpdateAvailable` and `downloadAndApplyUpdate`). Enforced that upstream build numbers must be strictly higher (`upstreamBuildNumber > currentActiveBuild`) to be eligible for update. Prevents clients on a higher build (e.g. preview) switching to an older production build from seeing a false "equal build" update prompt.
+  - **Asset Resolution Fix**: Resolved Metro bundling error in `appIcons.js` by dropping explicit `@1x` scale suffix from image require paths (`cbh-youth-iOS-Default-1024x1024.png`, `cbh-youth-iOS-Dark-1024x1024.png`, etc.) allowing Metro's asset resolver to match physical files properly.
+
+- **Settings Option to Change App Icon & Custom Square Crop Upload**:
+  - Added App Icon customization under Settings (`AppIconScreen.js`).
+  - **Presets from assets**: CYO Default Frog (`icon.png`), CYO Classic (`cbh-youth-iOS-Default`), CYO Dark (`cbh-youth-iOS-Dark`), Clear Light (`cbh-youth-iOS-ClearLight`), Clear Dark (`cbh-youth-iOS-ClearDark`), Christmas Edition (`christmas-ios.png`), New Year 2026 (`2026-ios.png`), and School Crest (`school-logo-removebg.png`).
+  - **Custom Image Upload**: Integrated `expo-image-picker` with `aspect: [1, 1]` and `expo-image-manipulator` to enforce 1:1 square crop dimension, persisting the resulting square icon file to the local documents directory via `expo-file-system/legacy`.
+  - **Persistence & ThemeContext**: Sourced synchronously via MMKV (`app_icon_key`, `custom_app_icon_uri`) in `ThemeContext.js` with `setAppIcon`, `setCustomAppIcon`, and `appIconSource`.
+  - **i18n**: Localized all strings across `vi.json`, `en.json`, and `ru.json`.
+  - **Syntax verified**: All modified and new files compiled cleanly with Babel `babel-preset-expo`.
+
+- **Comprehensive App-wide Screen Modernization & Brand Redesign**:
+  - **Menu Screen (`Sidebar.js`)**: Redesigned to match the primary tab look (Home, Explore, Chat, Notifications) with dynamic green ambient glow (`LinearGradient`), CYO frog mascot + radiating doodle action lines (`assets/logo.png`), screen title with sparkle star `✦`, green subtitle, search bar with clear action, Facebook-style profile card with user avatar and badges, 2-column shortcut grid, and grouped section cards.
+  - **Point Wallet Sub-screens**: Modernized `DepositScreen.js` and `WithdrawScreen.js` with ambient green top glow, `theme.primary` titles, `chevron-back` (size 24) on floating `LiquidButton`, quick amount preset chips (20k, 50k, 100k, 200k, 500k), and elevated `theme.surface` cards.
+  - **Explore Ecosystem**: Modernized `StudyMaterialScreen/index.js`, `StudyMaterialDetailScreen/index.js`, `UploadStudyMaterialScreen/index.js`, `UniversityScreen/index.js`, `QuizScreen/index.js`, and `CustomQuizCreateScreen.js` with ambient glow, fading titles, standard back navigation, and `theme.surface` cards.
+  - **Chat Ecosystem**: Modernized `CreateGroupScreen.js`, `AddGroupMembersScreen.js`, `GroupInfoScreen.js`, `MediaGalleryScreen.js`, `NewConversationScreen.js`, and `SeenByModal.js` with ambient glow, `theme.primary` headers, and refined member cards.
+  - **Settings & Account Ecosystem**: Modernized `AboutScreen.js`, `BlockedUsersScreen.js`, `SecurityScreen.js`, `AppUpdatesScreen.js`, `DevicesScreen.js`, `PasskeysScreen.js`, `TwoFactorScreen.js`, `StudentVerificationScreen.js`, `NotificationSettingsScreen.js`, `DevConsoleScreen.js`, `PrivacyPolicyScreen.js`, and `TermsOfServiceScreen.js` with ambient green glow, standard floating header, and consistent container styles.
+  - **Community, Posts, Reports & Profile Sub-screens**: Modernized `CategoryScreen.js`, `PostScreen/index.js`, `StoryViewersScreen/index.js`, `ProfileDetailScreen/index.js`, `EditProfileScreen/index.js`, `ProfileCustomizerScreen/index.js`, `LinkSafetyScreen/index.js`, `MemberRankingScreen/index.js`, and all multi-step report screens (`ReportScreen/index.js`, `Step2.js`, `Step3.js`, `Success.js`).
+  - **i18n & Syntax Validation**: Verified all modified screens with Babel preset `babel-preset-expo` and validated all three translation files (`vi.json`, `en.json`, `ru.json`).
+
+- **Menu Screen Redesign Matching Home, Explore, Chat & Notifications & Revert Blanket Screen Ambient**:
+  - Reverted commit `c6885d6a6983e117615db0ce29f8e91c5f19f510` (the blanket screen redesign across 42+ screens) cleanly resolving merge conflicts.
+  - Comprehensive redesign of `Sidebar.js` (Menu / Me tab) to match the visual language of `HomeScreen`, `ExploreScreen`, `ChatScreen`, and `NotificationScreen`:
+    - **Unified Brand Header**: Frog mascot (`logo.png`) with radiating action doodle lines, large bold title ("Menu"), sparkle star `✦` (`#EAB308`), subtitle ("Tài khoản & Tiện ích"), and circular translucent action buttons (`search-outline` -> `SearchScreen`, `settings-outline` -> `Settings`).
+    - **Top Ambient Glow**: Soft light-green ambient glow (`LinearGradient`) at top of screen.
+    - **Quick Search Bar**: Modern search bar pill filtering shortcuts, support items, reports, and settings with live matching and sad frog empty state.
+    - **Facebook-style Profile Card**: Elevated profile card displaying avatar with `AvatarFrameWrap`, `UserNameRow`, `StyledUsername`, and "Xem trang cá nhân của bạn" action link.
+    - **2-Column Grid Shortcuts**: Primary utilities displayed as modern 2-column tiles with vibrant theme colors and tinted icon containers (Bảng tin, Khám phá, Diễn đàn, Chợ quà tặng, Ví điểm, Bài viết đã lưu, Tin tức Đoàn, Bảng xếp hạng, Quản trị viên).
+    - **Grouped Section Cards**: Standardized card surfaces with hairline borders and colorful icon badges for Báo cáo (Reports), Hỗ trợ (Support), and Thiết lập & Tài khoản (Settings & Account).
+    - **i18n Localization**: Added `subtitle`, `searchPlaceholder`, `shortcuts`, and `noResults` keys to `vi.json`, `en.json`, and `ru.json`.
+
+- **Call Message Card in Chat (Distinguished from Normal Messages like Web)**:
+  - Created `app/components/call/CallMessageCard.js` for mobile chat rendering call events (completed calls, missed calls, rejected, cancelled) as elegant centered cards matching the Next.js web client.
+  - Included call type icon (phone / video / missed), color-coded badge (red for missed, green for completed), call duration formatting (`mm:ss`), and a one-tap callback button (`startCall`).
+  - Integrated into `MessagesListContent.js` via `isCallMessage()` check, excluding call messages from normal message clustering and date separation.
+  - Updated conversation list preview in `ChatScreen/index.js` to render call icons and localized call event text.
+  - Added translation keys (`call.missedAudio`, `call.missedVideo`, `call.noAnswer`, `call.missed`, `call.ended`, `call.callBack`) to `vi.json`, `en.json`, and `ru.json`.
+
+- **OTA Updates: Bump minimum native binary build required to 1050** (`app.json`, `INFO.md`):
+  - Bumped `expo.extra.minNativeBuild` in `app.json` from `1045` to `1050`. Base APK installations older than build 1050 will be required to install the new APK before receiving subsequent OTA bundles.
+
+- **Fix Sequential OTA Upgrades, Colorful Progress Modal & Modern Ambient Redesign for Menu & Forum** (`app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/components/Sidebar.js`, `app/screens/MainScreens/ForumScreen/index.js`, `app/i18n/locales/*.json`, `INFO.md`, sibling `cbh-youth-online-api`):
+  - **Sequential OTA Bug Fix (API & Client)**: Resolved an issue where updating OTA twice on a single base APK install caused the second upgrade to load the old bundle index.js despite reporting success. Updated `cbh-youth-online-api/app/Http/Controllers/OtaController.php` so `launchAsset.key` is dynamically hashed to its unique content hash (`$bundleHash`) rather than generic string `"bundle"`, preventing native SQLite caching from reusing older bundle disk files. Updated `otaService.js` to allow sequential updates with the same build number or higher as long as `manifest.id !== runningUpdateId` and `upstreamBuildNumber >= currentNativeBuild`.
+  - **Vibrant Colorful OTA Download Modal**: Revamped `UpdatePromptModal.js` with top ambient light-green glow, smooth animated progress tracking with real-time percentage badge (`0%` -> `100%`), and a colorful gradient progress bar (`["#10B981", "#06B6D4", "#3B82F6"]`) in a rounded pill track. Added localized `"downloadProgress"` string across Vietnamese, English, and Russian.
+  - **Menu Screen Modernization (`Sidebar.js`)**: Added soft ambient green glow (`LinearGradient` `#E8F8EA` / `rgba(20, 83, 45, 0.40)`), modernized 36x36 circular icon holders, unified card surfaces and hairline borders aligning with Home and Explore design standards.
+  - **Forum Screen Modernization (`ForumScreen/index.js`)**: Added soft ambient light-green glow at top, modernized category selector into clean pill filters (`styles.tab` with pill radius 999, active `theme.primary` and inactive `theme.surface`), updated section cards to utilize design system surface and border tokens with balanced background tints, and preserved static title and trophy button alignment.
+
+- **Post Composer: Merge add photo and add video into a unified Photo/Video button**:
+  - Combined separate image and video picker actions in `PostComposerLayout.js` into a unified `onPickMedia` action ("Ảnh/Video" / `createPost.addMedia` with `images-outline` icon).
+  - Wired `pickMedia` in both `CreatePostScreen` and `PostEditScreen` supporting simultaneous photo and video selection with video duration and format validation.
+
+- **Fix ReferenceError: Property 'isDarkMode' doesn't exist across 16 screens/components**:
+  - Destructured `isDarkMode` from `useTheme()` in components using ambient glow `LinearGradient` colors (`PostComposerLayout.js`, `WelcomeScreen`, `LanguageSelectScreen`, `FirstLaunchSettingsScreen`, `ForgotPasswordScreen`, `TwoFactorChallengeScreen`, `ActivityScreen`, `ArchiveScreen`, `AddGroupMembersScreen`, `CreateGroupScreen`, `GroupInfoScreen`, `QuizScreen`, `CustomQuizCreateScreen`, `AppUpdatesScreen`, `DevicesScreen`, `PasskeysScreen`).
+  - Added missing `insets` definition from `useSafeAreaInsets()` in `WelcomeScreen`.
+
+- **Fix ReferenceError: Property 'theme' doesn't exist in module-level StyleSheet declarations**:
+  - Removed accidental references to `theme` in `StyleSheet.create` blocks in `CreateGroupScreen.js` and `WithdrawScreen.js` that caused runtime crashes during initial bundle module loading.
+
+- **Fix WebRTC Calls (Background Push Notifications, Audio Transmission, Dynamic Avatar, OPPO Ringtone & Green Gradient UI)**:
+  - **Background & offline incoming calls**: Configured high-priority Expo call push notifications in `cbh-youth-online-api` (`PushNotificationService::sendExpoCallPushNotification`, `CallController::initiate()`, and `GET /calls/active`). On mobile, configured Android notification channel `"calls"` (`importance: MAX`, `bypassDnd: true`, `PUBLIC` lockscreen) in `ExpoNotificationService.js`, and wired push receipt/tap directly into `CallContext.js` via `INCOMING_CALL_PUSH` and `AppState` active checks to wake up and display `IncomingCallModal` immediately.
+  - **Audio transmission fix**: Added `mediaCapturePermissionGrantType="grant"` on `<WebView>` in `WebRtcBridge.js` so microphone access is granted properly. Stored `pendingRemoteOffer` and passed it into `ANSWER_INCOMING_CALL` so `setRemoteDescription` completes before `createAnswer()`, and queued incoming ICE candidates until remote description is set (`drainQueuedCandidates`).
+  - **Dynamic caller/receiver avatar & name**: Fixed `ActiveCallModal.js` to dynamically identify whether current user is caller or receiver. Outgoing calls now correctly show the callee's avatar, `profile_name`, `@username`, and `profile_theme` instead of displaying the caller's own avatar.
+  - **Green gradient background**: Enhanced `ActiveCallModal.js` and `IncomingCallModal.js` with full-screen luxurious deep green gradient backgrounds (`LinearGradient` `["#0c381c", "#072312", "#031209"]`) and ambient top glow (`rgba(34, 197, 94, 0.4)`), plus green gradient background on the floating minimized call pill.
+  - **OPPO alarm ringtone & copyright attribution**: Embedded authentic OPPO alarm ringtone (`ringtone_oppo.mp3` / `ringtoneOppoBase64.js`) for mobile incoming calls, updated `cbh-youth-online-next-js` (`public/sounds/ringtone_oppo.mp3`), and added copyright/license attribution in `app/assets/sounds/LICENSE.md`, `public/sounds/LICENSE.md`, `AboutScreen.js`, and locale files (`en.json`, `vi.json`, `ru.json`).
+
+- **WebRTC Call on Mobile, Category Icons in Post Editor & App-wide Screen Ambient Redesign**:
+  - **WebRTC Call functionality**:
+    - Created `app/services/call/callService.js` connecting to `/v1.0/chat/conversations/{id}/call/initiate`, `/v1.0/chat/calls/{id}/answer`, `/reject`, `/end`, `/signal`, and `/ice-servers`.
+    - Created `app/components/call/WebRtcBridge.js` running headless WebRTC engine inside WebView, supporting real-time audio streams, hardware Acoustic Echo Cancellation (AEC), and Web Audio telephone ring/connecting/busy tones.
+    - Created `app/components/call/IncomingCallModal.js` with caller avatar, `AvatarFrame`, pulsating wave animation, and accept/reject actions.
+    - Created `app/components/call/ActiveCallModal.js` with call duration timer, remote participant avatar/info, Mute mic toggle, Speaker toggle, and minimized floating pill overlay for multitasking.
+    - Created `app/contexts/CallContext.js` (`CallProvider`) wired into Echo private channel `App.Models.User.{id}` for incoming calls and `chat.{conversationId}` presence channel for call progression.
+    - Wired `ConversationHeader.js` call button in `ConversationScreen.js` to trigger voice/video calls.
+  - **Category icons in Create & Edit Post**:
+    - Completely expanded `CATEGORY_KEY_MAP`, `SECTION_ICON_MAP`, and `SUBFORUM_ICON_MAP` in `app/utils/forumUtils.js` to map 100% of all categories and subforums to distinctive Ionicons.
+    - Updated `getCategoryKey` with normalized, slug, and English translation reverse-lookups.
+    - Preserved `rawName`, `rawCategory`, and pre-resolved `icon` in `CreatePostScreen/index.js` and `PostEditScreen/index.js`.
+    - Updated `PostComposerLayout.js` to dynamically display the selected category icon in `SettingRow` instead of hardcoded `albums-outline`.
+    - Updated `Dropdown.js` trigger button to display the chosen category icon.
+  - **Media picker outside composer in HomeScreen**:
+    - Updated "Thêm ảnh" button on HomeScreen feed composer card to "Ảnh/Video" (`createPost.addMedia`), opening library with `mediaTypes: ["images", "videos"]` (`autoPickMedia: true`), allowing simultaneous image and video selection.
+  - **App-wide Screen Ambient Redesign**:
+    - Added CYO ambient green gradient glow (`LinearGradient` `#E8F8EA` / `rgba(20, 83, 45, 0.40)`) across all screens (`ExploreScreen`, `SearchScreen`, `PointWalletScreen`, `MemberRankingScreen`, `ActivityScreen`, `SettingsScreen`, `LikedPostsScreen`, `SavedPostsScreen`, `ArchiveScreen`, `FeedbackScreen`, `PostComposerLayout`).
+    - Modernized `ExploreScreen`: removed dark opaque block and school-logo watermark, added ambient glow and sparkle star `✦`.
+    - Strictly preserved the floating `LiquidButton` + fading title header architecture according to the design system.
+  - **i18n**: Added `call.*` and `createPost.addMedia` to `vi.json`, `en.json`, and `ru.json`.
+
+- **OTA Updates: Bump minimum native binary build required to 1045 & Remove liquid glass from chat**:
+  - Bumped `expo.extra.minNativeBuild` in `app.json` to `1045`.
+  - Removed liquid glass effect (`LiquidGlassView` and `AndroidGlassBackdrop`) from chat header and composer bar in `ChatGlassBar.js` and `ConversationScreen.js`, utilizing the clean solid and SVG wave patterns without refraction distortion or performance overhead.
+  - Completely removed Chat Lite webview mode and related settings toggles across all locales.
+
+- **Forum Header Alignment, Home Photo Shortcut & Sequential OTA Upgrade Chaining** (`app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/HomeScreen/index.js`, `app/screens/MainScreens/CreatePostScreen/index.js`, `app/services/ota/otaService.js`, `app/i18n/locales/*.json`, `INFO.md`):
+  - **Forum Header Trophy Alignment**: Fixed the member ranking champion/trophy button and header action alignment in `ForumScreen/index.js`. Replaced unbounded row with `headerLeft` (`flex: 1`, `marginRight: 12`) and `headerTitle` (`flexShrink: 1`, `numberOfLines={1}`), alongside rounded 40x40 icon buttons (`headerIconButton`) with theme background tints, preventing the trophy icon from overflowing offscreen on narrow devices.
+  - **Auto-open Image Picker from Home**: Tapping "Thêm ảnh" (Add photo) in the modern composer card triggers light haptics, presents an informative toast ("Đang mở thư viện ảnh..."), and passes `autoPickImage: true` to `CreatePostScreen` which automatically launches the photo gallery picker after mounting. Localized across English, Vietnamese, and Russian.
+  - **Sequential OTA Chaining Fix**: Fixed an issue where sequential OTA bundles (e.g. 1034 native base APK -> OTA 1035 -> OTA 1036+) could fail to apply or report phantom build numbers. Restricted timestamp gating strictly to matching build numbers (`upstreamBuildNumber === effectiveCurrentBuild`) so strictly higher upstream builds are never blocked by timestamp jitter, and verified active update IDs to avoid recording phantom build numbers when the native runtime has not yet applied a new bundle.
+
+- **Fix chat main screen relative day indicator i18n** (`app/screens/MainScreens/ChatScreen/index.js`, `app/i18n/locales/*.json`):
+  - Fixed hardcoded Vietnamese fallback `'Hôm qua'` in `ChatScreen/index.js`'s `formatMessageTime`.
+  - Added localized `"yesterday"` and `"today"` to `"chat"` across `en.json`, `vi.json`, and `ru.json` and passed `t` to `formatMessageTime`, ensuring relative time labels properly respect user language settings.
+
+- **OTA Build 1030 in `app.json`, Strict Version Guard, Length Bounds & Chat/Feed Virtualization** (`app.json`, `app/services/ota/*`, `app/screens/MainScreens/ForumScreen/CategoryScreen.js`, `app/components/PostItem.js`, `app/screens/MainScreens/ChatScreen/conversation/MessagesListContent.js`, `app/screens/MainScreens/ChatScreen/ConversationScreen.js`):
+  - **Single config point for `minNativeBuild`**: Set to `1030` directly inside `app.json` (`expo.extra.minNativeBuild`), with all scripts, workflows (`ota-update.yml`), and runtime helpers (`otaConfig.js`, `UpdatePromptModal.js`) dynamically reading it from config.
+  - **Strict OTA upgrade rule**: Upstream OTA build numbers must be strictly higher than current active build (`Math.max(currentNativeBuild, currentActiveBuild)`). Upstream $\le$ active build is blocked, preventing unwanted downgrade loops when switching from preview to production channel.
+  - **CategoryScreen length bounds & FlatList**: Thread titles bounded to 2 lines (`numberOfLines={2}`), category description clamped to 3 lines with expand toggle, and list virtualized with `FlatList` to unmount offscreen topics.
+  - **PostItem feed bounds & modal unmounting**: Clamped feed post title to 3 lines, safe HTML bounding with instant "Xem thêm" / "Thu gọn" toggle, and conditionally mounted 5 hidden modals (`SharePostModal`, `ReportModal`, `GiftPointsModal`, `PostVotesModal`, `ImageView`) only when open.
+  - **Chat lag spike elimination**: Virtualized messages list in `KeyboardChatScrollView` using exact measured height placeholders (`<View style={{ height: layout.height }} />`) for rows outside a 1200px viewport buffer, unmounting dozens of PanResponders, media, and link cards while preserving zero scroll jumps.
+
+- **Forum Screen Header: Restored classic static header** (`app/screens/MainScreens/ForumScreen/index.js`):
+  - Replaced floating glass buttons (`LiquidButton`) and fading scroll title with the classic static header (like webview/subforum screens).
+  - Preserves persistent title, back button, member ranking (`trophy-outline`), and new post button (`add`) without floating glass or scroll fading interfering with horizontal section and category tabs.
+
+- **Notification Screen Redesign & Auto-Read on Bell Tap** (`app/screens/MainScreens/NotificationScreen/index.js`, `app/screens/MainScreens/index.js`, `App.js`, `app/i18n/locales/*.json`):
+  - **Auto-Read on Tab Tap**: The instant the user taps the notification bell in the bottom bar or enters the Notification screen, all notifications are immediately marked as read (`markAllNotificationsAsRead()`), and the unread count badge is cleared to 0 without requiring the user to press any "mark all as read" button in the top corner.
+  - **Redesigned Mascot & Ambient Header**: Integrated a soft ambient light-green glow behind the status bar, featuring the CYO frog mascot with radiating action doodle marks, "Thông báo" bold title, subtitle ("Theo dõi các hoạt động mới nhất từ CYO"), green star sparkle doodle, and a circular equalizer filter/settings button (`options-outline`) routing to `NotificationSettingsScreen`.
+  - **4-Category Filter Pills**: Added a horizontal scroll row with active green pill `[ 🔔 Tất cả ]`, and inactive pills `[ 💬 Bài viết ]`, `[ ❤️ Tương tác ]`, and `[ 👥 Hệ thống ]` allowing instant filtering by notification category.
+  - **Card-Based Notification Items**: Redesigned each notification into an elegant rounded card with subtle border and elevation, left green vertical accent border on unread items, custom icon/badge indicator on avatar based on notification type (warning, like, comment, story react, points gifted, system reply), author verified badges, admin note display, clock icon with relative timestamp, post thumbnail, and chevron.
+
+- **Explore Screen Redesign & Sticky Search Header (Khám phá)** (`app/screens/MainScreens/ExploreScreen/index.js`, `App.js`, `app/i18n/locales/*.json`):
+  - **Sticky Search Header on Scroll**: Pinned the green header (`LinearGradient` with school watermark) at the top using native driver scroll interpolation. When the user scrolls down, the large "Khám phá" title smoothly slides up and fades out, while the pill search bar ("Tìm kiếm trên diễn đàn...") remains pinned and sticky directly below the safe area with drop shadow and rounded bottom corners.
+  - **Welcome Hero Card**: Redesigned greeting banner featuring "Chào bạn, hôm nay bạn muốn làm gì...?" with decorative underline doodles, student illustration (`student_girl.png`), halo glow, and floating sparkle accents.
+  - **3-Column Feature Cards Grid**: Redesigned 6 feature cards (Chợ tài liệu, Tra cứu điểm thi, Tìm trường ĐH-CĐ, In ấn tài liệu, Đố vui, Game) with pastel color themes, subtle background watermark illustrations, solid squircle icon badges, and circular forward buttons.
+
+- **iOS-style Callout Bubble for Post Copy (Title & Caption)** (`app/components/PostItem.js`, `app/utils/postCopy.js`, `app/i18n/locales/*.json`, `INFO.md`):
+  - **Independent Long-press Selection Targets**: Long-pressing either the post title or caption activates an independent text selection highlight for that specific element (`backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(50, 110, 240, 0.16)"`, `borderRadius: 6`).
+  - **Native iOS Callout Menu**: A floating callout capsule (`#1F2024`, rounded pill with downward pointing caret and subtle drop shadow) appears directly above the highlighted target, mimicking the system `UIMenuController` copy bubble.
+  - **Target-Specific Actions**:
+    - **Title long-press**: Displays `[ 📋 Sao chép ]`. Tapping copies the post title to clipboard with success haptics and toast.
+    - **Caption long-press**: Displays `[ 📋 Sao chép ]` (copies cleaned plain-text caption) and, if a title exists, `[ Tất cả ]` (copies both title and caption formatted together).
+  - **Seamless Outside Dismiss**: Tapping anywhere outside the callout button immediately dismisses the bubble and clears the selection highlight. Long-pressing the other target seamlessly switches selection.
+
+- **iOS Build / CocoaPods: Fix New Architecture environment and remove unused `@mattermost/react-native-paste-input`** (`package.json`, `package-lock.json`, `plugins/withNativeTweaks.js`, `INFO.md`):
+  - **Removed unused `@mattermost/react-native-paste-input`**: The package was previously disabled in `app/utils/pastedImages.js` (`PasteInputComponent = null`) due to fatal SIGSEGV crashes caused by Fabric shadow node casting conflicts with `react-native-live-markdown`. Removing this unused package eliminated redundant native code and resolved invalid podspec errors during local `npx expo run:ios`.
+  - **Injected `RCT_NEW_ARCH_ENABLED` in `Podfile` via `withPodfileTweaks`**: `plugins/withNativeTweaks.js` now automatically injects `ENV['RCT_NEW_ARCH_ENABLED'] ||= '1'` into `Podfile` during `expo prebuild`. This ensures any podspec checking this environment variable during `use_native_modules!` passes seamlessly without requiring manual terminal environment exports.
+
+- **OTA Updates: Resolve update blocking bug, promote native `checkForUpdateAsync` as primary authority, and fix apply flow** (`app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `INFO.md`):
+  - **Native `checkForUpdateAsync()` as primary authority**: When `Updates.isEnabled` is `true`, `checkUpdateAvailable()` now queries native `Updates.checkForUpdateAsync()` first. Native Expo Updates directly evaluates runtime version, update channel, embedded bundle timestamp, and selection policy. If `isAvailable` is `false`, it cleanly and definitively returns `up_to_date` without false positive prompt loops or needing flawed build number hacks.
+  - **Removed fatal `<=` build number blockers**: Removed `upstreamBuildNumber <= currentNativeBuild` and `upstreamBuildNumber <= currentActiveBuild` which completely blocked OTA updates whenever an update bundle was published with the same CI build number as the user's installed APK. Replaced with strictly `<` (`upstreamBuildNumber < currentNativeBuild`) for clean downgrade prevention when a user switches from preview to production channel.
+  - **Timestamp and cache-aware direct HTTP fallback**: If the native check is unavailable or fails due to network issues, the direct HTTP fallback now compares `createdAt` timestamps (`data.createdAt` vs running/stored `createdAt`) and active update IDs to accurately determine update availability.
+  - **Resilient bundle apply & reload**: In `downloadAndApplyUpdate`, handles `isNew=false` by distinguishing between an update that is already running versus one that was cached in SQLite by Expo's background `ON_LOAD` check, proceeding with reload and persisting `ota_active_created_at` to storage.
+  - **UI feedback in AppUpdatesScreen**: Displays `Build <num> (OTA)` when an OTA patch is actively running so users can immediately distinguish an active OTA patch from the embedded base APK.
+
+
+- **OTA Updates: Diagnostics logging for Debug Console and native applying fix** (`app.json`, `app/utils/devConsole.js`, `app/screens/MainScreens/SettingsScreen/DevConsoleScreen.js`, `app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `App.js`, `app/i18n/locales/*.json`):
+  - **Debug Console OTA logging**: Added an in-memory `otaRingBuffer` in `devConsole.js` capturing all `[OTA]` console outputs even before dev mode is actively toggled, preventing loss of startup diagnostics. Added an `"OTA"` filter chip and blue badge styling in `DevConsoleScreen.js` with full vi/en/ru localization.
+  - **Detailed lifecycle logging**: Added granular `[OTA]` logs with timestamps, channel, native/active build numbers, runtime version, HTTP manifest URL/status/directive, native `fetchUpdateAsync()` result (`isNew`, `isRollBackToEmbedded`), local persistence, and app reload invocations across `otaService.js`, `UpdatePromptModal.js`, `AppUpdatesScreen.js`, and `App.js`.
+  - **Removed `disableAntiBrickingMeasures`**: Removed `"disableAntiBrickingMeasures": true` from `app.json` which caused Kotlin NullPointerException in `UpdatesConfiguration.kt` whenever headers were updated with null URL.
+  - **Resilient bundle apply & reload**: Updated `downloadAndApplyUpdate` to gracefully handle cached/existing bundles (`isNew === false`) and log full stack traces and error codes on failure.
+
+
+- **OTA Updates: Fix update eligibility, base build threshold, build comparison, and active update persistence** (`app.json`, `app/services/ota/otaConfig.js`, `app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `App.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `.github/workflows/ota-update.yml`):
+  - **Eligibility threshold (`minNativeBuild`)**: Lowered `minNativeBuild` from `1014` to `1008` in `app.json`, `otaConfig.js`, and `.github/workflows/ota-update.yml`. Build 1008+ shares the exact same runtime version (`7.4.10`) and native binary modules, allowing installed builds (such as build 1018) to be fully eligible for OTA updates instead of erroneously blocked.
+  - **Accurate client build detection**: Updated `getNativeBuildNumber()` in `otaService.js` to inspect `Application.nativeBuildVersion`, falling back to `Constants.expoConfig?.android?.versionCode` and `1018` for resilient numeric resolution.
+  - **Removed incorrect build number blockers**: In `otaService.js`, removed `upstreamBuildNumber <= currentNativeBuild` and `upstreamBuildNumber <= currentActiveBuild` filters that falsely flagged incoming OTA bundles whose CI build number matched the APK's versionCode as "up to date". OTA freshness is now accurately verified against `runningUpdateId` (`Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY)`).
+  - **Fixed cold reboot state clearing**: In `syncNativeAndOtaBuild()`, changed condition from `nativeBuild >= storedBuild` to strictly `nativeBuild > storedBuild`. Equal build numbers (e.g. native 1018 and active OTA 1018) now preserve the stored active OTA bundle across reboots.
+  - **Modal build interpolation**: Forwarded `currentNativeBuild` through `App.js` and `AppUpdatesScreen.js` into `UpdatePromptModal.js`, and replaced hardcoded fallback `1011` with `currentNativeBuild || getNativeBuildNumber() || 1018` for accurate error messaging.
+
+
+- **HomeScreen top-left Forum shortcut, Forum header redesign, and remove profile card in Settings** (`app/components/SameHeader.js`, `app/screens/MainScreens/index.js`, `app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/SettingsScreen/index.js`):
+  - **HomeScreen Forum button**: Updated the top-left button in `HomeScreen` (`SameHeader.js`, `MainScreens/index.js`) from opening the sidebar drawer/tab with a menu icon to directly navigating to `ForumScreen` using the community icon (`people-outline`).
+  - **Forum top bar redesign**: Aligned `ForumScreen`'s top bar with the Design System header standards: centered 18pt font-weight 600 title (`t("forum.title")`) with scroll fading, and standardized 44x44 `LiquidButton` components for back, member rankings (`trophy-outline`), and create post (`add`), resolving button misalignment and disproportionate text sizing across both loading and active states.
+  - **Settings profile card removal**: Removed the redundant profile summary card from `SettingsScreen/index.js` (now prominently accessible via the full-screen Me/Menu sidebar tab), cleaning up unused profile imports and styles.
+
+- **OTA Updates: Dual-channel support (Production & Preview) and automated CI build from `dhphuc`** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/contexts/AuthContext.js`, `app/i18n/locales/*.json`):
+  - **Automated CI publishing**: Updated `.github/workflows/ota-update.yml` to trigger on push to both `main` and `dhphuc` branches. Pushes to `dhphuc` automatically build and publish to channel `preview`, while pushes to `main` publish to channel `production`. Manual `workflow_dispatch` allows specifying an arbitrary channel.
+  - **Dynamic channel selection**: Enabled `"disableAntiBrickingMeasures": true` in `app.json` `updates` configuration. `otaService.js` manages getting, setting, and persisting `ota_channel` in MMKV (`storage`), defaulting to `"production"`. Dynamically overrides update request headers at runtime using `Updates.setUpdateRequestHeadersOverride({ "expo-channel-name": channel })`.
+  - **Modern Channel Selection UI**: `AppUpdatesScreen.js` provides user-friendly cards to toggle between "Chính thức (Production)" (stable release from main) and "Thử nghiệm (Preview)" (early access from dhphuc branch) with badge indicators, radio selection, and instant check-update capabilities.
+  - **Session & i18n**: Preserved `ota_channel` across logouts in `AuthContext.js` `clearSessionCaches`. Added localized channel strings and explanations in Vietnamese, English, and Russian.
+
+- **OTA dual-channel auto-check & smooth startup updater; unified CI workflow; full-width chat liquid glass** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `App.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/screens/MainScreens/ChatScreen/conversation/{ChatGlassBar,ConversationHeader,ChatComposer}.js`, `app/i18n/locales/*.json`):
+  - **Unified multi-branch OTA CI workflow** (`.github/workflows/ota-update.yml`): Configured dynamic channel detection from branch name (`dhphuc` -> `preview`, `main` -> `production`). Manual workflow dispatch defaults to empty (auto-resolves from branch unless overridden). The workflow is 100% symmetric and branch-agnostic so merging `dhphuc` into `main` preserves clean branch-aware OTA publishing without merge conflicts.
+  - **Fixed OTA update check error on native builds** (`app.json`, `otaService.js`): Removed `disableAntiBrickingMeasures: true` from `app.json` which triggered an Android NPE in `expo-updates` when `UpdatesConfigurationOverride` saved request headers without `updateUrl`. Enhanced `otaService.js` with direct HTTP manifest checking (`/v1.0/ota/manifest`) with JSON fallback before native check, and passes complete `updateUrl` with request headers.
+  - **Background OTA check at startup & smooth update modal** (`UpdatePromptModal.js`, `App.js`, `AppUpdatesScreen.js`): `App.js` automatically performs a silent background update check 2s after startup. When an update is detected for the user's selected channel, `UpdatePromptModal` presents release information, channel badge, and timestamp. Tapping "Cập nhật ngay" transitions into a smooth "Đang cập nhật..." state with progress indication, downloads the bundle, and restarts the app seamlessly.
+  - **Full-width chat liquid glass header & composer** (`ChatGlassBar.js`, `ConversationHeader.js`, `ChatComposer.js`): Styled `ChatGlassBar` with `width: "100%"`, `alignSelf: "stretch"`, and explicit `borderRadius={0}` to prevent corner cut-off, ensuring the group chat info bar and message input composer span the complete screen width seamlessly without edge clipping.
+
+- **Modern Menu / Sidebar design with floating liquid header, scroll fading title, and Design System cards** (`app/components/Sidebar.js`, `app/components/AccountSwitcher.js`, `app/screens/MainScreens/HomeScreen/index.js`, `app/i18n/locales/*.json`):
+  - **Floating header & scroll fade**: Converted the Menu screen to the app's standard native scaffold with an absolute floating header (`64 + insets.top`), `Animated.ScrollView` feeding `scrollY`, and fading screen title (`scrollY.interpolate([0, 10, 50], [1, 1, 0])`). Removed the redundant inner body "Menu" text and the floating settings button on the right (Settings remains easily accessible in the Settings & Account card section).
+  - **Home feed composer bar**: Removed the image icon button from the "Bạn đang nghĩ gì?" composer prompt row in `HomeScreen`, leaving the avatar and input prompt pill cleanly stretching across the screen.
+  - **Design system alignment**: Replaced legacy `react-native-paper` lists with design system components: 34x34 circular icon holders in `theme.iconBackground` with `theme.primary` Ionicons, hairline border cards (`theme.surface`), uppercase section headers (13pt, `theme.subText`), and an interactive Facebook-style profile card with `AvatarFrameWrap` and "Xem trang cá nhân" shortcut.
+
+- **Me ("Tôi") tab shows full-screen Facebook-style Menu / Sidebar; full avatar with frame in non-liquid tab bar; fix Chat Conversation crash** (`app/screens/MainScreens/index.js`, `app/components/Sidebar.js`, `app/components/CommentBar.js`, `app/utils/pastedImages.js`, `app/i18n/locales/*.json`):
+  - **Me tab -> Facebook-style Sidebar**: Tapping the "Tôi" / Me tab button now shows the options Sidebar across the full screen (`Sidebar.js` rendered full-width as a tab screen with user profile header card, utilities, settings, and support). Tapping the user's profile card in the sidebar navigates to their full `ProfileScreen`. The HomeScreen header menu button also navigates directly to this tab, and the old 75% sliding drawer overlay with background glass was retired.
+  - **CustomTabBar Me button**: In non-liquid native glass bars (iOS 18 and lower, Android, iPad), the right circular float button now displays the user's avatar icon across the button with their configured avatar frame (`AvatarFrameWrap` with `useOwnProfileTheme`), with no text label.
+  - **Fix Chat Conversation crash**: Investigated native crash on Android via adb logcat (`SIGSEGV` null pointer dereference at `0x368` inside `AndroidTextInputShadowNode::setTextLayoutManager` called from `MarkdownTextInputDecoratorShadowNode::overwriteTextLayoutManager`). In React Native Fabric (New Architecture), `live-markdown`'s C++ shadow node casts its child to `AndroidTextInputShadowNode`, which fails when `PasteInput` is wrapped. Removed `inputComponent` prop override and disabled `PasteInputComponent`, allowing `MarkdownTextInput` to wrap standard `TextInput` safely without crashing.
+
+- **Bottom navbar: replace Create ("+") with Me ("Tôi") tab; move Create Post to Home composer bar & Forum headers** (`app/screens/MainScreens/index.js`, `app/screens/MainScreens/ProfileScreen/index.js`, `app/screens/MainScreens/HomeScreen/index.js`, `app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/ForumScreen/CategoryScreen.js`, `app/screens/MainScreens/CreatePostScreen/index.js`, `app/i18n/locales/*.json`):
+  - **Bottom tabs** (`MainScreens/index.js`): replaced `Create` with `Profile` (`navigation.profile`: `"Tôi"` / `"Me"` / `"Профиль"`). On iOS 26+ native liquid-glass tab bar (`!isCustomTabBar`), it renders the system profile icon (`person.crop.circle.fill` / `person.crop.circle`). On Android, iPad, and iOS < 26 (`CustomTabBar`), the right circular pill renders the user's avatar (`getAvatarUrl(username)`) + `"Tôi"` label with an active highlight ring and re-tap scroll-to-top / reload support (`ProfileScreen` accepts `isTab` and `scrollTriggerRef`).
+  - **Create Post entry points**: added a `"Bạn đang nghĩ gì?"` composer prompt row (avatar + prompt pill + image button) at the top of `HomeScreen`'s `ListHeader`, a `+` button in `ForumScreen`'s header, and a `+` `LiquidButton` in `CategoryScreen`'s `SubforumHeader` (which passes `categoryId` to `CreatePostScreen` to pre-select that subforum).
 
 - **Self-hosted OTA Updates via expo-updates** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/i18n/locales/*.json`):
   - Configured self-hosted Over-The-Air updates server URL in `app.json` (`updates.url: "https://api.chuyenbienhoa.com/v1.0/ota/manifest"`), with `"expo-channel-name": "production"` request header and `checkAutomatically: "ON_LOAD"`.
@@ -394,6 +649,72 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.
 
+- **Quiz (Đố vui) result score percentage ring, Force OTA directive & Theme vector icons**:
+  - In `QuizScreen/index.js`, replaced the static 360-degree full-bordered circle with a dynamic segmented SVG circular progress indicator using `react-native-svg` (`Svg`, `Circle`, `G`). Accurately displays the exact percentage of correct answers (green `theme.primary`) and incorrect answers (red `#ef4444`) with smooth rounded caps and proportional spacing instead of a solid full border when answers are not 100% correct. Added centered breakdown metrics (`{score}/{total}`, `{percent}%`, `✓ {score}`, `✗ {wrong}`).
+  - Added remote Force OTA update execution in `otaService.js` and `ThemeContext.js` with remote config synchronization, Android `ToastAndroid` notifications, and `AppUpdatesScreen.js` status banner.
+  - Localized app icon change toast (`appIcon.systemIconChanged`) across `vi.json`, `en.json`, and `ru.json`.
+  - Replaced emoji characters in Settings theme selector with dedicated vector icons (`MaterialCommunityIcons`: `theme-light-dark`, `weather-sunny`, `weather-night`) in the selection dialog, while retaining the classic `Ionicons` `moon-outline` icon for the main Settings row button, and updated App Icon row icon to `apps-outline`.
+  - Fixed WebView external domain handling for games (`famobi.com`, `is-a.dev`, `github.io`) and allowed all `*.chuyenbienhoa.com` subdomains in `WebAppScreen`.
+
+- **OTA settings switches, unauthenticated check suppression & chat initial avatar fallbacks**:
+  - `applyChannelOverride` in `otaService.js` now silently returns when in `__DEV__`, when expo-updates is disabled natively, or when `ota_enabled` is false, eliminating noisy warning logs.
+  - Startup OTA update check in `App.js` is now suppressed on unauthenticated screens (welcome/login/signup) by requiring `isLoggedIn`, and respects both `isOtaEnabled()` and `isStartupCheckEnabled()`.
+  - Added toggle switches in `AppUpdatesScreen.js` for "Bật cập nhật OTA" and "Kiểm tra khi khởi động", backed by MMKV storage keys `ota_enabled` and `ota_check_startup`, with full i18n support in `vi.json`, `en.json`, and `ru.json`.
+  - For chats without avatar (such as support chats, bots, or users without profile pictures), the avatar is replaced with a clean circular thumbnail displaying the capitalized first letter on `theme.iconBackground` across `ChatScreen/index.js`, `ConversationHeader.js`, and `MessageRow.js`.
+
+- **Rename Profile tab label to "Cá nhân" ("Profile")**:
+  - Updated `navigation.profile` in `app/i18n/locales/vi.json` from `"Tôi"` to `"Cá nhân"`, and in `en.json` to `"Profile"`.
+
+- **Replace Forum ("Diễn đàn") tab with Explore ("Khám phá") tab**:
+  - Main tab navigator in `MainScreens/index.js` now features `Explore` (`ExploreScreen`) as the 2nd tab instead of `Forum` (`ForumScreen`), with compass icons on iOS (`safari.fill`/`safari`) and Android (`compass`/`compass-outline`).
+  - `ExploreScreen` updated with tab mode styling (hides back button when in tab bar, adjusts content bottom padding).
+  - `ForumScreen` is registered as a stack screen in `App.js` with back button support and accessible directly from `Sidebar.js`.
+  - Added `navigation.explore` across `vi.json` ("Khám phá"), `en.json` ("Explore"), and `ru.json` ("Обзор").
+
+- **Liquid glass category & subforum selection bottom sheet modal**:
+  - Upgraded `Dropdown.js` from a plain centered modal dialog into a modern liquid-glass bottom sheet modal matching iOS/Android design standards.
+  - Features a translucent frosted glass surface (`LiquidGlassView` with `glassTint` and `androidGlassPerfProps`), top pill drag indicator, clover header icon (`MaterialCommunityIcons` "clover"), modal title, and circular close button (✕).
+  - Grouped SectionList support with category-themed header icons (`getSectionIcon` in `forumUtils.js`, mapping sections such as "Thông báo", "Học tập", "Giải trí - Xã hội", "Đoàn - Hội", etc.) and outline icons for all subforums (`getSubforumIcon` mapping "Tin tức từ Ban quản trị", "Quy định và hướng dẫn", "Tin tức Đoàn", "THPT", "THCS", "Tiếng Anh", "Ebook", "Học ngoại ngữ", "Văn học", "Âm nhạc", "Hình ảnh đẹp", etc.).
+  - Selected state feedback: highlighted active green border (`theme.primary`, 1.5px), primary green tint background, and circular checkmark (`Ionicons` "checkmark-circle").
+  - Tactile bottom action confirmation button with `Ionicons` "checkmark" and label `t("dropdown.select", "Chọn")` positioned above home indicators via `useSafeAreaInsets()`.
+  - Added `createPost.chooseCategory` and `dropdown.select` across `vi.json`, `en.json`, and `ru.json`.
+  - Integrated into `PostComposerLayout.js` for category and privacy selection during post creation & editing.
+
+- **Vietnamese font rendering & lineHeight optimization**:
+  - Added explicit `lineHeight` across modal headers, buttons, labels, and channel cards in `UpdatePromptModal.js`, `AppUpdatesScreen.js`, and `FeedbackScreen/index.js` to prevent Vietnamese diacritics / tone marks from being clipped on Android.
+  - Added `ota.baseUpdateRequiredBuild` across `vi.json`, `en.json`, and `ru.json` and ensured UI fallback strings are provided so text never displays raw translation keys.
+
+- **Min native build 1014, bug report image upload animations & OTA retry dialog i18n**:
+  - `minNativeBuild` bumped to `1014` in `app.json`, `otaConfig.js`, and `ota-update.yml`.
+  - Added animated upload indicator (`ActivityIndicator` overlay, status text, checkmark completion, and disabled delete while uploading) for bug report / feedback screenshots (`FeedbackScreen/index.js`).
+  - Added `"common.retry"` translation across `vi.json`, `en.json`, and `ru.json` so the update error modal retry button is properly translated.
+  - Guarded `applyChannelOverride` in `otaService.js` to prevent unhandled promise rejection warnings when running in environments where expo-updates is not enabled.
+  - Added explicit `"enabled": true` under `"updates"` in `app.json`.
+
+- **OTA CI build number alignment with Actions run number**:
+  - `ota-update.yml` dynamically queries the latest CI workflow run number (`build-android.yml` / `build-ios.yml`, exactly like the native build's `versionCode` / `buildNumber`) via GitHub Actions API.
+  - Updates `app.json` with `scripts/set-build-number.js` before exporting the bundle so the bundled JS manifest reflects the active build number.
+  - Passes the actions run build number in `-F "build_number=${BUILD_NUMBER}"` to the publish API endpoint.
+  - Updated base `versionCode` and `buildNumber` in `app.json` and `AppUpdatesScreen.js` to `1012`.
+
+- **Version 6.4.3 bump**:
+  - `app.json` and `package.json` version bumped to `6.4.3`.
+  - UI fallbacks in `AppUpdatesScreen.js` updated to `6.4.3`.
+
+- **Intelligent OTA updates, dynamic channel branching, instant tab teleport & composer avatar frame**:
+  - **OTA build & minimum versioning in `app.json`**: `minNativeBuild` is configured in `app.json` (`expo.extra.minNativeBuild`), easily editable (updated to `1009`). `otaConfig.js` and `otaService.js` read this dynamically to block OTA updates and warn the user when their installed APK is below the required base build (`native_base_outdated`). Upstream builds higher than active build upgrade cleanly, while equal/lower builds (and upstream builds $\le$ current native build) are marked `up_to_date` to prevent downgrade loops when switching to production from a newer preview APK.
+  - **Runtime header override & reboot persistence**: `"disableAntiBrickingMeasures": true` in `app.json` ensures `UpdatesConfigurationOverride`'s request headers are accepted natively across cold boots and app restarts.
+  - **Settings menu & App Updates**: displays `(OTA Version: Build <num>)` instead of raw update ID hash strings.
+  - **Sidebar dark theme logout icon**: accurately derives `isDark` so the logout icon's circle uses `"rgba(255, 59, 48, 0.2)"` in dark mode instead of the bright pastel pink `#FDE8E8`.
+  - **Auto channel alignment & CI**: `scripts/set-ota-channel.js` switches `expo-channel-name` in `app.json`. `ota-update.yml` ensures the exported manifest matches the branch channel (`preview` for `dhphuc`, `production` for `main`). `build-number.yml` automatically sets `production` channel upon merge into `main`.
+  - **APK upgrade override & reboot persistence**: `syncNativeAndOtaBuild()` clears stale OTA state if a newly installed base APK has `nativeBuild >= storedOtaBuild`. Active build and update ID are saved to MMKV storage and persist permanently across reboots.
+  - **App Updates screen**: displays original base APK/IPA version and build number alongside active real OTA build details.
+  - **Chat glass bar**: Conversation header and composer liquid glass now span 100% full width (`width: "100%"`, `alignSelf: "stretch"`, `borderRadius: 0`).
+  - **Instant tab teleport**: Switching from "Tôi" (Profile separated circle) to tabs inside the float bar (Home, Forum, Chat, Notifications) teleports the indicator instantly without sliding animation.
+  - **Composer avatar border**: The avatar beside "Bạn đang nghĩ gì?" on Home feed now wraps with `useOwnProfileTheme` + `AvatarFrameWrap` to display user's customized avatar appearance and border.
+  - **Bug reports include OTA version**: `FeedbackScreen/index.js` retrieves `getRunningUpdateInfo()` and passes `ota_version` in `submitFeedback` payload and embeds `ota <version>` inside `device_info` for debugging.
+  - **i18n**: All UI strings added to `vi.json`, `en.json`, and `ru.json`.
+
 - **iOS 26: the tab bar lost its glass after logging in** (not run on a device; JS only): after a first login, or logging out and in again, the system tab bar (and the glass header buttons) showed bare icons over the feed; a cold start was fine. `MainScreens` (and `SearchScreen`, `Welcome`, `LanguageSelect`, `FirstLaunchSettings`) appeared with `animation: "fade"`, and the JS stack gives every card whose style has an `opacity` the prop `needsOffscreenAlphaCompositing` (`@react-navigation/stack` `Card.tsx`, `hasOpacityStyle`) - on iOS the card is drawn as one offscreen group, where UIKit's glass cannot sample its backdrop and, drawn once during the fade, stays empty. A cold start's first screen is not animated, so it had no such style. These screens now use `FADE_ANIMATION` (`App.js`): `"none"` on iOS, `"fade"` on Android. **Rule:** no `animation: "fade"` (or any opacity card animation) on iOS for a screen that shows glass.
 
 - **Fix: feed update after editing a post used the wrong data path** (not run on a device): `PostEditScreen`'s upload task spread `response.data?.post || response.data` into the feed post, but `updatePost` returns `{message, data, moderation}` - there is no `post` key at the top level, so `data.post` was undefined and the whole response envelope (including `message`, `data`, and `moderation`) was spread into the post object without updating its actual fields. Changed to `response.data?.data || response.data` to reach the topic object.
@@ -416,6 +737,23 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Violation reports: several violation types; always sent in Vietnamese** (not run on a device; no API change):
   - `ReportScreen/Step2.js`: the type chips toggle (`selectedTypes`), and "Other" adds any number of typed or suggested ones (`selectedTags`) - at most `MAX_VIOLATION_TYPES` (8) together. Step 3 shows them comma-separated in the app's language.
   - What goes to `POST /violation-reports` as `violation_type` is `violationTypeVi`: the same choices looked up by position in `vi.json` (`report.studentViolationTypes` / `classViolationTypes` / `mockViolations`, imported directly, not through `t()`), joined with ", " and cut at the API's 255 characters. Text the reporter typed is sent as typed. **Keep those three lists in the same order in vi / en / ru** - the lookup is by index.
+
+- **Modern & aesthetic Search screen revamp**:
+  - `SearchScreen/index.js`: Comprehensive visual and UX redesign conforming to CYO design system.
+  - **Clean Solid Capsule Search Bar**: Removed liquid glass overlay on search input bar, matching the clean solid filter pills style (`rgba(255,255,255,0.06)` / `rgba(0,0,0,0.04)` with fine border) for unified look and smooth typing.
+  - **Server-driven Suggested Topics**: Suggestions are now fetched live from `GET /v1.0/search/suggestions` API endpoint rather than hardcoded on the client, showing real trending hashtags with topic counts.
+  - **Interactive Segmented Filter Carousel**: Replaced hidden pop-up menu with clean horizontal filter chips (All, Users, Posts) featuring distinct active states and icons for instant filtering.
+  - **Recent Search History & Persistence**: Saves past search terms in MMKV with quick chip taps, individual remove (`close`), and "Xóa lịch sử" bulk clear.
+  - **Card-based Elevated Results**: User items render as rounded translucent cards with `AvatarFrameWrap`, `UserNameRow`, bio preview, and forward indicator; post items feature clean rounded image thumbnails with formatted metadata.
+  - **OTA Restart Fix**: `otaService.js` and `UpdatePromptModal.js` dismiss prompt modal and invoke `Updates.reloadAsync()` directly on reload confirmation, correctly reloading the newly cached bundle without getting stuck on restarting modal.
+
+- **Call timeouts (10s connect, 45s ringing), remove restart on account switch (OTA only), incoming call loophole & outward ringing status**:
+  - `UpdatePromptModal.js` & `otaService.js`: After an OTA update bundle is downloaded and applied, presents Alert: "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục." ("Update complete! Restart app to continue.") and calls `BackHandler.exitApp()` on Android (or reload) so on restart it loads cleanly from cold start, preventing memory heap overflow.
+  - `AccountSwitcher.js`: Removed app restart prompt and exit on account switch so only OTA update triggers shutdown/restart. Normal and switch logins stay in-app seamlessly.
+  - `CallContext.js`: Updated call timeouts: connection timeout ("Đang kết nối...") is 10s if the other party or server is unreachable; once ringing ("Đang đổ chuông..."), ringing timeout is 45s before automatically ending the call with "Người nhận không trả lời".
+  - `CallContext.js` & `NotificationContext.js`: Incoming call dialog no longer automatically pops up when user is actively surfing in-app or doing anything (suppressed from Echo socket broadcast `.call.initiated` and foreground push receipts). Only tapping the push notification explicitly displays the incoming call modal and plays the ringtone. Tapping either "Trả lời" or "Từ chối" safely dismisses/exits.
+  - `ActiveCallModal.js` & `CallContext.js`: Outgoing/outward call status starts as "Đang kết nối..." ("Connecting..."). Once backend responds with 200 / `callData.id`, switches status to `ringingOutward` / "Đang đổ chuông..." ("Ringing...").
+  - Localized all new strings across `vi.json`, `en.json`, and `ru.json`.
 
 - **Forum section card: the picture reaches the right edge again, and the fade is back** (not run on a device): `sectionBackground` had `width: "100%"`, which `ImageBackground` copies onto its absolutely positioned picture - and there a percentage is measured inside the padding, so the picture stopped 28 short of the card's right edge on every device (what the old "105%" was compensating for). The width is gone (`alignSelf: "stretch"`), so the picture is pinned to all four edges. The veil (`sectionVeil`) is the plain background colour over the left 45% of the card, then fades (70% at 72%) down to a 45% tint at the right edge - never the bare picture, so it stays dark or light with the theme - slightly diagonal - the look of the original design, where the picture shows on the right only - the previous one (94 / 70 / 45%) read as a flat tint with no fade.
 
@@ -443,14 +781,58 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 - **iOS CI: compiler cache** (the next runs show whether it helps; the first one fills the cache): `build-ios.yml` and `simu.yml` set up **ccache** - `apple.ccacheEnabled` is written into `ios/Podfile.properties.json` after prebuild (CI only, so a local build needs no ccache), the cache lives in `~/.ccache` and is saved per run / restored from the latest (`...-ccache-device-` / `-simulator-`), and a "ccache statistics" step prints the hit rate. With ccache on, the Podfile points the whole project's compiler at `$(REACT_NATIVE_PATH)/scripts/xcode/ccache-clang.sh`, a path built from `PODS_ROOT` - which the **share extension** (no pods) does not have, so the first run failed with "unable to spawn process '/../../node_modules/...'"; the step "Point every target at the ccache wrappers" sets `PODS_ROOT` / `REACT_NATIVE_PATH` on every target after `pod install`. **A new native target needs nothing extra as long as that step stays.** The CocoaPods download cache is now restored **before** `pod install` (it used to be restored after, doing nothing). The DerivedData cache was removed from the device build: it was restored and saved (several GB) and then deleted by "Clean DerivedData" before the build. `xcbeautify` is only installed when missing. The Android build already compiles for **arm64-v8a only** (`-PreactNativeArchitectures=arm64-v8a`), unchanged.
 
-- **Display fixes and a round of safe optimizations** (not run on a device):
-  - **Status bar (Android).** `StatusBarContext` now only ever holds real overrides (the black story viewer, `useStatusBarStyle` screens); with nothing in it `App.js` follows the theme and re-applies after every navigation and theme change. `HomeScreen` used to store the theme's own style in it on focus and restore an old snapshot after a story - a stale value there overrode every screen without a style of its own (Settings after returning from About...) until Home was focused again. The direct `StatusBar.set*` calls in Settings, About, DevConsole and LinkSafety are gone (one writer). `CreateStoryScreen` and the Archive story viewer ask for light icons. **Design system:** never write the theme's bar style into the context and never call `StatusBar.setBarStyle` from a screen; a screen with its own background uses `useStatusBarStyle`.
-  - **Story viewer.** The progress bars and the header take their top offset from `insets.top` (`progressContainerStyle` / `headerContainerStyle` on `InstagramStories`, Home and Archive) instead of the library's fixed 44 / 60pt, which put the bars inside the Dynamic Island.
-  - **Forum section cards.** The dark veil over a section's picture is `StyleSheet.absoluteFill`; the old rotated box with a fixed shift stopped covering cards wider than a phone's (iPad).
-  - **Home header title** (`SameHeader`): no fixed 120pt lines any more; the logo + title block takes its own width up to the space between the two buttons.
-  - **Game screen** (`GamePlayScreen`): same header as the gift shop / admin WebView - back walks back inside the page (also Android's back button), X leaves, reload button.
-  - **Android keyboard that changes height while open.** `app/utils/keyboardResize.js` (`trackAndroidKeyboardResize(setHeight)`) keeps keyboard-height state right on a resize (Android reports nothing to React Native then; react-native-keyboard-controller does) - used by the chat mention / command popups, the post screen's comment bar, the post editor toolbar and the story text editors. `ConversationScreen` also switches the window to "resize" input mode while focused, the mode the keyboard library needs to move the message bar on a resize (**untested assumption** - if the chat bar misbehaves on Android, remove that one `useFocusEffect`).
-  - **Media gallery tab bar** checked, unchanged: native bar only on iPhone with iOS 26+; iPad and Android keep the custom floating bar, like the main tab bar.
-  - **Optimizations, same output:** `PostItem` gives `RenderHTML` memoized `source` / styles / renderers (it rebuilt the HTML of every unchanged post on each render); the email-verification alert and modal (Home) and the action menu (Notifications) are rendered as elements, not as component types re-created per render (which remounted their `Modal`s); the ranking's top 3 likewise; Home's scroll handler no longer emits `SET_TABBAR_VISIBLE` (nobody listened) and its `viewabilityConfig` is one constant; the chat tab and the profile no longer fetch the same data twice on opening; the online-status interceptor reads the token only once a minute instead of on every response; the 30-second badge polls skip while the app is in the background; the post loader's animation loop stops with the screen; `console.debug` in the video players became `console.log` (off in release).
-  - **Share intent deep link error in standalone builds**: `useShareIntent({ scheme: "com.fatties.youth" })` explicitly passes the custom scheme. In standalone builds `Constants.expoConfig` is undefined at runtime, so without `scheme` in options `expo-share-intent` falls back to `expo-linking`'s `createURL`, throwing `Cannot make a deep link into a standalone app with no custom scheme defined` whenever the app transitions to/from the background.
-  - Left for later, each needs care: memoizing `AuthContext`, `PostItem` reading the whole feed from context, comment rows' `RenderHTML` props, `useCallback` for the big `renderItem`s, native-driver scroll animations, lazy screen loading.
+- **WebRTC call reliability: 10s connection timeout, active call recovery on reconnect, disallow group & AI calls, remove old synthesizer ringtone**:
+  - **10s connection timeout**: Caller tries connecting for 10 seconds in `calling` status; if callee does not acknowledge receipt (`ringing` signal) within 10s due to offline/network failure, call cancels and displays "Không thể kết nối đến người kia".
+  - **Active call recovery on reconnect**: `CallContext.js` hooks into Echo socket reconnection (`echo.connector.pusher.connection.bind('connected')`) and `AppState` active transitions to immediately fetch `GET /v1.0/calls/active` and auto-pop up incoming call modal with OPPO ringtone if an active call is ongoing, preventing missed calls during network drops.
+  - **Disallow group & AI calls**: Hidden call button in `ConversationHeader.js` when `isGroupConversation` or `isAiConversation`, with matching 422 validation on backend `CallController.php`.
+  - **Remove old synthesizer chime & instant ringtone stop**: Completely deleted `playTone(520, 650)` fallback from `WebRtcBridge.js`, and added immediate `STOP_RINGING` signals when answering or receiving `.call.answered`.
+
+- **WebRTC call upgrades: Android lockscreen auto-popup, 60s auto-disconnect, OPPO ringtone & copyright, call message cards**:
+  - **Android lockscreen auto-popup & action buttons**: `plugins/withNativeTweaks.js` injects `android:showWhenLocked="true"`, `android:turnScreenOn="true"`, `android:showOnLockScreen="true"`, and `android:inheritShowWhenLocked="true"` on `MainActivity`, and declares `USE_FULL_SCREEN_INTENT`, `WAKE_LOCK`, `VIBRATE`, and `FOREGROUND_SERVICE` in `app.json`. `ExpoNotificationService.js` sets up `incoming_call` notification category with interactive "Trả lời" (opens foreground) and "Từ chối" (background decline) actions, and `calls` channel with `MAX` importance and `USAGE_NOTIFICATION_COMMUNICATION_REQUEST`.
+  - **60-second call auto-timeout**: Calls automatically disconnect after 60 seconds (1 minute) if unanswered by the callee, stopping ringing on both caller and callee devices (mobile & web).
+  - **Cold-start incoming call handling**: `CallContext.js` inspects `Notifications.getLastNotificationResponseAsync()` on mount to restore and display the incoming call dialog when launched from a killed state.
+  - **WebRTC audio & participant avatar fix**: Fixed audio track acquisition and bridge transmission so both ends have clear two-way audio. Outgoing call header displays the callee's avatar and name instead of the caller's own avatar.
+  - **Green gradient background**: Active call UI (`ActiveCallModal.js`) features modern deep emerald green gradient (`#064e3b` to `#022c22`) for incoming and active calls.
+  - **Authentic OPPO ringtone & copyright attribution**: Added the user-provided OPPO alarm ringtone with proper copyright attribution in `LICENSE.md` and `AboutScreen`.
+  - **Chat call system messages**: Call status cards (`CallMessageCard.js`) in chat conversations render custom card UI for missed, rejected, and completed calls with duration.
+  - **i18n**: All UI strings added to `vi.json`, `en.json`, and `ru.json`.
+
+- **Modern Home screen redesign (matching Explore, Chat & Notifications)**:
+  - Redesigned `HomeScreen/index.js` and updated `MainScreens/index.js` (`headerShown: false` for Home tab) to seamlessly integrate the ambient and playful design system.
+  - **Ambient status bar glow**: Added `LinearGradient` emanating from the top status bar into the screen (`#E8F8EA` / `rgba(20, 83, 45, 0.45)`).
+  - **Branded mascot header**: CYO frog mascot (`logo.png`) with radiating action marks doodles, bold deep green brand title "CBH Youth", sparkle star `✦`, and localized subtitle (`home.feed`). Mascot tap scrolls to top / reloads feed; long-press opens Feedback screen with haptic feedback.
+  - **Glass shortcut buttons**: Circular translucent green buttons in the header for quick access to Forum (`people-outline`, `ForumScreen`) and Search (`search-outline`, `SearchScreen`).
+  - **Refined composer card**: Elevated the "Bạn đang nghĩ gì?" row into a modern card with `AvatarFrameWrap` around the user's avatar, soft rounded compose pill with pencil icon, and quick action buttons for Photo ("Thêm ảnh") and Story ("Tạo tin").
+  - **Modern stories tray**: Replaced the harsh 10px divider bar with clean card styling, refined "+ Tạo tin" card with green gradient add badge, and rounded friend story preview cards with subtle author avatar frames.
+
+- **Chat screen redesign** (tested on iOS simulator):
+  - Redesigned `app/screens/MainScreens/ChatScreen/index.js` matching the CYO green aesthetic mockup.
+  - Added ambient top mint/green gradient header (`LinearGradient`) behind the status bar.
+  - Header: CYO green frog mascot (`logo.png`) with radiating golden action doodles `\ | /`, bold deep green title "Tin nhắn" (`#15803D` / `#4ADE80`), sparkle doodle `✦`, and circular translucent green buttons for Group (`CreateGroupScreen`) and Add (`NewConversationScreen`).
+  - Search & Filter bar: rounded pill container with search icon, text input, clear button, and circular filter button (`options-outline`) supporting quick filter pills ("Tất cả", "Chưa đọc", "Nhóm").
+  - Conversation card items: styled individual rounded cards (`borderRadius: 20`, subtle border, shadow) replacing flat separator rows; online dot indicator on avatars; double green checkmark `✓✓` for messages sent by the user and read; green pill badge for unread counts; muted bell icon for muted/casual group chats; localized timestamps ("HH:mm", "Hôm qua", "DD/MM").
+
+- **Server-driven seasonal launcher icon updates (20/11 & Christmas)**:
+  - App queries `GET /v1.0/app/config` on launch via `ThemeContext.js` and `appIcons.js:syncSeasonalLauncherIcon`.
+  - Icon transitions (TeachersDay during 20/11 week, Christmas before holidays, NewYear2026, or admin override) are calculated and pushed strictly from the server.
+  - Automatically and smoothly transitions users who have not explicitly chosen another preset (i.e. on default), with support for server `force: true` to override all users when needed.
+  - **Native System Toast & Notification on Forced Switch**: When the server forces an icon change (`force: true`), displays native `ToastAndroid.showWithGravity` (on Android) and triggers an immediate high-priority system notification (for both iOS & Android) notifying the user that the event icon has updated and to re-open the app if the launcher relaunched the process.
+
+- **App Icon Settings simplification: remove custom upload option**:
+  - Removed custom gallery image upload section from [`AppIconScreen.js`](file:///data/data/com.termux/files/home/cbh-youth-online-mobile/app/screens/MainScreens/SettingsScreen/AppIconScreen.js) since OS launcher icons on iOS and Android strictly require pre-bundled compiled assets. The screen now cleanly focuses on pre-bundled launcher presets and the default icon reset.
+
+- **20/11 Teachers' Day icon update, bundle size reduction & Settings bugfix**:
+  - **New 20/11 Icon**: Integrated the user-provided Gemini-generated 20/11 icon artwork for both iOS full-bleed (`teachers-day-20-11.png`, 1024x1024) and Android adaptive (`teachers-day-android.png`, 1024x1024 with 682px safe zone and background `#FDE6D0`). Shows properly in Settings app icon thumbnails and applies to launcher presets.
+  - **Asset Size Optimization**: Removed ~10MB of unused legacy duplicate assets (`cbh-youth-iOS-*`), optimized PNG compression across all launcher icons and adaptive icons, reducing bundle footprint.
+  - **SettingsScreen Crash Fix**: Fixed `ReferenceError: Property 'languageCode' doesn't exist` by properly re-declaring `languageCode = i18n.language?.split("-")[0] || "vi"`.
+
+- **Android adaptive launcher icons with safe zone & dynamic theme icon in Settings**:
+  - **Android Adaptive Icons**: Generated dedicated Android foreground assets (`*-android.png`) for all launcher presets with artwork centered inside the official 72dp/108dp (682px diameter on 1024x1024 canvas with 171px margins) safe zone. This prevents OEM launcher masks (Samsung OneUI circle, Pixel rounded rectangle, Xiaomi squircle) from cropping edges. Updated `app.json` adaptive icon configuration and `expo-alternate-app-icons` plugin entries with matching background colors.
+  - **Reverted native splash override**: Restored native splash screen to use default branding across platforms; preserved user custom splash Lottie animation in `SplashScreen.js` as-is.
+  - **Dynamic Theme Icon**: In `SettingsScreen`, the left icon beside the "Theme" setting dynamically updates to match the current theme mode (`contrast-outline` for Auto/System, `sunny-outline` for Light, and `moon-outline` for Dark).
+
+- **Study Material preview images (Chợ tài liệu) like web** (tested on iOS simulator):
+  - `StudyMaterialScreen/index.js`: updated document cards with top 4:3 preview image (`material.preview_path`), fallback document placeholder, floating top-right price/status badge ("Miễn phí", "Đã mua", "[X] điểm"), category color dot with relative timestamp (`formatTime`), title, description, author avatar and stats (downloads, views, rating).
+  - `StudyMaterialDetailScreen/index.js`: added preview image display fallback when document webview viewer is unavailable.
+
+

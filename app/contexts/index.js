@@ -6,11 +6,13 @@ import { StatusBarProvider } from "./StatusBarContext";
 import { UnreadCountsProvider } from "./UnreadCountsContext";
 import { NotificationProvider } from "./NotificationContext";
 import { ThemeProvider } from "./ThemeContext";
+import { CallProvider } from "./CallContext";
 
 export default function MultiContextProvider({ children }) {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <CallProvider>
         <ChatSocketProvider>
           <NotificationProvider>
             <FeedProvider>
@@ -22,6 +24,7 @@ export default function MultiContextProvider({ children }) {
             </FeedProvider>
           </NotificationProvider>
         </ChatSocketProvider>
+        </CallProvider>
       </AuthProvider>
     </ThemeProvider>
   );

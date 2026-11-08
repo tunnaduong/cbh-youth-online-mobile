@@ -28,7 +28,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
 
   const scrollY = useRef(new Animated.Value(0)).current;

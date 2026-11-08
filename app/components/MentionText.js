@@ -70,7 +70,16 @@ export function buildParts(text) {
  *                              is meaningless there and should render as
  *                              plain text instead.
  */
-const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, enableAiCommands = false, ...rest }) => {
+const MentionText = ({
+  children,
+  style,
+  onMentionPress,
+  mentions,
+  allowBroadcastMention = true,
+  enableAiCommands = false,
+  isMyMessage = false,
+  ...rest
+}) => {
   const { isDarkMode, theme } = useTheme();
   const navigation = useNavigation();
   const text = typeof children === "string" ? children : String(children ?? "");
@@ -78,7 +87,11 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
   // and light/dark theme - a single blue can't have good contrast on all of
   // them, so pick a lighter blue against the darker bubble backgrounds and a
   // darker, more saturated blue against the lighter ones.
-  const aiCommandColor = isDarkMode ? "#93c5fd" : "#1d4ed8";
+  const aiCommandColor = isMyMessage
+    ? "#BBF7D0"
+    : isDarkMode
+    ? "#93c5fd"
+    : "#1d4ed8";
 
   const validSet = React.useMemo(() => {
     const s = new Set();

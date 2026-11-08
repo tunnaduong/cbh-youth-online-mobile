@@ -133,27 +133,34 @@ export const styles = StyleSheet.create({
   },
   timeHeaderContainer: {
     alignItems: "center",
-    marginVertical: 16,
+    marginVertical: 12,
     paddingHorizontal: 8,
+  },
+  timeHeaderPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   timeHeaderText: {
     fontSize: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: "hidden",
+    fontWeight: "500",
   },
   dateHeaderContainer: {
     alignItems: "center",
-    marginVertical: 24,
+    marginVertical: 18,
     paddingHorizontal: 8,
   },
-  dateHeaderText: {
-    fontSize: 14,
-    paddingHorizontal: 16,
+  dateHeaderPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  dateHeaderText: {
+    fontSize: 13,
     fontWeight: "600",
   },
   systemMessageContainer: {

@@ -11,6 +11,17 @@ import { Platform } from "react-native";
 // screen didn't work: there was nothing to tap - no banner ever appeared.
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
+    // High-priority incoming call banner and alert
+    if (notification?.request?.content?.data?.type === "incoming_call") {
+      return {
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      };
+    }
     // Progress of a background upload (services/uploadQueue): the in-app bar
     // already shows it, so no banner or sound - on Android it only sits in
     // the notification shade, on iOS it isn't shown at all.
@@ -59,6 +70,40 @@ export async function requestNotificationPermissions() {
         lightColor: "#319527",
       });
       console.log("[Push] Android: notification channel result:", channel);
+
+      // Dedicated high-priority channel for incoming voice and video calls
+      await Notifications.setNotificationCategoryAsync("incoming_call", [
+        {
+          identifier: "answer",
+          buttonTitle: "Trả lời",
+          options: {
+            opensAppToForeground: true,
+          },
+        },
+        {
+          identifier: "decline",
+          buttonTitle: "Từ chối",
+          options: {
+            isDestructive: true,
+            opensAppToForeground: false,
+          },
+        },
+      ]);
+
+      await Notifications.setNotificationChannelAsync("calls", {
+        name: "Cuộc gọi đến",
+        description: "Thông báo cuộc gọi thoại và video đến",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 600, 400, 600, 400, 800],
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_COMMUNICATION_REQUEST,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
+        lightColor: "#22c55e",
+        sound: "default",
+        bypassDnd: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      });
     }
 
     // Check if running on physical device (simulators/emulators can't receive push notifications)

@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
-import { Appearance, Platform, useColorScheme } from "react-native";
+import { Appearance, AppState, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
+import { getActiveLauncherIconKey, getCustomAppIconUri, syncSeasonalLauncherIcon } from "../utils/appIcons";
+import axiosInstance from "../services/api/axiosInstance";
 
 export const ThemeContext = createContext();
 
@@ -78,11 +80,51 @@ export const ThemeProvider = ({ children }) => {
     return storage.getBoolean("shakeToReportEnabled") ?? true;
   });
 
+  const [chatLiteEnabled, setChatLiteEnabledState] = useState(() => {
+    return storage.getBoolean("chatLiteEnabled") ?? false;
+  });
+
+  const [launcherIconKey, setLauncherIconKeyState] = useState(() => {
+    return getActiveLauncherIconKey();
+  });
+
+  const [customAppIconUri, setCustomAppIconUriState] = useState(() => {
+    return getCustomAppIconUri();
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
     }
   }, [systemColorScheme, useSystemTheme]);
+
+  // Background seasonal & remote icon and forced OTA check on launch & resume
+  useEffect(() => {
+    let isMounted = true;
+    const runSync = async () => {
+      try {
+        const res = await syncSeasonalLauncherIcon(axiosInstance);
+        if (isMounted && res?.changed && res?.iconKey) {
+          setLauncherIconKeyState(res.iconKey);
+        }
+      } catch (err) {
+        // Silently preserve state without disrupting launch
+      }
+    };
+
+    runSync();
+
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        runSync();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      sub.remove();
+    };
+  }, []);
 
   // iOS draws its own surfaces - the system tab bar (liquid glass on iOS 26),
   // action sheets, alerts, the keyboard - in the appearance of the window,
@@ -136,6 +178,19 @@ export const ThemeProvider = ({ children }) => {
     storage.set("shakeToReportEnabled", value);
   }, []);
 
+  const setChatLiteEnabled = useCallback((value) => {
+    setChatLiteEnabledState(value);
+    storage.set("chatLiteEnabled", value);
+  }, []);
+
+  const setLauncherIconKey = useCallback((key) => {
+    setLauncherIconKeyState(key);
+  }, []);
+
+  const setCustomAppIconUri = useCallback((uri) => {
+    setCustomAppIconUriState(uri);
+  }, []);
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   const value = useMemo(
@@ -153,6 +208,12 @@ export const ThemeProvider = ({ children }) => {
       setLiquidGlassEnabled,
       shakeToReportEnabled,
       setShakeToReportEnabled,
+      chatLiteEnabled,
+      setChatLiteEnabled,
+      launcherIconKey,
+      setLauncherIconKey,
+      customAppIconUri,
+      setCustomAppIconUri,
     }),
     [
       isDarkMode,
@@ -167,6 +228,12 @@ export const ThemeProvider = ({ children }) => {
       setLiquidGlassEnabled,
       shakeToReportEnabled,
       setShakeToReportEnabled,
+      chatLiteEnabled,
+      setChatLiteEnabled,
+      launcherIconKey,
+      setLauncherIconKey,
+      customAppIconUri,
+      setCustomAppIconUri,
     ]
   );
 

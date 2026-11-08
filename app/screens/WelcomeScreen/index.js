@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import LoginCarousel from "../../components/LoginCarousel";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -9,7 +9,8 @@ import AuthButton from "../../components/AuthButton";
 
 const WelcomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>

@@ -13,6 +13,7 @@ import {
   UIManager,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import AppToast from "../../../components/AppToast";
@@ -72,7 +73,7 @@ function DetailRow({ icon, label, value, theme, last }) {
 // (model, version, how it logged in, times, log out) when the card is opened.
 export default function DevicesScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -318,6 +319,18 @@ export default function DevicesScreen({ navigation }) {
           <View style={styles.headerSide} />
         </View>
       </View>
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
 
       <AndroidGlassBackdrop providerId="DevicesScreen" style={{ flex: 1 }}>
       <Animated.ScrollView

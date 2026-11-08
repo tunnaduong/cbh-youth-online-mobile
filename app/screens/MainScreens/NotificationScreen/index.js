@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   RefreshControl,
-  ActivityIndicator,
-  Animated,
-  DeviceEventEmitter,
+  ScrollView,
   Platform,
 } from "react-native";
 import FastImage from "../../../components/FastImage";
@@ -19,7 +17,7 @@ import {
 } from "../../../utils/notificationRouting";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getNotifications,
   markNotificationAsRead,
@@ -33,12 +31,11 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import LiquidButton from "../../../components/LiquidButton";
 import StyledName from "../../../components/profile/StyledName";
 import NameIcon from "../../../components/profile/NameIcon";
 import { getNameIcon } from "../../../utils/profileTheme";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
-
+import { LinearGradient } from "expo-linear-gradient";
 
 const MODERATED_CONTENT_TYPES = ["topic", "comment", "message", "story"];
 const contentTypeKey = (contentType) =>
@@ -71,7 +68,6 @@ const formatNotificationMessage = (notification, t) => {
   if (!actor) {
     // Handle other notifications without actor
     switch (type) {
-      // The author's own content changing moderation state.
       case "content_pending_review":
         return t(data?.content_type === "story"
           ? 'notifications.contentPendingReviewStory'
@@ -90,7 +86,6 @@ const formatNotificationMessage = (notification, t) => {
           : data?.comment_id
             ? 'notifications.contentRejectedComment'
             : 'notifications.contentRejectedPost');
-      // Admin-only alert: something is sitting in the moderation queue.
       case "moderation_pending":
         return t(
           data?.content_type === "story"
@@ -100,10 +95,6 @@ const formatNotificationMessage = (notification, t) => {
               : 'notifications.moderationPendingPost',
           { username: data?.author_username || "" }
         );
-      // Moderation notices about the user's own content. One sentence per
-      // content type rather than a label slotted into a template: Russian
-      // (and Vietnamese at the start of a sentence) need the noun's own
-      // gender / casing.
       case "content_warning":
         return t(`notifications.contentWarning.${contentTypeKey(data?.content_type)}`);
       case "content_deleted":
@@ -180,7 +171,6 @@ const formatNotificationMessage = (notification, t) => {
     case "system_message":
     case "system_alert":
       return data?.message || t('notifications.systemSentMessage');
-    // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
       return `${t('notifications.likedPost')} "${data?.post_title || data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "App\\Notifications\\PostCommented":
@@ -196,6 +186,154 @@ const formatNotificationMessage = (notification, t) => {
   }
 };
 
+// Map each notification to its appropriate badge icon, background color, and foreground color
+const getNotificationBadge = (item) => {
+  const type = item.type;
+  const contentType = item.data?.content_type;
+
+  // Moderation & Warnings
+  if (type === "content_warning") {
+    if (contentType === "message") {
+      return {
+        bg: "#22C55E",
+        icon: "chatbubble-ellipses",
+        color: "#FFFFFF",
+      };
+    }
+    return {
+      bg: "#EF4444",
+      icon: "alert",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "content_deleted" || type === "content_rejected") {
+    return {
+      bg: "#EF4444",
+      icon: "close",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "content_approved") {
+    return {
+      bg: "#22C55E",
+      icon: "checkmark",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "content_pending_review" || type === "moderation_pending") {
+    return {
+      bg: "#EF4444",
+      icon: "heart",
+      color: "#FFFFFF",
+    };
+  }
+
+  // Reactions & Likes
+  if (
+    type === "topic_liked" ||
+    type === "comment_liked" ||
+    type === "App\\Notifications\\PostLiked"
+  ) {
+    return {
+      bg: "#3B82F6",
+      icon: "flash",
+      color: "#FFFFFF",
+    };
+  }
+
+  // Comments & Replies
+  if (
+    type === "topic_commented" ||
+    type === "comment_replied" ||
+    type === "App\\Notifications\\PostCommented" ||
+    type === "App\\Notifications\\CommentReplied" ||
+    type === "mentioned"
+  ) {
+    return {
+      bg: "#3B82F6",
+      icon: "chatbubble",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "story_reacted") {
+    return {
+      bg: "#EC4899",
+      icon: "heart",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "story_replied" || type === "message_replied") {
+    return {
+      bg: "#22C55E",
+      icon: "arrow-undo",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "followed" || type === "App\\Notifications\\UserFollowed") {
+    return {
+      bg: "#22C55E",
+      icon: "person-add",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "points_gifted") {
+    return {
+      bg: "#F59E0B",
+      icon: "gift",
+      color: "#FFFFFF",
+    };
+  }
+
+  if (type === "system_message" || type === "system_alert") {
+    return {
+      bg: "#22C55E",
+      icon: "arrow-undo",
+      color: "#FFFFFF",
+    };
+  }
+
+  return {
+    bg: "#22C55E",
+    icon: "notifications",
+    color: "#FFFFFF",
+  };
+};
+
+const getPostThumbnail = (item) => {
+  return (
+    item.data?.thumbnail_url ||
+    item.data?.thumbnail ||
+    item.data?.topic_thumbnail ||
+    item.data?.topic_thumbnail_url ||
+    item.data?.image_url ||
+    item.data?.image ||
+    item.data?.first_image ||
+    item.data?.first_image_url ||
+    item.data?.cover_image ||
+    item.data?.topic_image_url ||
+    item.data?.topic_image ||
+    item.data?.post_image ||
+    item.data?.post_thumbnail ||
+    (Array.isArray(item.data?.image_urls) ? item.data.image_urls[0] : null) ||
+    (Array.isArray(item.data?.images) ? item.data.images[0] : null) ||
+    null
+  );
+};
+
+const FILTER_TABS = [
+  { id: "all", labelKey: "notifications.filterAll", defaultLabel: "Tất cả", icon: "notifications" },
+  { id: "posts", labelKey: "notifications.filterPosts", defaultLabel: "Bài viết", icon: "chatbubble-outline" },
+  { id: "interactions", labelKey: "notifications.filterInteractions", defaultLabel: "Tương tác", icon: "heart-outline" },
+  { id: "system", labelKey: "notifications.filterSystem", defaultLabel: "Hệ thống", icon: "people-outline" },
+];
+
 export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [notifications, setNotifications] = useState([]);
@@ -205,27 +343,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  // One object per real change: a new one on every render made the list
-  // re-render all of its rows each time anything on this screen changed.
-  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
-
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, -10],
-    extrapolate: "clamp",
-  });
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const { refreshNotificationCount, setNotificationUnreadCount } =
     useUnreadCountsContext();
@@ -242,23 +362,19 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
                 setNotifications(parsed);
                 setLoading(false);
               }
-            } catch(e) {}
+            } catch (e) {}
           }
           setRefreshing(true);
         }
 
         const response = await getNotifications(pageNum, 20);
-
-        // Check if response has data property (some APIs wrap in data)
         const notificationsData =
           response.data?.notifications || response.notifications || [];
         const fetchedNotifications = Array.isArray(notificationsData)
           ? notificationsData
           : [];
 
-        // Transform API response to match UI format
         const formattedNotifications = fetchedNotifications.map((notif) => {
-          // Handle system messages and notifications without actors
           const isSystemMessage =
             notif.type === "system_message" || !notif.actor;
 
@@ -275,12 +391,12 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               name: isSystemMessage
                 ? t('notifications.system')
                 : notif.actor?.profile_name ||
-                notif.actor?.username ||
-                t('notifications.user'),
+                  notif.actor?.username ||
+                  t('notifications.user'),
               avatar: isSystemMessage
-                ? "https://api.chuyenbienhoa.com/v1.0/users/system/avatar" // Default system avatar
+                ? "https://api.chuyenbienhoa.com/v1.0/users/system/avatar"
                 : notif.actor?.avatar_url ||
-                `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
+                  `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
             },
             content: formatNotificationMessage(notif, t),
             time: formatTime(notif.created_at),
@@ -290,40 +406,22 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         });
 
         if (append) {
-          setNotifications((prev) => {
-            const newNotifications = [...prev, ...formattedNotifications];
-            const localUnreadCount = newNotifications.filter(
-              (n) => !n.is_read
-            ).length;
-            setNotificationUnreadCount(localUnreadCount);
-            return newNotifications;
-          });
+          setNotifications((prev) => [...prev, ...formattedNotifications]);
         } else {
           setNotifications(formattedNotifications);
           if (formattedNotifications.length > 0) {
             storage.set("cached_notifications", JSON.stringify(formattedNotifications));
           }
+          // Automatically mark all as read whenever the user views the screen
+          markAllNotificationsAsRead().catch(() => {});
+          setNotificationUnreadCount(0);
         }
 
-        // Check if there are more pages
         const paginationData = response.data?.pagination || response.pagination;
         if (paginationData) {
           setHasMore(paginationData.current_page < paginationData.last_page);
         } else {
           setHasMore(fetchedNotifications.length === 20);
-        }
-
-        // Refresh unread count after fetching notifications (especially after pull to refresh)
-        // Only refresh if it's the first page (not when loading more)
-        if (pageNum === 1 && !append) {
-          // Calculate unread count from local state and sync to context
-          const localUnreadCount = formattedNotifications.filter(
-            (n) => !n.is_read
-          ).length;
-          // Update context with local count immediately for instant UI update
-          setNotificationUnreadCount(localUnreadCount);
-          // Also fetch from API to ensure accuracy
-          refreshNotificationCount();
         }
       } catch (error) {
       } finally {
@@ -331,67 +429,38 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         setRefreshing(false);
       }
     },
-    [refreshNotificationCount, setNotificationUnreadCount]
+    [t, setNotificationUnreadCount]
   );
 
   useEffect(() => {
     fetchNotifications(1, false);
-  }, []);
+  }, [fetchNotifications]);
 
+  // When user focuses or switches to the Notification screen:
+  // Automatically mark all as read immediately (no need to tap checkmark)
   useFocusEffect(
-    React.useCallback(() => {
-      // Refresh unread count when screen is focused
-      refreshNotificationCount();
-    }, [refreshNotificationCount])
+    useCallback(() => {
+      setNotificationUnreadCount(0);
+      markAllNotificationsAsRead()
+        .then(() => {
+          setNotifications((prev) =>
+            prev.map((notif) => (notif.is_read ? notif : { ...notif, is_read: true, read: true }))
+          );
+        })
+        .catch(() => {});
+    }, [setNotificationUnreadCount])
   );
 
-  const lastScrollYRef = useRef(0);
-  const scrollPositionRef = useRef(0);
-  const isProcessingRef = useRef(false);
-  const lastTriggerTimeRef = useRef(0);
   const flatListRef = useRef(null);
 
-  const handleScroll = (event) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    scrollPositionRef.current = Math.max(0, offsetY);
-    scrollY.setValue(offsetY);
+  const scrollToTopOrReload = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setRefreshing(true);
+    setPage(1);
+    fetchNotifications(1, false);
+  }, [fetchNotifications]);
 
-    lastScrollYRef.current = offsetY;
-  };
-
-  const scrollToTopOrReload = React.useCallback(() => {
-    const now = Date.now();
-    if (now - lastTriggerTimeRef.current < 300) return;
-    lastTriggerTimeRef.current = now;
-
-    if (isProcessingRef.current) return;
-
-    const isAtTop = scrollPositionRef.current <= 10;
-
-    if (isAtTop) {
-      isProcessingRef.current = true;
-      setRefreshing(true);
-      setPage(1);
-      fetchNotifications(1, false);
-      refreshNotificationCount();
-      setTimeout(() => {
-        setRefreshing(false);
-        isProcessingRef.current = false;
-        scrollPositionRef.current = 0;
-      }, 1000);
-    } else {
-      isProcessingRef.current = true;
-      if (flatListRef.current) {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-      }
-      setTimeout(() => {
-        scrollPositionRef.current = 0;
-        isProcessingRef.current = false;
-      }, 600);
-    }
-  }, [fetchNotifications, refreshNotificationCount]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (scrollTriggerRef) {
       scrollTriggerRef(scrollToTopOrReload);
     }
@@ -401,9 +470,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     setRefreshing(true);
     setPage(1);
     fetchNotifications(1, false);
-    // Also explicitly refresh unread count on pull to refresh
-    refreshNotificationCount();
-  }, [fetchNotifications, refreshNotificationCount]);
+  }, [fetchNotifications]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !refreshing) {
@@ -416,41 +483,15 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const handleMarkAsRead = async (notificationId) => {
     try {
       await markNotificationAsRead(notificationId);
-      setNotifications((prev) => {
-        const updated = prev.map((notif) =>
+      setNotifications((prev) =>
+        prev.map((notif) =>
           notif.id === notificationId
             ? { ...notif, is_read: true, read: true }
             : notif
-        );
-        // Update unread count from local state immediately
-        const localUnreadCount = updated.filter((n) => !n.is_read).length;
-        setNotificationUnreadCount(localUnreadCount);
-        return updated;
-      });
-      // Also refresh from API to ensure accuracy
-      refreshNotificationCount();
+        )
+      );
     } catch (error) {
       console.error("Error marking notification as read:", error);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      await markAllNotificationsAsRead();
-      setNotifications((prev) => {
-        const updated = prev.map((notif) => ({
-          ...notif,
-          is_read: true,
-          read: true,
-        }));
-        // Update unread count to 0 immediately
-        setNotificationUnreadCount(0);
-        return updated;
-      });
-      // Also refresh from API to ensure accuracy
-      refreshNotificationCount();
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
     }
   };
 
@@ -465,24 +506,76 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     }
   };
 
+  // Filter notifications according to the active tab pill
+  const filteredNotifications = useMemo(() => {
+    if (activeTab === "all") return notifications;
+
+    if (activeTab === "posts") {
+      const postTypes = [
+        "topic_liked", "topic_downvoted", "topic_commented", "topic_pinned",
+        "topic_moved", "topic_closed", "comment_liked", "comment_downvoted",
+        "comment_replied", "mentioned", "study_material_purchased", "study_material_rated",
+        "App\\Notifications\\PostLiked", "App\\Notifications\\PostCommented",
+        "App\\Notifications\\CommentReplied", "App\\Notifications\\UserMentioned"
+      ];
+      return notifications.filter((n) => postTypes.includes(n.type));
+    }
+
+    if (activeTab === "interactions") {
+      const interactionTypes = [
+        "topic_liked", "comment_liked", "App\\Notifications\\PostLiked",
+        "story_reacted", "story_replied", "message_reacted", "message_replied",
+        "followed", "points_gifted", "added_to_group", "removed_from_group",
+        "group_role_changed", "conversation_background_changed", "App\\Notifications\\UserFollowed"
+      ];
+      return notifications.filter((n) => interactionTypes.includes(n.type));
+    }
+
+    if (activeTab === "system") {
+      const systemTypes = [
+        "content_warning", "content_deleted", "content_pending_review",
+        "content_approved", "content_rejected", "moderation_pending",
+        "system_message", "system_alert", "payment_received"
+      ];
+      return notifications.filter((n) => systemTypes.includes(n.type) || !n.actor);
+    }
+
+    return notifications;
+  }, [notifications, activeTab]);
+
+  const listExtraData = useMemo(
+    () => ({ t, theme, isDarkMode, activeTab }),
+    [t, theme, isDarkMode, activeTab]
+  );
+
   const renderItem = ({ item }) => {
     const isAnonymous = isAnonymousNotificationActor(item.type, item.data, item.actor);
     const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
+    const isModerationWarning = item.type === "content_warning" || item.type === "content_deleted";
+    const resolvedActorName = item.actor?.profile_name || item.actor?.username;
     const userName = isSystemMessage
       ? t('notifications.system')
       : isAnonymous
-        ? (item.actor?.profile_name || t('createPost.anonymousUser') || "Ẩn danh")
-        : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
+        ? (resolvedActorName && resolvedActorName !== "null" ? resolvedActorName : (t('createPost.anonymousUser') || "Ẩn danh"))
+        : (resolvedActorName && resolvedActorName !== "null" ? resolvedActorName : (t('notifications.user') || "Người dùng"));
     const actorTheme = isSystemMessage || isAnonymous ? null : item.actor?.profile_theme;
     const displayContent = formatNotificationMessage(item.raw || item, t);
     const moderationText = moderationDetail(item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
+    const badge = getNotificationBadge(item);
+    const postThumbnail = getPostThumbnail(item);
+    const isUnread = !item.read && !item.is_read;
 
     return (
       <TouchableOpacity
+        activeOpacity={0.82}
         style={[
-          styles.notification,
-          !item.read && { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
+          styles.card,
+          {
+            backgroundColor: isDarkMode ? "#18181B" : "#FFFFFF",
+            borderColor: isDarkMode ? "#27272A" : "#F0F2F5",
+          },
+          isUnread && styles.cardUnread,
         ]}
         onPress={() => {
           if (!item.read) {
@@ -497,63 +590,99 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             navigation.navigate(target.screen, target.params);
           }
         }}
+        onLongPress={() => {
+          setSelectedNotification(item);
+          setShowActionMenu(true);
+        }}
       >
-        {isAnonymous ? (
-          <View style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', alignItems: 'center', justifyContent: 'center' }]}>
-             <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
-          </View>
-        ) : (
-          <AvatarFrameWrap
-            theme={actorTheme}
-            size={48}
-            style={{ alignSelf: "flex-start", marginRight: 12 }}
+        {/* Left: Avatar with Badge */}
+        <View style={styles.avatarWrapper}>
+          {item.actor && !isSystemMessage && !isAnonymous ? (
+            <AvatarFrameWrap
+              theme={actorTheme}
+              size={48}
+              style={{ alignSelf: "center" }}
+            >
+              <FastImage
+                source={{
+                  uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
+                }}
+                style={styles.avatarImg}
+              />
+            </AvatarFrameWrap>
+          ) : isAnonymous ? (
+            <View style={[styles.avatarImg, styles.anonymousAvatar, { backgroundColor: isDarkMode ? "#27272A" : "#E5E7EB" }]}>
+              <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 22 }}>?</Text>
+            </View>
+          ) : (
+            <View style={[styles.avatarImg, styles.systemAvatarWrap, { borderColor: "#22C55E", backgroundColor: isDarkMode ? "#152E1B" : "#F0FAF2" }]}>
+              <FastImage
+                source={require("../../../assets/logo.png")}
+                style={styles.systemAvatarImg}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+
+          {/* Bottom-right notification kind badge */}
+          <View
+            style={[
+              styles.avatarBadge,
+              {
+                backgroundColor: badge.bg,
+                borderColor: isDarkMode ? "#18181B" : "#FFFFFF",
+              },
+            ]}
           >
-            <FastImage
-              source={
-                !isSystemMessage
-                  ? {
-                    uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
-                  }
-                  : require("../../../assets/logo.png")
-              }
-              style={[styles.avatar, { marginRight: 0, borderColor: theme.border }]}
-            />
-          </AvatarFrameWrap>
-        )}
-        <View style={styles.content}>
-          <Text style={[styles.message, { color: theme.text }]}>
-            {isSystemMessage ? (
-              displayContent
+            <Ionicons name={badge.icon} size={10} color={badge.color} />
+          </View>
+        </View>
+
+        {/* Center: Content */}
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardMessage, { color: theme.text }]}>
+            {isSystemMessage || !item.actor ? (
+              <Text style={{ fontWeight: isModerationWarning ? "600" : "500" }}>
+                {displayContent}
+              </Text>
             ) : (
               <>
-                <StyledName theme={actorTheme} variant="compact" style={[styles.name, { color: theme.text }]}>{userName}</StyledName>
+                <StyledName theme={actorTheme} variant="compact" style={[styles.actorName, { color: theme.text }]}>
+                  {userName}
+                </StyledName>
                 {getNameIcon(actorTheme) ? " " : ""}
-                <NameIcon theme={actorTheme} size={14} />
+                <NameIcon theme={actorTheme} size={13} />
                 {" "}{displayContent}
               </>
             )}
           </Text>
-          {moderationText && (
-            <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={3}>
+
+          {/* Moderator Note or Excerpt */}
+          {moderationText ? (
+            <Text style={[styles.moderatorNote, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]} numberOfLines={2}>
               {moderationText}
             </Text>
-          )}
-          {item.type === "story_replied" && item.data?.message_excerpt && (
-            <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={2}>
-              {item.data.message_excerpt}
+          ) : null}
+
+          {/* Time row */}
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={12} color={isDarkMode ? "#71717A" : "#9CA3AF"} style={{ marginRight: 4 }} />
+            <Text style={[styles.timeText, { color: isDarkMode ? "#71717A" : "#9CA3AF" }]}>
+              {displayTime}
             </Text>
-          )}
-          <Text style={[styles.time, { color: theme.subText }]}>{displayTime}</Text>
+          </View>
         </View>
-        <TouchableOpacity
-          style={styles.moreButton}
-          onPress={() => {
-            setSelectedNotification(item);
-            setShowActionMenu(true);
-          }}
-        >
-          <Ionicons name="ellipsis-vertical" size={20} color={theme.subText} />
-        </TouchableOpacity>
+
+        {/* Right: Post thumbnail (if any) and Chevron */}
+        {postThumbnail ? (
+          <FastImage
+            source={{ uri: postThumbnail }}
+            style={styles.postThumbnail}
+            resizeMode="cover"
+          />
+        ) : null}
+
+        <Ionicons name="chevron-forward" size={17} color={isDarkMode ? "#52525B" : "#9CA3AF"} />
       </TouchableOpacity>
     );
   };
@@ -570,11 +699,11 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         activeOpacity={1}
         onPress={() => setShowActionMenu(false)}
       >
-        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }]}>
           <TouchableOpacity
             style={[
               styles.actionItem,
-              { borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: theme.cardBackground, borderBottomColor: theme.border },
+              { borderTopLeftRadius: 14, borderTopRightRadius: 14, borderBottomColor: theme.border },
             ]}
             onPress={() => {
               if (selectedNotification && !selectedNotification.read) {
@@ -583,20 +712,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               setShowActionMenu(false);
             }}
           >
-            <Ionicons name="checkmark-outline" size={22} color={theme.primary} />
+            <Ionicons name="checkmark-outline" size={20} color={theme.primary} />
             <Text style={[styles.actionText, { color: theme.text }]}>
-              {t('notifications.markAsRead')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionItem, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
-            <Ionicons
-              name="notifications-off-outline"
-              size={22}
-              color="#FF3B30"
-            />
-            <Text style={[styles.actionText, { color: theme.text }]}>
-              {t('notifications.muteUser')}
+              {t('notifications.markAsRead', 'Đánh dấu đã đọc')}
             </Text>
           </TouchableOpacity>
 
@@ -604,10 +722,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             style={[
               styles.actionItem,
               {
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 12,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 14,
                 borderBottomWidth: 0,
-                backgroundColor: theme.cardBackground,
               },
             ]}
             onPress={() => {
@@ -617,9 +734,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               setShowActionMenu(false);
             }}
           >
-            <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             <Text style={[styles.actionText, { color: "#FF3B30" }]}>
-              {t('notifications.delete')}
+              {t('notifications.delete', 'Xóa thông báo')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -629,97 +746,171 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
-      <View style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 58 + insets.top }]} pointerEvents="box-none">
-        <Animated.Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('navigation.notifications')}</Animated.Text>
-        <LiquidButton
-          providerId="Notifications"
-          onPress={handleMarkAllAsRead}
-          disabled={unreadCount === 0}
-          scrollY={scrollY}
-          size={44}
-          style={{ backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
-          borderRadius={22}
-        >
-          <Ionicons
-            name="checkmark-done"
-            size={22}
-            color={
-              unreadCount > 0
-                ? theme.primary
-                : isDarkMode
-                  ? "#666"
-                  : "#888"
+      <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>
+        {/* Soft Ambient Light-Green Glow at Top */}
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.45)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.4)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.ambientGlow, { height: insets.top + 140 }]}
+          pointerEvents="none"
+        />
+
+        {/* Header matching the design mockup */}
+        <View style={[styles.headerContainer, { paddingTop: insets.top + (Platform.OS === "ios" ? 6 : 10) }]}>
+          {/* Left: Cute Frog Mascot + Doodles + Title */}
+          <View style={styles.headerLeftRow}>
+            {/* Mascot with action marks doodle */}
+            <View style={styles.mascotWrapper}>
+              <View style={styles.actionLinesWrapper}>
+                <View style={[styles.actionLine, styles.actionLine1]} />
+                <View style={[styles.actionLine, styles.actionLine2]} />
+                <View style={[styles.actionLine, styles.actionLine3]} />
+              </View>
+              <FastImage
+                source={require("../../../assets/logo.png")}
+                style={styles.mascotLogo}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Title & Subtitle */}
+            <View style={styles.headerTitleColumn}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>
+                  {t('navigation.notifications', 'Thông báo')}
+                </Text>
+              </View>
+              <Text style={[styles.headerSubtitle, { color: theme.subText }]}>
+                {t('notifications.subtitle', 'Theo dõi các hoạt động mới nhất từ CYO')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Decorative Sparkle ✦ */}
+          <Text style={styles.sparkleStar}>✦</Text>
+
+          {/* Top-Right: Settings / Filter Button */}
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("NotificationSettingsScreen")}
+            style={[
+              styles.filterIconButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(34, 197, 94, 0.2)"
+                  : "rgba(34, 197, 94, 0.14)",
+              },
+            ]}
+          >
+            <Ionicons
+              name="options-outline"
+              size={21}
+              color={isDarkMode ? "#4ADE80" : "#16A34A"}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Tabs Row */}
+        <View style={styles.filterTabsContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterTabsScroll}
+          >
+            {FILTER_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  activeOpacity={0.8}
+                  onPress={() => setActiveTab(tab.id)}
+                  style={[
+                    styles.filterTabPill,
+                    isActive
+                      ? styles.filterTabPillActive
+                      : [
+                          styles.filterTabPillInactive,
+                          {
+                            backgroundColor: isDarkMode ? "#1F2937" : "#F3F4F6",
+                            borderColor: isDarkMode ? "#374151" : "#E5E7EB",
+                          },
+                        ],
+                  ]}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={15}
+                    color={isActive ? "#FFFFFF" : isDarkMode ? "#9CA3AF" : "#6B7280"}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.filterTabLabel,
+                      isActive
+                        ? styles.filterTabLabelActive
+                        : { color: isDarkMode ? "#D1D5DB" : "#4B5563" },
+                    ]}
+                  >
+                    {t(tab.labelKey, tab.defaultLabel)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Notifications List */}
+        {loading && notifications.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <CustomLoading />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={filteredNotifications}
+            extraData={listExtraData}
+            keyExtractor={(item) => item.id.toString()}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
+            renderItem={renderItem}
+            contentContainerStyle={[
+              styles.listContent,
+              {
+                paddingBottom: 110 + insets.bottom,
+                flex: filteredNotifications.length === 0 ? 1 : undefined,
+              },
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.primary}
+                colors={[theme.primary]}
+              />
+            }
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <FastImage
+                  source={require("../../../assets/logo.png")}
+                  style={styles.emptyImage}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.emptyText, { color: theme.subText }]}>
+                  {t('notifications.empty', 'Không có thông báo nào')}
+                </Text>
+              </View>
             }
           />
-        </LiquidButton>
-      </View>
-
-      {refreshing && (
-        <View
-          style={{
-            position: "absolute",
-            top: 58 + insets.top + 15,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <CustomLoading size={44} showBackdrop />
-        </View>
-      )}
-      <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>
-      {loading && notifications.length === 0 ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
-        >
-          <CustomLoading />
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          onScroll={handleScroll}
-          data={notifications}
-          extraData={listExtraData}
-          keyExtractor={(item) => item.id.toString()}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
-          renderItem={renderItem}
-          contentContainerStyle={{
-            paddingTop: 58 + insets.top,
-            paddingBottom: 110 + insets.bottom,
-            backgroundColor: theme.background,
-            flex: notifications.length === 0 ? 1 : undefined,
-          }}
-          ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border }]} />}
-          refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              tintColor="transparent"
-              colors={["transparent"]}
-              progressBackgroundColor="transparent"
-              style={{ backgroundColor: "transparent" }}
-              progressViewOffset={-1000}
-            />
-          }
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <FastImage
-                source={require("../../../assets/sad_frog.png")}
-                style={styles.emptyImage}
-              />
-              <Text style={[styles.emptyText, { color: theme.subText }]}>{t('notifications.empty')}</Text>
-            </View>
-          }
-        />
-      )}
+        )}
       </AndroidGlassBackdrop>
 
       {ActionMenu()}
@@ -730,99 +921,241 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f0f0f0",
-    position: 'absolute',
+  ambientGlow: {
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#319527",
-  },
-  readAllButton: {
-    backgroundColor: "#319527",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    height: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
-  },
-  readAllButtonDisabled: {
-    backgroundColor: "#d0d0d0",
-    opacity: 0.6,
-    shadowOpacity: 0.1,
-    elevation: 1,
-  },
-  readAllText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  readAllTextDisabled: {
-    color: "#888",
-  },
-  notification: {
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    justifyContent: "space-between",
+    position: "relative",
   },
-  avatar: {
+  headerLeftRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 10,
+  },
+  mascotWrapper: {
+    position: "relative",
+    width: 48,
+    height: 48,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mascotLogo: {
+    width: 44,
+    height: 44,
+  },
+  actionLinesWrapper: {
+    position: "absolute",
+    top: -5,
+    left: -4,
+    width: 22,
+    height: 14,
+  },
+  actionLine: {
+    position: "absolute",
+    width: 2.5,
+    height: 6,
+    borderRadius: 1.5,
+    backgroundColor: "#22C55E",
+  },
+  actionLine1: {
+    top: 6,
+    left: 1,
+    transform: [{ rotate: "-40deg" }],
+  },
+  actionLine2: {
+    top: 0,
+    left: 8,
+    transform: [{ rotate: "0deg" }],
+  },
+  actionLine3: {
+    top: 5,
+    left: 15,
+    transform: [{ rotate: "35deg" }],
+  },
+  headerTitleColumn: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12.5,
+    marginTop: 2,
+  },
+  sparkleStar: {
+    position: "absolute",
+    top: 36,
+    right: 68,
+    fontSize: 18,
+    color: "#86EFAC",
+  },
+  filterIconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterTabsContainer: {
+    paddingBottom: 10,
+  },
+  filterTabsScroll: {
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  filterTabPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  filterTabPillActive: {
+    backgroundColor: "#22C55E",
+    shadowColor: "#22C55E",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  filterTabPillInactive: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  filterTabLabel: {
+    fontSize: 13.5,
+    fontWeight: "600",
+  },
+  filterTabLabelActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  listContent: {
+    paddingTop: 4,
+  },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  cardUnread: {
+    borderLeftWidth: 3.5,
+    borderLeftColor: "#22C55E",
+  },
+  avatarWrapper: {
+    width: 48,
+    height: 48,
+    position: "relative",
+    marginRight: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImg: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#dee2e6",
   },
-  content: {
+  anonymousAvatar: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  systemAvatarWrap: {
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 3,
+  },
+  systemAvatarImg: {
+    width: 36,
+    height: 36,
+  },
+  avatarBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 19,
+    height: 19,
+    borderRadius: 9.5,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardContent: {
     flex: 1,
     marginRight: 8,
   },
-  name: {
-    fontWeight: "600",
-    color: "#000",
+  cardMessage: {
+    fontSize: 13.5,
+    lineHeight: 19,
   },
-  message: {
-    fontSize: 14,
-    color: "#000",
-    lineHeight: 20,
+  actorName: {
+    fontWeight: "700",
   },
-  time: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  excerpt: {
-    fontSize: 13,
-    color: "#888",
-    marginTop: 4,
+  moderatorNote: {
+    fontSize: 12.5,
     fontStyle: "italic",
+    marginTop: 3,
+    lineHeight: 17,
   },
-  moreButton: {
-    padding: 8,
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 5,
   },
-  separator: {
-    height: 1,
-    backgroundColor: "#f0f0f0",
+  timeText: {
+    fontSize: 11.5,
+    fontWeight: "500",
+  },
+  postThumbnail: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 60,
+  },
+  emptyImage: {
+    height: 70,
+    width: 70,
+    marginBottom: 12,
+    opacity: 0.6,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
   },
   modalOverlay: {
     flex: 1,
@@ -831,20 +1164,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   actionMenu: {
-    position: "absolute",
-    top: "40%",
-    left: "50%",
     width: "75%",
-    transform: [{ translateX: -140 }, { translateY: -70 }],
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 14,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 4,
     elevation: 5,
   },
   actionItem: {
@@ -852,29 +1177,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#E5E5E5",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   actionText: {
     marginLeft: 12,
     fontSize: 15,
-    fontWeight: "400",
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 100,
-  },
-  emptyImage: {
-    height: 90,
-    width: 90,
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#888",
-    textAlign: "center",
+    fontWeight: "500",
   },
 });

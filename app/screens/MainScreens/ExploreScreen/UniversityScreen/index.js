@@ -12,6 +12,7 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -379,13 +380,25 @@ const UniversityScreen = ({ navigation }) => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
         <LiquidButton providerId="UniversityScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]} numberOfLines={1}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]} numberOfLines={1}>
           {t("universities.title", "Tìm trường ĐH-CĐ")}
         </Animated.Text>
         <View style={{ width: 44 }} />
       </View>
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
 
       <AndroidGlassBackdrop providerId="UniversityScreen" style={{ flex: 1 }}>
         <ScrollView
@@ -421,7 +434,7 @@ const UniversityScreen = ({ navigation }) => {
                   <View
                     style={[
                       styles.filterCard,
-                      { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                      { backgroundColor: theme.surface, borderColor: theme.border },
                     ]}
                   >
                     <FilterField

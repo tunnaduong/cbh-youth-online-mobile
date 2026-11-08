@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Application from "expo-application";
@@ -24,6 +25,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import { submitFeedback, uploadFile } from "../../../services/api/Api";
+import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 
 const API_HOST = "https://api.chuyenbienhoa.com";
 const MAX_IMAGES = 4;
@@ -35,12 +37,24 @@ const TYPES = [
   { value: "other", icon: "chatbubble-ellipses-outline", labelKey: "feedback.typeOther", descKey: "feedback.typeOtherDesc", placeholderKey: "feedback.placeholderOther" },
 ];
 
+function getOtaVersionString() {
+  try {
+    const info = getRunningUpdateInfo();
+    if (info.isOtaActive && info.activeBuildNumber) {
+      return `Build ${info.activeBuildNumber} (${info.activeChannel || "ota"})`;
+    }
+    return "embedded";
+  } catch {
+    return "embedded";
+  }
+}
+
 // Attached to every report so a bug can be traced to a device/build without
 // asking the reporter follow-up questions.
-function deviceInfo() {
+function deviceInfo(otaVersion) {
   const c = Platform.constants || {};
   const model = Platform.OS === "android" ? [c.Brand, c.Model].filter(Boolean).join(" ") : c.systemName || "iOS";
-  return `${model} | ${Platform.OS} ${Platform.Version} | build ${Application.nativeBuildVersion ?? "?"}`.slice(0, 255);
+  return `${model} | ${Platform.OS} ${Platform.Version} | build ${Application.nativeBuildVersion ?? "?"} | ota ${otaVersion || "none"}`.slice(0, 255);
 }
 
 // Where in the app the report was started from. Kept as a pseudo-URL so the
@@ -85,6 +99,7 @@ export default function FeedbackScreen({ navigation, route }) {
   const [email, setEmail] = useState("");
   const [images, setImages] = useState(() => (shakeScreenshot ? [shakeScreenshot] : [])); // local URIs
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState(-1);
 
   const inputBg = isDarkMode ? "#2A2A2A" : "#F3F4F6";
   const activeType = TYPES.find((x) => x.value === type) || TYPES[0];
@@ -139,14 +154,17 @@ export default function FeedbackScreen({ navigation, route }) {
     setSubmitting(true);
     try {
       const imageUrls = [];
-      for (const uri of images) {
+      for (let i = 0; i < images.length; i++) {
+        setUploadingIndex(i);
         try {
-          imageUrls.push(await uploadImage(uri));
+          imageUrls.push(await uploadImage(images[i]));
         } catch (e) {
           throw new Error(t("feedback.uploadError"));
         }
       }
+      setUploadingIndex(-1);
 
+      const otaVersion = getOtaVersionString();
       await submitFeedback({
         type,
         content: content.trim(),
@@ -154,7 +172,8 @@ export default function FeedbackScreen({ navigation, route }) {
         contact_email: email.trim() || undefined,
         platform: Platform.OS === "ios" ? "ios" : "android",
         app_version: Application.nativeApplicationVersion || undefined,
-        device_info: deviceInfo(),
+        ota_version: otaVersion,
+        device_info: deviceInfo(otaVersion),
         // Admin sees this as "where it happened": app://<screen>?via=<source>
         page_url: pageUrl(route?.params?.source, screenName),
       });
@@ -174,6 +193,7 @@ export default function FeedbackScreen({ navigation, route }) {
       });
     } finally {
       setSubmitting(false);
+      setUploadingIndex(-1);
     }
   };
 
@@ -209,6 +229,17 @@ export default function FeedbackScreen({ navigation, route }) {
       </View>
 
       <AndroidGlassBackdrop providerId="FeedbackScreen" style={{ flex: 1 }}>
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+          pointerEvents="none"
+        />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <Animated.ScrollView
           scrollEventThrottle={16}
@@ -272,21 +303,46 @@ export default function FeedbackScreen({ navigation, route }) {
           />
           <Text style={[styles.counter, { color: theme.subText }]}>{content.length}/5000</Text>
 
-          <Text style={[styles.label, { color: theme.text }]}>{t("feedback.imagesLabel", { max: MAX_IMAGES })}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 8 }}>
+            <Text style={[styles.label, { color: theme.text, marginTop: 0, marginBottom: 0 }]}>
+              {t("feedback.imagesLabel", "Ảnh chụp màn hình (tùy chọn, tối đa {{max}})", { max: MAX_IMAGES })}
+            </Text>
+            {submitting && images.length > 0 && uploadingIndex >= 0 && (
+              <Text style={{ fontSize: 12, lineHeight: 16, color: theme.primary, fontWeight: "500" }}>
+                {t("feedback.uploadingImageProgress", "Đang tải ảnh ({{current}}/{{total}})...", {
+                  current: uploadingIndex + 1,
+                  total: images.length,
+                })}
+              </Text>
+            )}
+          </View>
           <View style={styles.imageRow}>
             {images.map((uri, idx) => (
               <View key={uri} style={styles.imageWrap}>
                 <FastImage source={{ uri }} style={styles.image} />
-                <TouchableOpacity
-                  style={styles.removeImage}
-                  onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-                  hitSlop={6}
-                >
-                  <Ionicons name="close" size={14} color="#fff" />
-                </TouchableOpacity>
+                {submitting && (
+                  <View style={styles.imageLoadingOverlay}>
+                    {uploadingIndex === idx ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : uploadingIndex > idx ? (
+                      <Ionicons name="checkmark-circle" size={24} color="#22c55e" />
+                    ) : (
+                      <View style={styles.pendingDot} />
+                    )}
+                  </View>
+                )}
+                {!submitting && (
+                  <TouchableOpacity
+                    style={styles.removeImage}
+                    onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                    hitSlop={6}
+                  >
+                    <Ionicons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
-            {images.length < MAX_IMAGES && (
+            {!submitting && images.length < MAX_IMAGES && (
               <TouchableOpacity
                 onPress={pickImages}
                 style={[styles.addImage, { borderColor: theme.border }]}
@@ -379,6 +435,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 10,
     padding: 2,
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pendingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
   },
   addImage: {
     width: 76,

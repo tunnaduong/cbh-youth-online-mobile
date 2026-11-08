@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "6.0.1",
+    "version": "6.4.3",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "default",
     "icon": "./app/assets/icon.png",
@@ -13,12 +13,12 @@
     "ios": {
       "supportsTablet": true,
       "icon": {
-        "dark": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
-        "light": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
-        "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
+        "dark": "./app/assets/cbh-youth-dark.png",
+        "light": "./app/assets/cbh-youth-default.png",
+        "tinted": "./app/assets/cbh-youth-cleardark.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "1008",
+      "buildNumber": "1012",
       "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
@@ -51,7 +51,11 @@
     },
     "android": {
       "permissions": [
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "USE_FULL_SCREEN_INTENT",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "FOREGROUND_SERVICE"
       ],
       "intentFilters": [
         {
@@ -101,13 +105,13 @@
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
+        "foregroundImage": "./app/assets/cbh-youth-default-android.png",
+        "backgroundColor": "#F4FBF7",
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 1008,
+      "versionCode": 1012,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -117,16 +121,17 @@
       "eas": {
         "projectId": "172eec8c-8c58-453c-a375-258412496e09"
       },
-      "minNativeBuild": 1009
+      "minNativeBuild": 1076
     },
     "runtimeVersion": "7.4.10",
     "updates": {
+      "enabled": true,
       "url": "https://api.chuyenbienhoa.com/v1.0/ota/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0,
       "disableAntiBrickingMeasures": true,
       "requestHeaders": {
-        "expo-channel-name": "production"
+        "expo-channel-name": "preview"
       }
     },
     "plugins": [
@@ -135,11 +140,11 @@
       [
         "expo-splash-screen",
         {
-          "image": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
+          "image": "./app/assets/cbh-youth-default.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "image": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
+            "image": "./app/assets/cbh-youth-dark.png",
             "backgroundColor": "#000000"
           }
         }
@@ -208,7 +213,104 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Dark",
+            "ios": "./app/assets/cbh-youth-dark.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-dark-android.png",
+              "backgroundColor": "#0F261D"
+            }
+          },
+          {
+            "name": "ClearDark",
+            "ios": "./app/assets/cbh-youth-cleardark.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-cleardark-android.png",
+              "backgroundColor": "#121212"
+            }
+          },
+          {
+            "name": "ClearLight",
+            "ios": "./app/assets/cbh-youth-clearlight.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-clearlight-android.png",
+              "backgroundColor": "#ffffff"
+            }
+          },
+          {
+            "name": "TintedDark",
+            "ios": "./app/assets/cbh-youth-tinteddark.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-tinteddark-android.png",
+              "backgroundColor": "#0F261D"
+            }
+          },
+          {
+            "name": "TintedLight",
+            "ios": "./app/assets/cbh-youth-tintedlight.png",
+            "android": {
+              "foregroundImage": "./app/assets/cbh-youth-tintedlight-android.png",
+              "backgroundColor": "#E8F5E9"
+            }
+          },
+          {
+            "name": "TeachersDay",
+            "ios": "./app/assets/teachers-day-20-11.png",
+            "android": {
+              "foregroundImage": "./app/assets/teachers-day-android.png",
+              "backgroundColor": "#FDE6D0"
+            }
+          },
+          {
+            "name": "Classic",
+            "ios": {
+              "light": "./app/assets/ios-light.png",
+              "dark": "./app/assets/ios-dark.png",
+              "tinted": "./app/assets/ios-tinted.png"
+            },
+            "android": {
+              "foregroundImage": "./app/assets/classic-android.png",
+              "backgroundColor": "#ffffff"
+            }
+          },
+          {
+            "name": "Christmas",
+            "ios": "./app/assets/christmas-ios.png",
+            "android": {
+              "foregroundImage": "./app/assets/christmas-android.png",
+              "backgroundColor": "#173C2B"
+            }
+          },
+          {
+            "name": "NewYear2026",
+            "ios": "./app/assets/2026-ios.png",
+            "android": {
+              "foregroundImage": "./app/assets/2026-android.png",
+              "backgroundColor": "#8B0000"
+            }
+          },
+          {
+            "name": "NewYear2027",
+            "ios": "./app/assets/2027-ios.png",
+            "android": {
+              "foregroundImage": "./app/assets/2027-android.png",
+              "backgroundColor": "#8B0000"
+            }
+          },
+          {
+            "name": "SchoolCrest",
+            "ios": "./app/assets/school-logo-removebg.png",
+            "android": {
+              "foregroundImage": "./app/assets/school-crest-android.png",
+              "backgroundColor": "#ffffff"
+            }
+          }
+        ]
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",

@@ -54,7 +54,39 @@ const diagnostics = () => {
   probe("OS", () => `${RN.Platform.OS} ${RN.Platform.Version}`);
   probe("App", () => {
     const app = require("expo-application");
-    return `${app.nativeApplicationVersion} (${app.nativeBuildVersion})`;
+    let otaLabel = "";
+    try {
+      const { storage } = require("../global/storage");
+      const Updates = require("expo-updates");
+      const otaBuild = storage?.getNumber?.("ota_active_build");
+      if (otaBuild) {
+        otaLabel = ` [OTA Build ${otaBuild}]`;
+      } else if (Updates?.isEmbeddedLaunch) {
+        otaLabel = " [Embedded]";
+      }
+    } catch {}
+    return `${app.nativeApplicationVersion} (${app.nativeBuildVersion})${otaLabel}`;
+  });
+  probe("OTA", () => {
+    try {
+      const Updates = require("expo-updates");
+      const { storage } = require("../global/storage");
+      const otaBuild = storage?.getNumber?.("ota_active_build");
+      const channel = Updates?.channel || storage?.getString?.("ota_channel_override") || "default";
+      const isEmbedded = Updates?.isEmbeddedLaunch;
+      const updateId = Updates?.updateId || storage?.getString?.("ota_active_update_id") || "none";
+      const buildInfo = otaBuild ? `Build ${otaBuild}` : isEmbedded ? "embedded launch" : "unknown";
+      return `${buildInfo} (channel: ${channel}, id: ${updateId}, embedded: ${Boolean(isEmbedded)})`;
+    } catch {
+      try {
+        const Updates = require("expo-updates");
+        return Updates.isEmbeddedLaunch
+          ? "embedded (no OTA active)"
+          : `updateId: ${Updates.updateId || "none"}`;
+      } catch (e) {
+        return "not available";
+      }
+    }
   });
   probe("Bridgeless", () => String(global.RN$Bridgeless));
   probe("__turboModuleProxy", () => typeof global.__turboModuleProxy);

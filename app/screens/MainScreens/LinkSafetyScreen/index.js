@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -194,6 +195,25 @@ const LinkSafetyScreen = ({ navigation, route }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Top ambient green glow */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 140,
+          zIndex: 0,
+        }}
+        pointerEvents="none"
+      />
       {Header}
       <ScrollView
         contentContainerStyle={{

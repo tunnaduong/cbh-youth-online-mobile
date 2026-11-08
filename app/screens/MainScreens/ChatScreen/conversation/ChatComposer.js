@@ -151,8 +151,8 @@ const ChatComposer = React.forwardRef(
               <Ionicons name="chevron-down" size={22} color={theme.text} />
             </TouchableOpacity>
           )}
-          <View onLayout={handleBarLayout}>
-            <ChatGlassBar edge="bottom" style={{ paddingBottom: bottomInset }}>
+          <View onLayout={handleBarLayout} style={styles.barContainer}>
+            <ChatGlassBar edge="bottom" style={{ width: "100%", paddingBottom: bottomInset }}>
               {editingMessage && (
                 <View style={[styles.editBanner, { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" }]}>
                   <Ionicons name="pencil-outline" size={16} color={theme.primary} style={{ marginRight: 8 }} />
@@ -189,7 +189,7 @@ const ChatComposer = React.forwardRef(
                 allowBroadcastMention={isGroup}
                 enableAiCommands
                 leftAccessory={
-                  <View style={{ flexDirection: "row" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <TouchableOpacity
                       style={styles.accessoryButton}
                       onPress={actions.pickImage}
@@ -197,7 +197,11 @@ const ChatComposer = React.forwardRef(
                       accessibilityRole="button"
                       accessibilityLabel={t("chatConversation.attachMedia")}
                     >
-                      <Ionicons name="image" size={22} color={theme.primary} />
+                      <Ionicons
+                        name="images-outline"
+                        size={23}
+                        color={isDarkMode ? "#22C55E" : "#16A34A"}
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.accessoryButton}
@@ -206,7 +210,11 @@ const ChatComposer = React.forwardRef(
                       accessibilityRole="button"
                       accessibilityLabel={t("chatConversation.attachment")}
                     >
-                      <Ionicons name="attach" size={24} color={theme.primary} />
+                      <Ionicons
+                        name="attach-outline"
+                        size={25}
+                        color={isDarkMode ? "#22C55E" : "#16A34A"}
+                      />
                     </TouchableOpacity>
                   </View>
                 }
@@ -241,7 +249,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: "100%",
     zIndex: 10,
+  },
+  barContainer: {
+    width: "100%",
+    alignSelf: "stretch",
   },
   scrollButton: {
     alignSelf: "center",

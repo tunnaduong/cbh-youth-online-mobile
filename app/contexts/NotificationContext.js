@@ -15,6 +15,7 @@ import {
 import { AuthContext } from './AuthContext';
 import { resolveNotificationTarget } from '../utils/notificationRouting';
 import { rememberPushToken } from '../utils/pushToken';
+import { CALL_FEATURES_ENABLED } from '../services/call/callConfig';
 
 export const NotificationContext = createContext();
 
@@ -157,6 +158,12 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const handleNotificationReceived = (notification) => {
+    const callData = notification?.request?.content?.data;
+    // In prod/demo mode, do NOT auto-popup the incoming call dialog when surfing in app.
+    // The call UI will only appear when the user explicitly taps the push notification.
+    if (callData?.type === 'incoming_call' && CALL_FEATURES_ENABLED) {
+      DeviceEventEmitter.emit('INCOMING_CALL_PUSH', callData);
+    }
     console.log('Notification received callback fired:', notification);
     if (notification?.request?.content) {
       console.log('Notification content:', notification.request.content);
@@ -177,6 +184,18 @@ export const NotificationProvider = ({ children }) => {
     // it comes from the backend, not from anything reproducible locally.
     console.log('[Push] Notification tapped, raw data:', JSON.stringify(data));
     if (!data) return;
+
+    if (data?.type === 'incoming_call') {
+      const action = response?.actionIdentifier;
+      if (action === 'decline') {
+        DeviceEventEmitter.emit('INCOMING_CALL_DECLINE_ACTION', data);
+      } else if (action === 'answer') {
+        DeviceEventEmitter.emit('INCOMING_CALL_ANSWER_ACTION', data);
+      } else {
+        DeviceEventEmitter.emit('INCOMING_CALL_PUSH', data);
+      }
+      return;
+    }
 
     // Same resolver the in-app notification bell list uses
     // (NotificationScreen/index.js) - the API now forwards the full

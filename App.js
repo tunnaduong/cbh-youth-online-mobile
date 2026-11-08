@@ -72,6 +72,7 @@ import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
 import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
+import ForumScreen from "./app/screens/MainScreens/ForumScreen";
 import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
@@ -105,6 +106,7 @@ import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 import ProfileCustomizerScreen from "./app/screens/MainScreens/ProfileCustomizerScreen";
 import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
+import AppIconScreen from "./app/screens/MainScreens/SettingsScreen/AppIconScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -113,6 +115,8 @@ import { parseYouTubeShare } from "./app/utils/youtubeShare";
 import { initDevConsole } from "./app/utils/devConsole";
 import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
 import ShakeToReport from "./app/components/ShakeToReport";
+import { checkUpdateAvailable, isOtaEnabled, isStartupCheckEnabled } from "./app/services/ota/otaService";
+import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
 
 // Patches console.log/warn/error as early as possible so nothing logged
 // during app startup is missed if dev mode is already enabled from a
@@ -291,6 +295,12 @@ const parseDeepLink = (url) => {
         const slug = pathSegment.slice(5).split("?")[0];
         if (slug) return { screen: "GamePlayScreen", params: { slug } };
       }
+      if (host === "explore" || pathSegment === "explore") {
+        return { screen: "ExploreScreen", params: {} };
+      }
+      if (host === "notifications" || pathSegment === "notifications") {
+        return { screen: "MainScreens", params: { screen: "Notifications" } };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);
@@ -408,6 +418,48 @@ const App = ({ skipSplash = false }) => {
   useEffect(() => {
     getSavedAccounts().then((list) => setHasSavedAccounts(list.length > 0));
   }, [isLoggedIn]);
+
+  // Background OTA update check at startup
+  const [startupUpdateInfo, setStartupUpdateInfo] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  useEffect(() => {
+    // Only check for updates when splash/loading has finished, the user is logged in,
+    // and both OTA updates and startup checking are enabled in settings.
+    if (showSplash || isLoading || !isLoggedIn) return;
+    if (!isOtaEnabled() || !isStartupCheckEnabled()) return;
+
+    let isMounted = true;
+    const checkStartupUpdate = async () => {
+      try {
+        console.log("[OTA Startup] Running background startup update check...");
+        const res = await checkUpdateAvailable();
+        if (!isMounted) return;
+        console.log(`[OTA Startup] Startup check finished: status="${res.status}", isAvailable=${res.isAvailable}`);
+        if (res.isAvailable && res.updateInfo) {
+          setStartupUpdateInfo(res.updateInfo);
+          setShowUpdateModal(true);
+        } else if (res.status === "native_base_outdated" && res.updateInfo) {
+          setStartupUpdateInfo({
+            ...res.updateInfo,
+            isBaseOutdated: true,
+            minNativeBuild: res.minNativeRequired,
+            currentNativeBuild: res.currentNativeBuild,
+          });
+          setShowUpdateModal(true);
+        }
+      } catch (e) {
+        console.error("[OTA Startup] Startup OTA check error:", e?.message || e);
+      }
+    };
+
+    const timer = setTimeout(checkStartupUpdate, 2000);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [showSplash, isLoading, isLoggedIn]);
+
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -925,6 +977,13 @@ const App = ({ skipSplash = false }) => {
                 }}
               />
               <Stack.Screen
+                name="AppIconScreen"
+                component={AppIconScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="StudentVerificationScreen"
                 component={StudentVerificationScreen}
                 options={{
@@ -1052,6 +1111,11 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ForumScreen"
+                component={ForumScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen
@@ -1197,6 +1261,11 @@ const App = ({ skipSplash = false }) => {
       {/* A login on another device waiting to be approved here (2FA) */}
       <LoginApprovalPrompt />
       <CustomAlertProvider />
+      <UpdatePromptModal
+        visible={showUpdateModal}
+        updateInfo={startupUpdateInfo}
+        onDismiss={() => setShowUpdateModal(false)}
+      />
     </>
   );
 };

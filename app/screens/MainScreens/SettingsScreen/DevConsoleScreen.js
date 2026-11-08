@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -24,12 +25,13 @@ import {
   setDevModeEnabled,
 } from "../../../utils/devConsole";
 
-const FILTERS = ["all", "warning", "error", "glass"];
+const FILTERS = ["all", "warning", "error", "glass", "ota"];
 
 const LEVEL_COLORS = {
   log: "#6b7280",
   warning: "#f59e0b",
   error: "#ef4444",
+  ota: "#3b82f6",
 };
 
 export default function DevConsoleScreen({ navigation }) {
@@ -59,6 +61,8 @@ export default function DevConsoleScreen({ navigation }) {
       // [GlassModules] mount/unmount/support traces, so they're easy to
       // isolate from the rest of the app's console noise.
       ? logs.filter((l) => l.message.startsWith("[GlassModules]"))
+      : filter === "ota"
+      ? logs.filter((l) => l.message.includes("[OTA]") || l.message.includes("[OTA Modal]") || l.message.includes("[OTA Screen]") || l.message.includes("[OTA Startup]"))
       : logs.filter((l) => l.level === filter);
 
   const handleCopyLog = useCallback((item) => {
@@ -116,6 +120,18 @@ export default function DevConsoleScreen({ navigation }) {
         </View>
       </View>
 
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
+
       <AndroidGlassBackdrop providerId="DevConsoleScreen" style={{ flex: 1 }}>
         <Animated.FlatList
           data={filteredLogs}
@@ -154,24 +170,32 @@ export default function DevConsoleScreen({ navigation }) {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={[styles.logRow, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-              <View style={styles.logHeaderRow}>
-                <View style={[styles.levelBadge, { backgroundColor: LEVEL_COLORS[item.level] || LEVEL_COLORS.log }]}>
-                  <Text style={styles.levelBadgeText}>{item.level.toUpperCase()}</Text>
+          renderItem={({ item }) => {
+            const isOta = item.message.includes("[OTA]") || item.message.includes("[OTA Modal]") || item.message.includes("[OTA Screen]") || item.message.includes("[OTA Startup]");
+            const badgeBg = isOta
+              ? LEVEL_COLORS.ota
+              : LEVEL_COLORS[item.level] || LEVEL_COLORS.log;
+            const badgeLabel = isOta ? "OTA" : item.level.toUpperCase();
+
+            return (
+              <View style={[styles.logRow, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+                <View style={styles.logHeaderRow}>
+                  <View style={[styles.levelBadge, { backgroundColor: badgeBg }]}>
+                    <Text style={styles.levelBadgeText}>{badgeLabel}</Text>
+                  </View>
+                  <Text style={[styles.logTime, { color: theme.subText, flex: 1 }]}>
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </Text>
+                  <TouchableOpacity onPress={() => handleCopyLog(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="copy-outline" size={16} color={theme.subText} />
+                  </TouchableOpacity>
                 </View>
-                <Text style={[styles.logTime, { color: theme.subText, flex: 1 }]}>
-                  {new Date(item.timestamp).toLocaleTimeString()}
+                <Text style={[styles.logMessage, { color: theme.text }]} selectable>
+                  {item.message}
                 </Text>
-                <TouchableOpacity onPress={() => handleCopyLog(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="copy-outline" size={16} color={theme.subText} />
-                </TouchableOpacity>
               </View>
-              <Text style={[styles.logMessage, { color: theme.text }]} selectable>
-                {item.message}
-              </Text>
-            </View>
-          )}
+            );
+          }}
         />
       </AndroidGlassBackdrop>
 

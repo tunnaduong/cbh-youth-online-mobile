@@ -43,12 +43,12 @@ const sectionVeil = (background) => {
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <TouchableOpacity
     onPress={() => navigation.navigate("CategoryScreen", { categoryId: section.id })}
-    activeOpacity={0.9}
+    activeOpacity={0.88}
     style={[
       styles.sectionBox,
       {
-        borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.7)",
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
       },
     ]}
   >
@@ -60,12 +60,9 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
     >
       {/* The section's picture fills the whole card (cover); this veil keeps
           the text readable. It covers exactly the card at any width: solid
-          on the left, fading out diagonally to the bare picture on the right.
-          The old veil was a rotated box with a fixed shift: nearly opaque,
-          and on a wide card (iPad) it left a bare triangle of picture with a
-          hard edge next to what looked like a black bar. */}
+          on the left, fading out diagonally to the bare picture on the right. */}
       <LinearGradient
-        colors={sectionVeil(theme.background)}
+        colors={sectionVeil(theme.surface || theme.background)}
         locations={[0, 0.45, 0.72, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.35 }}
@@ -78,12 +75,12 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
               {section.post_count} {t('forum.posts').toLowerCase()} · {section.comment_count} {t('forum.comments').toLowerCase()}
             </Text>
           </View>
-          <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}> 
+          <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)" }]}> 
             <Ionicons name="chevron-forward" size={16} color={theme.primary} />
           </View>
         </View>
 
-        <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.1)" : "rgba(49,149,39,0.06)" }]}> 
+        <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.12)" : "rgba(34, 197, 94, 0.08)" }]}> 
           {section.latest_post ? (
             <TouchableOpacity
               onPress={() => navigation.navigate("PostScreen", { postId: section.latest_post.id })}
@@ -131,7 +128,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const scrollX = useRef(new Animated.Value(0)).current;
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
-  const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = 58 + insets.top;
 
   useEffect(() => {
@@ -159,7 +155,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
-    scrollY.setValue(offsetY);
 
     lastScrollYRef.current = offsetY;
   };
@@ -274,22 +269,79 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Soft Ambient Light-Green Glow at Top */}
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.ambientGlow, { height: insets.top + 140 }]}
+          pointerEvents="none"
+        />
+
         <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", padding: 2 }}
-          >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerLeft}>
+            {navigation?.canGoBack?.() && (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginRight: 8, padding: 4 }}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.back", "Back")}
+              >
+                <Ionicons name="chevron-back" size={26} color={theme.primary} />
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
+              {t('forum.title')}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("MemberRankingScreen")}
+              accessibilityRole="button"
+              accessibilityLabel={t("sidebar.memberRanking")}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(34, 197, 94, 0.16)"
+                    : "rgba(34, 197, 94, 0.12)",
+                },
+              ]}
+            >
+              <Ionicons
+                name="trophy-outline"
+                size={20}
+                color={isDarkMode ? "#4ADE80" : "#15803D"}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("CreatePostScreen")}
+              accessibilityRole="button"
+              accessibilityLabel={t("createPost.title")}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(34, 197, 94, 0.16)"
+                    : "rgba(34, 197, 94, 0.12)",
+                },
+              ]}
+            >
+              <Ionicons
+                name="add"
+                size={22}
+                color={isDarkMode ? "#4ADE80" : "#15803D"}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingTop: headerHeight }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
@@ -300,25 +352,74 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Floating header */}
-      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent", backgroundColor: "transparent" }]} pointerEvents="box-none">
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
+      {/* Soft Ambient Light-Green Glow at Top */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        pointerEvents="none"
+      />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
+        <View style={styles.headerLeft}>
+          {navigation?.canGoBack?.() && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ marginRight: 8, padding: 4 }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.back", "Back")}
+            >
+              <Ionicons name="chevron-back" size={26} color={theme.primary} />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
+            {t('forum.title')}
+          </Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => navigation.navigate("MemberRankingScreen")}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+            accessibilityRole="button"
+            accessibilityLabel={t("sidebar.memberRanking")}
+            style={[
+              styles.headerIconButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(34, 197, 94, 0.16)"
+                  : "rgba(34, 197, 94, 0.12)",
+              },
+            ]}
           >
-            <Ionicons name="trophy-outline" size={22} color={theme.primary} />
+            <Ionicons
+              name="trophy-outline"
+              size={20}
+              color={isDarkMode ? "#4ADE80" : "#15803D"}
+            />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", padding: 2 }}
+            onPress={() => navigation.navigate("CreatePostScreen")}
+            accessibilityRole="button"
+            accessibilityLabel={t("createPost.title")}
+            style={[
+              styles.headerIconButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(34, 197, 94, 0.16)"
+                  : "rgba(34, 197, 94, 0.12)",
+              },
+            ]}
           >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={styles.avatar}
+            <Ionicons
+              name="add"
+              size={22}
+              color={isDarkMode ? "#4ADE80" : "#15803D"}
             />
           </TouchableOpacity>
         </View>
@@ -332,27 +433,33 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         scrollEnabled={scrollEnabled}
         style={[styles.tabContainer, { backgroundColor: "transparent" }]}
       >
-        {categories.map((cat, index) => (
-          <TouchableOpacity
-            key={`cat-${cat.id}`}
-            onPress={() => handleActiveCategory(cat.id, index)}
-            style={[
-              styles.tab,
-              { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
-              activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
-            ]}
-          >
-            <Text
+        {categories.map((cat, index) => {
+          const active = activeCategory === cat.id;
+          return (
+            <TouchableOpacity
+              key={`cat-${cat.id}`}
+              onPress={() => handleActiveCategory(cat.id, index)}
               style={[
-                styles.tabText,
-                { color: theme.text },
-                activeCategory === cat.id && styles.tabTextActive,
+                styles.tab,
+                active
+                  ? { backgroundColor: theme.primary, borderColor: "transparent" }
+                  : { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
+              activeOpacity={0.7}
             >
-              {getCategoryName(cat.name, t)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  active
+                    ? { color: "#ffffff", fontWeight: "700" }
+                    : { color: theme.text, fontWeight: "500" },
+                ]}
+              >
+                {getCategoryName(cat.name, t)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {refreshing && (
@@ -464,21 +571,41 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 }
 
 const styles = StyleSheet.create({
+  ambientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
   },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 12,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    flex: 1,
+    flexShrink: 1,
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatar: {
     width: 36,
@@ -495,24 +622,17 @@ const styles = StyleSheet.create({
   tab: {
     paddingHorizontal: 16,
     paddingVertical: 7,
-    borderRadius: 8,
-    marginRight: 7,
-    height: 35,
+    borderRadius: 999,
+    marginRight: 8,
+    height: 36,
     justifyContent: "center",
-  },
-  tabActive: {
-    backgroundColor: "#C7F0C2",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   tabText: {
-    fontWeight: "500",
-    fontSize: 15,
-  },
-  tabTextActive: {
-    color: "#319527",
-    fontWeight: "bold",
+    fontSize: 14,
   },
   sectionBox: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
     marginBottom: 14,
     overflow: "hidden",

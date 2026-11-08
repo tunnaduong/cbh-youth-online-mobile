@@ -109,7 +109,7 @@ const ReplyPreviewBubble = ({ item, currentUsername, onPress }) => {
         numberOfLines={1}
         style={[
           styles.replyLabel,
-          { color: isMyself ? (isDarkMode ? "#a7f3d0" : "#4b5563") : theme.subText },
+          { color: isMyself ? (isDarkMode ? "#a7f3d0" : "rgba(255,255,255,0.75)") : theme.subText },
         ]}
       >
         {getReplyLabel(item, currentUsername, t)}
@@ -118,13 +118,13 @@ const ReplyPreviewBubble = ({ item, currentUsername, onPress }) => {
         {showThumb && replyTo.file_url ? (
           <Image source={{ uri: replyTo.file_url }} style={styles.thumb} />
         ) : (
-          icon && <Ionicons name={icon} size={13} color={theme.subText} style={styles.icon} />
+          icon && <Ionicons name={icon} size={13} color={isMyself ? (isDarkMode ? "#ecfdf5" : "rgba(255,255,255,0.85)") : theme.subText} style={styles.icon} />
         )}
         <Text
           numberOfLines={1}
           style={[
             styles.contentText,
-            { color: isMyself ? (isDarkMode ? "#ecfdf5" : "#111") : theme.text },
+            { color: isMyself ? (isDarkMode ? "#ecfdf5" : "#FFFFFF") : theme.text },
           ]}
         >
           {label}

@@ -300,14 +300,37 @@ const MessageRow = React.memo(({
               size={32}
               style={styles.messageAvatarWrap}
             >
-              <FastImage
-                source={{
-                  uri:
-                    item.sender?.avatar_url ||
-                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                }}
-                style={styles.messageAvatar}
-              />
+              {!item.sender?.avatar_url ||
+              item.sender.avatar_url.includes("placeholder-user.jpg") ||
+              item.sender.avatar_url.includes("default-avatar.png") ? (
+                <View
+                  style={[
+                    styles.messageAvatar,
+                    {
+                      backgroundColor: theme.iconBackground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: theme.primary,
+                      fontSize: 13,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {(item.sender?.profile_name || item.sender?.name || item.sender?.username || "?")
+                      .trim()[0]
+                      ?.toUpperCase() || "?"}
+                  </Text>
+                </View>
+              ) : (
+                <FastImage
+                  source={{ uri: item.sender.avatar_url }}
+                  style={styles.messageAvatar}
+                />
+              )}
             </AvatarFrameWrap>
           </TouchableOpacity>
         )}
@@ -337,8 +360,8 @@ const MessageRow = React.memo(({
                   ? [
                       styles.fileMessageBubble,
                       item.is_myself
-                        ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" }]
-                        : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" }],
+                        ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#15803D" : "#168039" }]
+                        : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1e262b" : "#F1F5F9" }],
                     ]
                   : item.type === "chat" || item.type === "part"
                   ? [
@@ -355,11 +378,11 @@ const MessageRow = React.memo(({
                   : item.is_myself
                     ? [
                         styles.myMessageBubble,
-                        { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
+                        { backgroundColor: isDarkMode ? "#15803D" : "#168039" },
                       ]
                     : [
                         styles.theirMessageBubble,
-                        { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
+                        { backgroundColor: isDarkMode ? "#1e262b" : "#F1F5F9" },
                       ],
               !item.is_myself && !isLastInGroup && { marginLeft: 40 },
             ]}
@@ -538,9 +561,7 @@ const MessageRow = React.memo(({
                       styles.fileMessageName,
                       {
                         color: item.is_myself
-                          ? isDarkMode
-                            ? "#ecfdf5"
-                            : "#000"
+                          ? "#ffffff"
                           : theme.text,
                       },
                     ]}
@@ -570,9 +591,7 @@ const MessageRow = React.memo(({
                       styles.messageText,
                       {
                         color: item.is_myself
-                          ? isDarkMode
-                            ? "#ecfdf5"
-                            : "#000"
+                          ? "#ffffff"
                           : theme.text,
                       },
                     ]}
@@ -599,9 +618,7 @@ const MessageRow = React.memo(({
                   styles.messageText,
                   {
                     color: item.is_myself
-                      ? isDarkMode
-                        ? "#ecfdf5"
-                        : "#000"
+                      ? "#FFFFFF"
                       : theme.text,
                   },
                 ]}
@@ -611,6 +628,7 @@ const MessageRow = React.memo(({
                 // text instead of a highlighted/tappable mention.
                 allowBroadcastMention={isGroupChat}
                 enableAiCommands
+                isMyMessage={item.is_myself}
                 onMentionPress={(username) =>
                   navigation.navigate("ProfileScreen", { username })
                 }
@@ -619,7 +637,11 @@ const MessageRow = React.memo(({
               </MentionText>
             ) : null}
             {linkPreviewUrl ? (
-              <LinkPreviewCard url={linkPreviewUrl} compact style={{ marginTop: 8 }} />
+              <LinkPreviewCard
+                url={linkPreviewUrl}
+                compact
+                style={{ marginTop: 8, width: "100%", alignSelf: "stretch" }}
+              />
             ) : null}
           </Pressable>
           <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />
@@ -649,18 +671,18 @@ const MessageRow = React.memo(({
                 <View style={styles.doubleCheck}>
                   <Ionicons
                     name="checkmark"
-                    size={12}
-                    color={theme.primary}
+                    size={13}
+                    color="#86EFAC"
                     style={styles.checkOverlap}
                   />
                   <Ionicons
                     name="checkmark"
-                    size={12}
-                    color={theme.primary}
+                    size={13}
+                    color="#86EFAC"
                   />
                 </View>
               ) : (
-                <Ionicons name="checkmark" size={12} color={theme.subText} />
+                <Ionicons name="checkmark" size={13} color={isDarkMode ? "rgba(255,255,255,0.7)" : "#6B7280"} />
               )}
             </View>
           )}

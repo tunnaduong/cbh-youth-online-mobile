@@ -3,6 +3,8 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
+  Platform,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -30,7 +32,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 import { getCategoryName, getCategoryDescription } from "../../../utils/forumUtils";
 
-const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity, insets }) => (
+const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity, insets, categoryId, createLabel }) => (
   <View pointerEvents="box-none" style={styles.floatingHeader}>
     <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
       <View style={{ width: 44 }}>
@@ -44,7 +46,17 @@ const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity,
       >
         {title}
       </Animated.Text>
-      <View style={{ width: 44 }} />
+      <View style={{ width: 44, alignItems: "flex-end" }}>
+        <LiquidButton
+          providerId="CategoryScreen"
+          size={44}
+          scrollY={scrollY}
+          accessibilityLabel={createLabel}
+          onPress={() => navigation.navigate("CreatePostScreen", { categoryId })}
+        >
+          <Ionicons name="add" size={24} color={theme.primary} />
+        </LiquidButton>
+      </View>
     </View>
   </View>
 );
@@ -56,6 +68,7 @@ const CategoryScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [forumData, setForumData] = useState(null);
+  const [descExpanded, setDescExpanded] = useState(false);
   const { categoryId } = route.params || {};
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = 64 + insets.top;
@@ -168,7 +181,7 @@ const CategoryScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} />
+        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
         <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
           <CustomLoading />
         </View>
@@ -179,7 +192,7 @@ const CategoryScreen = ({ navigation, route }) => {
   if (!forumData) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} />
+        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
         <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
           <Image
             source={require("../../../assets/sad_frog.png")}
@@ -233,7 +246,7 @@ const CategoryScreen = ({ navigation, route }) => {
           </Text>
         </View>
       </View>
-      <Text style={[styles.threadTitle, { color: theme.text }]}>
+      <Text style={[styles.threadTitle, { color: theme.text }]} numberOfLines={2} ellipsizeMode="tail">
         {thread?.title}
       </Text>
       <View style={styles.threadStatsRow}>
@@ -251,6 +264,95 @@ const CategoryScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
+  const descriptionText = getCategoryDescription(forumData.subforum.description, t);
+  const isDescriptionLong = descriptionText.length > 120;
+
+  const renderCategoryBanner = () => (
+    <View style={{ backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: theme.border, overflow: "hidden" }}>
+      <ImageBackground
+        source={{ uri: forumData.subforum.background }}
+        resizeMode="cover"
+        style={{ width: "100%", justifyContent: "center" }}
+      >
+        <LinearGradient
+          colors={[theme.background, "transparent"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 3, y: 0 }}
+          style={{ position: "absolute", width: "100%", height: "100%" }}
+        />
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 8, color: theme.text }}>
+            {getCategoryName(forumData.subforum.name, t)}
+          </Text>
+          <Text
+            style={{ color: theme.subText, lineHeight: 22 }}
+            numberOfLines={descExpanded ? undefined : 3}
+          >
+            {descriptionText}
+          </Text>
+          {isDescriptionLong && (
+            <TouchableOpacity
+              onPress={() => setDescExpanded((prev) => !prev)}
+              style={{ marginTop: 6, alignSelf: "flex-start" }}
+              hitSlop={8}
+            >
+              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "600" }}>
+                {descExpanded ? t("common.collapse", "Thu gọn") : t("common.showMore", "Xem thêm")}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ImageBackground>
+    </View>
+  );
+
+  const renderListHeader = () => (
+    <>
+      {renderCategoryBanner()}
+      {forumData.topics.length > 0 && (
+        <View style={styles.threadListWrapper}>
+          <View style={[styles.threadListHeader, { backgroundColor: theme.iconBackground, borderColor: theme.border }]}>
+            <Text style={{ fontWeight: "600", fontSize: 13, color: theme.subText }}>{t('forum.threadTitle')}</Text>
+            <Text style={{ fontWeight: "600", fontSize: 13, color: theme.subText }}>{t('forum.lastPost')}</Text>
+          </View>
+        </View>
+      )}
+    </>
+  );
+
+  const renderThreadItem = ({ item, index }) => {
+    const isFirst = index === 0;
+    const isLast = index === forumData.topics.length - 1;
+    return (
+      <View
+        style={{
+          marginHorizontal: 16,
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderTopWidth: isFirst ? StyleSheet.hairlineWidth : 0,
+          borderTopLeftRadius: isFirst ? 16 : 0,
+          borderTopRightRadius: isFirst ? 16 : 0,
+          borderBottomLeftRadius: isLast ? 16 : 0,
+          borderBottomRightRadius: isLast ? 16 : 0,
+          overflow: "hidden",
+        }}
+      >
+        <ThreadItem thread={item} lastItem={isLast} />
+      </View>
+    );
+  };
+
+  const renderEmptyComponent = () => (
+    <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+      <Image
+        source={require("../../../assets/sad_frog.png")}
+        style={{ width: 80, height: 80, marginTop: 40, marginBottom: 12 }}
+      />
+      <Text style={{ color: theme.subText }}>{t('forum.noPostsInCategory')}</Text>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <SubforumHeader
@@ -260,68 +362,44 @@ const CategoryScreen = ({ navigation, route }) => {
         scrollY={scrollY}
         headerTitleOpacity={headerTitleOpacity}
         insets={insets}
+        categoryId={categoryId}
+        createLabel={t("createPost.title")}
+      />
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
       />
 
       <AndroidGlassBackdrop providerId="CategoryScreen" style={{ flex: 1 }}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        style={{
-          flex: 1,
-          backgroundColor: theme.background,
-        }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
-      >
-        {/* Category Header */}
-        <View style={{ backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: theme.border, overflow: "hidden" }}>
-          <ImageBackground
-            source={{ uri: forumData.subforum.background }}
-            resizeMode="cover"
-            style={{ width: "100%", justifyContent: "center" }}
-          >
-            <LinearGradient
-              colors={[theme.background, "transparent"]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 3, y: 0 }}
-              style={{ position: "absolute", width: "100%", height: "100%" }}
-            />
-            <View style={{ padding: 16 }}>
-              <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 8, color: theme.text }}>
-                {getCategoryName(forumData.subforum.name, t)}
-              </Text>
-              <Text style={{ color: theme.subText, lineHeight: 24 }}>
-                {getCategoryDescription(forumData.subforum.description, t)}
-              </Text>
-            </View>
-          </ImageBackground>
-        </View>
-
-        {/* Thread List */}
-        {forumData.topics.length === 0 ? (
-          <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-            <Image
-              source={require("../../../assets/sad_frog.png")}
-              style={{ width: 80, height: 80, marginTop: 40, marginBottom: 12 }}
-            />
-            <Text style={{ color: theme.subText }}>{t('forum.noPostsInCategory')}</Text>
-          </View>
-        ) : (
-          <View style={styles.threadListWrapper}>
-            <View style={[styles.threadListHeader, { backgroundColor: theme.iconBackground, borderColor: theme.border }]}>
-              <Text style={{ fontWeight: "600", fontSize: 13, color: theme.subText }}>{t('forum.threadTitle')}</Text>
-              <Text style={{ fontWeight: "600", fontSize: 13, color: theme.subText }}>{t('forum.lastPost')}</Text>
-            </View>
-            <View style={[styles.threadListCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              {forumData.topics.map((thread, index) => (
-                <ThreadItem key={thread.id} thread={thread} lastItem={index === forumData.topics.length - 1} />
-              ))}
-            </View>
-          </View>
-        )}
-      </ScrollView>
+        <FlatList
+          data={forumData.topics}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderThreadItem}
+          ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={renderEmptyComponent}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === "android"}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          style={{
+            flex: 1,
+            backgroundColor: theme.background,
+          }}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
+        />
       </AndroidGlassBackdrop>
     </View>
   );

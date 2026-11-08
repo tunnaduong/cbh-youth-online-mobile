@@ -136,23 +136,36 @@ const AccountSwitcher = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View>
       <TouchableOpacity
         onPress={() => setOpen((v) => !v)}
+        activeOpacity={0.7}
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
           paddingHorizontal: 16,
-          paddingVertical: 8,
+          paddingVertical: 13,
+          borderBottomWidth: open ? 1 : 0,
+          borderBottomColor: theme.border,
         }}
       >
-        <Ionicons name="swap-horizontal-outline" size={20} color={theme.primary} />
-        <Text style={{ flex: 1, color: theme.primary, fontWeight: "bold" }}>
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: theme.iconBackground,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="swap-horizontal-outline" size={20} color={theme.primary} />
+        </View>
+        <Text style={{ flex: 1, marginLeft: 12, color: theme.text, fontSize: 16, fontWeight: "500" }}>
           {t("sidebar.switchAccount")}
         </Text>
         <Ionicons
-          name={open ? "chevron-up" : "chevron-down"}
+          name={open ? "chevron-up" : "chevron-forward"}
           size={18}
           color={theme.subText}
         />

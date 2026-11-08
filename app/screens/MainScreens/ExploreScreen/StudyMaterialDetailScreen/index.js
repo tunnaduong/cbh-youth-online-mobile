@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -462,7 +463,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           style={[
             styles.headerTitle,
             {
-              color: theme.text,
+              color: theme.primary,
               opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
             },
           ]}
@@ -472,6 +473,18 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         </Animated.Text>
         <View style={styles.headerSpacer} />
       </View>
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
 
       {loading ? (
         <View style={styles.centered}>
@@ -490,7 +503,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+          <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name ? getCategoryLabel(material.category) : t("studyMaterial.material")}</Text>
             </View>
@@ -556,6 +569,17 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                   // the other.
                   scrollEnabled
                   nestedScrollEnabled
+                />
+              </View>
+            </View>
+          ) : material?.preview_path ? (
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
+              <View style={[styles.webviewContainer, { borderColor: theme.border, height: 320, backgroundColor: isDarkMode ? "#18181B" : "#F3F4F6", overflow: "hidden" }]}>
+                <FastImage
+                  source={{ uri: material.preview_path.startsWith("http") ? material.preview_path : `https://api.chuyenbienhoa.com/storage/${material.preview_path.replace(/^\/+/, "")}` }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="contain"
                 />
               </View>
             </View>
@@ -691,7 +715,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2,
+    zIndex: 100,
+    elevation: 10,
   },
   backButton: {
     width: 40,

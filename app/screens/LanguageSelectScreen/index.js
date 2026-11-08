@@ -52,7 +52,7 @@ const guessInitialLanguage = () => {
 };
 
 const LanguageSelectScreen = ({ navigation }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState(guessInitialLanguage());
   const screenText = SCREEN_TEXT[selected] || SCREEN_TEXT.vi;

@@ -16,6 +16,7 @@ import {
   Easing,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import ImageView from "react-native-image-viewing";
@@ -559,7 +560,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
             </LiquidButton>
           </View>
           <Animated.Text
-            style={[styles.headerTitle, { color: theme.text, opacity: headerTitleOpacity }]}
+            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
             numberOfLines={1}
           >
             {t("chatConversation.gallery", "Bộ sưu tập")}
@@ -567,6 +568,18 @@ const MediaGalleryScreen = ({ route, navigation }) => {
           <View style={{ width: 44 }} />
         </View>
       </View>
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
 
       {USE_NATIVE_TABS ? (
         <GalleryTab.Navigator

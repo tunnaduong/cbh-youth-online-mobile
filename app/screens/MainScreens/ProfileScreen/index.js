@@ -69,8 +69,11 @@ const LIKED_SORT_OPTIONS = [
 // instance whose posts are in it right now - see fetchUserData.
 let profilePostsOwner = null;
 
-const ProfileScreen = ({ route, navigation }) => {
+const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) => {
   const instanceToken = useRef({}).current;
+  const flatListRef = useRef(null);
+  const scrollPositionRef = useRef(0);
+  const lastTriggerTimeRef = useRef(0);
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   // Facebook-style autoplay: only one post's video should ever be playing
@@ -96,7 +99,7 @@ const ProfileScreen = ({ route, navigation }) => {
   // it answers for someone blocked in either direction.
   const [notFound, setNotFound] = useState(false);
   const { username, profileName, blockUser: blockUserInContext, getAvatarUrl, getCoverUrl } = React.useContext(AuthContext);
-  const userId = route?.params?.username; // Default to current user if no ID passed
+  const userId = route?.params?.username || username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -395,7 +398,7 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
 
     if (activeTab === "likes") {
@@ -410,7 +413,26 @@ const ProfileScreen = ({ route, navigation }) => {
         setRefreshing(false);
       }, 1000);
     });
-  };
+  }, [activeTab, likedSort, photoGallery, userId]);
+
+  const scrollToTopOrReload = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (scrollPositionRef.current <= 10) {
+      handleRefresh();
+    } else {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      scrollPositionRef.current = 0;
+    }
+  }, [handleRefresh]);
+
+  useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   // Fetch user data from API
   // keepLoadedPosts (the refetch on focus): the first page is merged into the
@@ -532,13 +554,15 @@ const ProfileScreen = ({ route, navigation }) => {
   if (notFound || !userData) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ position: "absolute", top: insets.top + 8, left: 12, padding: 8 }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="chevron-back" size={26} color={theme.text} />
-        </TouchableOpacity>
+        {!isTab && (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ position: "absolute", top: insets.top + 8, left: 12, padding: 8 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={26} color={theme.text} />
+          </TouchableOpacity>
+        )}
         <Ionicons name="person-circle-outline" size={72} color={theme.subText} />
         <Text style={{ color: theme.text, fontSize: 18, fontWeight: "600", marginTop: 12 }}>
           {t("profile.notFoundTitle")}
@@ -1228,11 +1252,13 @@ const ProfileScreen = ({ route, navigation }) => {
 
           {/* Header content */}
           <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
-            {/* Left: Back button */}
+            {/* Left: Back button (hidden when mounted as the bottom-tab Profile screen) */}
             <View style={{ width: 44 }}>
-              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={24} color={theme.text} />
-              </LiquidButton>
+              {!isTab && (
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
+                  <Ionicons name="chevron-back" size={24} color={theme.text} />
+                </LiquidButton>
+              )}
             </View>
 
             {/* Center: animated title */}
@@ -1357,6 +1383,7 @@ const ProfileScreen = ({ route, navigation }) => {
         />
         <AndroidGlassBackdrop providerId="ProfileScreen" style={{ flex: 1 }}>
         <Animated.FlatList
+          ref={flatListRef}
           data={listData}
           keyExtractor={listKeyExtractor}
           renderItem={renderListItem}
@@ -1381,11 +1408,16 @@ const ProfileScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
+            {
+              useNativeDriver: false,
+              listener: (event) => {
+                scrollPositionRef.current = Math.max(0, event.nativeEvent.contentOffset.y);
+              },
+            }
           )}
           contentContainerStyle={{
             paddingTop: headerHeight > 0 ? headerHeight : 56 + insets.top,
-            paddingBottom: insets.bottom + 16
+            paddingBottom: isTab ? insets.bottom + 84 : insets.bottom + 16,
           }}
           refreshControl={
             <RefreshControl

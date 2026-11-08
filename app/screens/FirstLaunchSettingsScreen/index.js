@@ -19,6 +19,7 @@ import { finishOnboardingSettings } from "../../utils/onboarding";
 const FirstLaunchSettingsScreen = ({ navigation }) => {
   const {
     theme,
+    isDarkMode,
     autoplayVideos,
     setAutoplayVideos,
     liquidGlassEnabled,

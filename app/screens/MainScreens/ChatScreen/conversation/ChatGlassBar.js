@@ -1,21 +1,10 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useTheme } from "../../../../contexts/ThemeContext";
-import {
-  LiquidGlassView,
-  glassTint,
-  flatSurface,
-  androidGlassPerfProps,
-} from "../../../../components/GlassModules";
 
-// Full-width liquid-glass bar docked to the top or bottom edge of the chat
-// (the header and the composer), Messenger style: flat, square, with a
-// hairline on the side that faces the messages. The content must be a real
-// child of the glass view (a sibling over an absolute glass layer gets swept
-// into the captured backdrop and shows up doubled). Without the native module
-// it falls back to the same nearly opaque panel the glass uses when the
-// "Liquid glass" setting is off.
-const ChatGlassBar = ({ edge, style, children }) => {
+// Full-width bar docked to the top or bottom edge of the chat (header/composer).
+// Solid/pattern-friendly panel without liquid glass effect, matching the new chat header and composer visual styling.
+const ChatGlassBar = ({ edge, style, tintColor, children }) => {
   const { theme, isDarkMode } = useTheme();
   const hairline = (
     <View
@@ -28,22 +17,18 @@ const ChatGlassBar = ({ edge, style, children }) => {
     />
   );
 
-  if (LiquidGlassView) {
-    return (
-      <LiquidGlassView
-        variant="clear"
-        tintColor={glassTint(isDarkMode)}
-        {...androidGlassPerfProps}
-        style={style}
-      >
-        {children}
-        {hairline}
-      </LiquidGlassView>
-    );
-  }
+  const containerStyle = [
+    styles.bar,
+    style,
+  ];
+
+  const defaultTint = isDarkMode
+    ? "rgba(15, 20, 18, 0.96)"
+    : "rgba(255, 255, 255, 0.98)";
+  const effectiveTint = tintColor ?? defaultTint;
 
   return (
-    <View style={[style, { backgroundColor: flatSurface(isDarkMode) }]}>
+    <View style={[containerStyle, { backgroundColor: effectiveTint }]}>
       {children}
       {hairline}
     </View>
@@ -51,6 +36,12 @@ const ChatGlassBar = ({ edge, style, children }) => {
 };
 
 const styles = StyleSheet.create({
+  bar: {
+    width: "100%",
+    alignSelf: "stretch",
+    borderRadius: 0,
+    overflow: "hidden",
+  },
   hairline: {
     position: "absolute",
     left: 0,
@@ -59,4 +50,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChatGlassBar;
+export default React.memo(ChatGlassBar);

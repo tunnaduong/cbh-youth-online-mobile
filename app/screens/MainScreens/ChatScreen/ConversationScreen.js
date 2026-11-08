@@ -52,6 +52,8 @@ import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
+import { useCall } from "../../../contexts/CallContext";
+import { CALL_FEATURES_ENABLED } from "../../../services/call/callConfig";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -64,7 +66,6 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
   KeyboardChatScrollView,
   KeyboardGestureArea,
@@ -89,6 +90,7 @@ import { VideoViewerModal } from "./conversation/VideoViewerModal";
 import { styles } from "./conversation/styles";
 import { MessagesListContent } from "./conversation/MessagesListContent";
 import ConversationHeader, { CHAT_HEADER_BAR_HEIGHT } from "./conversation/ConversationHeader";
+import ChatMascotBackground from "./conversation/ChatMascotBackground";
 import ChatComposer, { CHAT_COMPOSER_DEFAULT_HEIGHT } from "./conversation/ChatComposer";
 import SeenByModal from "./conversation/SeenByModal";
 import TypingIndicator from "./conversation/TypingIndicator";
@@ -287,6 +289,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
   const { username, profileName, blockUserInContext } = useContext(AuthContext);
+  const { startCall } = useCall();
   // The socket effect below (tryAppendPushedMessage) doesn't list `username`
   // in its dependency array - by design, so it doesn't resubscribe socket
   // listeners on every render. But that means it was capturing whatever
@@ -373,6 +376,8 @@ const ConversationScreen = ({ navigation, route }) => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollContentHeightRef = useRef(0);
   const scrollViewHeightRef = useRef(0);
+  const [visibleViewport, setVisibleViewport] = useState(null);
+  const lastViewportYRef = useRef(0);
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -802,15 +807,15 @@ const ConversationScreen = ({ navigation, route }) => {
       return selectedUser?.avatar_url;
     }
     if (currentConversation?.type === "private") {
-      return currentConversation?.participants[0]?.avatar_url;
+      return currentConversation?.participants?.[0]?.avatar_url;
     }
     if (isPublicGroupChat(currentConversation) || currentConversation?.name === t("chatConversation.casualGroupName")) {
       return "local:chat.jpg";
     }
     if (currentConversation?.type === "group") {
-      return currentConversation?.avatar_url || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
+      return currentConversation?.avatar_url || null;
     }
-    return "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
+    return currentConversation?.avatar_url || currentConversation?.participants?.[0]?.avatar_url || null;
   };
 
   // Callers like the notification screen only pass a conversationId (e.g. story
@@ -1519,6 +1524,17 @@ const ConversationScreen = ({ navigation, route }) => {
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
 
     scrollOffsetRef.current = offsetY;
+
+    const viewH = scrollViewHeightRef.current || 800;
+    const BUFFER = 1200;
+    if (Math.abs(offsetY - lastViewportYRef.current) > 250) {
+      lastViewportYRef.current = offsetY;
+      setVisibleViewport({
+        top: Math.max(0, offsetY - BUFFER),
+        bottom: offsetY + viewH + BUFFER,
+      });
+    }
+
     if (!autoplayVideos || !isFocused) {
       if (activeInlineVideoId) {
         activeInlineVideoIdRef.current = null;
@@ -2996,6 +3012,9 @@ const ConversationScreen = ({ navigation, route }) => {
   const uiHandlersRef = useRef({});
   uiHandlersRef.current = {
     goBack: safeGoBack,
+    callVoice: () => {
+      startCall(currentConversationId || conversationId, "audio", otherUser);
+    },
     showOptions,
     openTitle: () => {
       if (currentConversation?.type === "group") {
@@ -3052,56 +3071,56 @@ const ConversationScreen = ({ navigation, route }) => {
       ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
       : "";
 
+
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ConversationHeader
-        insetsTop={insets.top}
-        avatarSource={headerAvatarSource}
-        profileTheme={otherUser?.profile_theme}
-        showOnlineDot={currentConversation?.type !== "group" && isOtherUserOnline}
-        title={headerTitle}
-        username={headerUsername}
-        subtitle={headerSubtitle}
-        onBack={uiActions.goBack}
-        onPressTitle={uiActions.openTitle}
-        onOptions={uiActions.showOptions}
-      />
-      <ReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        onSubmit={handleReportSubmit}
-      />
+      {reportModalVisible && (
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
+      )}
 
-      <ReportModal
-        visible={!!reportMessageTarget}
-        onClose={() => setReportMessageTarget(null)}
-        onSubmit={handleReportMessageSubmit}
-        title={t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
-      />
+      {Boolean(reportMessageTarget) && (
+        <ReportModal
+          visible={!!reportMessageTarget}
+          onClose={() => setReportMessageTarget(null)}
+          onSubmit={handleReportMessageSubmit}
+          title={t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
+        />
+      )}
 
-      <ChatBackgroundModal
-        visible={backgroundModalVisible}
-        conversationId={currentConversationId || conversationId}
-        onClose={() => setBackgroundModalVisible(false)}
-        onBackgroundChanged={(url) => {
-          setBackgroundOverride(url);
-          setCurrentConversation((prev) => (prev ? { ...prev, background_url: url } : prev));
-        }}
-      />
+      {backgroundModalVisible && (
+        <ChatBackgroundModal
+          visible={backgroundModalVisible}
+          conversationId={currentConversationId || conversationId}
+          onClose={() => setBackgroundModalVisible(false)}
+          onBackgroundChanged={(url) => {
+            setBackgroundOverride(url);
+            setCurrentConversation((prev) => (prev ? { ...prev, background_url: url } : prev));
+          }}
+        />
+      )}
 
-      <SeenByModal
-        participants={seenByModalParticipants}
-        onClose={uiActions.closeSeenBy}
-        onOpenProfile={uiActions.openSeenByProfile}
-      />
+      {Boolean(seenByModalParticipants) && (
+        <SeenByModal
+          participants={seenByModalParticipants}
+          onClose={uiActions.closeSeenBy}
+          onOpenProfile={uiActions.openSeenByProfile}
+        />
+      )}
 
-      <ImageView
-        images={imageViewerImages}
-        imageIndex={imageViewer.index}
-        visible={imageViewer.visible}
-        onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
-        HeaderComponent={ImageViewerHeader}
-      />
+      {imageViewer.visible && (
+        <ImageView
+          images={imageViewerImages}
+          imageIndex={imageViewer.index}
+          visible={imageViewer.visible}
+          onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
+          HeaderComponent={ImageViewerHeader}
+        />
+      )}
 
       {videoViewer.uri && (
         <VideoViewerModal
@@ -3198,11 +3217,13 @@ const ConversationScreen = ({ navigation, route }) => {
         onClose={closeReactionPicker}
       />
 
-      <ForwardMessageModal
-        visible={forwardModal.visible}
-        message={forwardModal.message}
-        onClose={closeForwardModal}
-      />
+      {forwardModal.visible && (
+        <ForwardMessageModal
+          visible={forwardModal.visible}
+          message={forwardModal.message}
+          onClose={closeForwardModal}
+        />
+      )}
 
       {/* (profile block and floating button moved into header) */}
 
@@ -3221,6 +3242,12 @@ const ConversationScreen = ({ navigation, route }) => {
           inside CommentBar) be siblings of their AndroidGlassBackdrop, not
           descendants. */}
       <View style={{ flex: 1 }}>
+        {!chatBackgroundUrl ? (
+          <ChatMascotBackground
+            composerHeight={composerHeight}
+            insetsTop={insets.top}
+          />
+        ) : null}
         {chatBackgroundUrl ? (
           <Image source={{ uri: chatBackgroundUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
@@ -3233,7 +3260,7 @@ const ConversationScreen = ({ navigation, route }) => {
             ]}
           />
         ) : null}
-        <AndroidGlassBackdrop providerId="ConversationScreen" style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
         <KeyboardGestureArea
           interpolator="ios"
           style={{ flex: 1 }}
@@ -3244,7 +3271,13 @@ const ConversationScreen = ({ navigation, route }) => {
           style={styles.messagesList}
           contentContainerStyle={[
             styles.messagesContent,
-            { paddingTop: HEADER_HEIGHT + 12, paddingBottom: composerHeight + 12 },
+            {
+              paddingTop:
+                (chatBackgroundUrl ? 56 : CHAT_HEADER_BAR_HEIGHT) +
+                insets.top +
+                (chatBackgroundUrl ? 12 : 24),
+              paddingBottom: composerHeight + 12,
+            },
           ]}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
@@ -3296,10 +3329,20 @@ const ConversationScreen = ({ navigation, route }) => {
             handleMessagesContentSizeChange(w, h);
           }}
           onLayout={(e) => {
-            scrollViewHeightRef.current = e.nativeEvent.layout.height;
+            const h = e.nativeEvent.layout.height;
+            scrollViewHeightRef.current = h;
+            if (!visibleViewport && h > 0) {
+              const currentY = scrollOffsetRef.current || 0;
+              setVisibleViewport({
+                top: Math.max(0, currentY - 1200),
+                bottom: currentY + h + 1200,
+              });
+            }
           }}
         >
           <MessagesListContent
+            conversationId={currentConversationId || conversationId}
+            visibleViewport={visibleViewport}
             messages={visibleMessages}
             isGroupChat={currentConversation?.type === "group"}
             theme={theme}
@@ -3323,8 +3366,25 @@ const ConversationScreen = ({ navigation, route }) => {
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
         </KeyboardGestureArea>
-        </AndroidGlassBackdrop>
+        </View>
       </View>
+
+      <ConversationHeader
+        insetsTop={insets.top}
+        avatarSource={headerAvatarSource}
+        avatarUrl={headerAvatarUrl}
+        profileTheme={otherUser?.profile_theme}
+        showOnlineDot={currentConversation?.type !== "group" && isOtherUserOnline}
+        title={headerTitle}
+        username={headerUsername}
+        subtitle={headerSubtitle}
+        onBack={uiActions.goBack}
+        onPressTitle={uiActions.openTitle}
+        onOptions={uiActions.showOptions}
+        onCall={uiActions.callVoice}
+        canCall={CALL_FEATURES_ENABLED && !isGroupConversation && !Boolean(otherUser?.is_ai) && (otherUser?.role !== "ai") && !Boolean(otherUser?.username?.startsWith("ai_"))}
+        hasCustomBackground={Boolean(chatBackgroundUrl)}
+      />
 
       <ChatComposer
         ref={composerRef}

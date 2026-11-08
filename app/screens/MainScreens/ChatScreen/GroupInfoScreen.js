@@ -19,6 +19,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -69,7 +70,7 @@ const PERMISSION_VALUE_LABELS = {
 const GroupInfoScreen = ({ navigation, route }) => {
   const { conversationId } = route.params;
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const { userInfo } = useContext(AuthContext);
   const { onMessageSent } = useChatSocket();
@@ -516,16 +517,28 @@ const GroupInfoScreen = ({ navigation, route }) => {
           scrollY={scrollY}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.primary} />
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
-          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
+          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
           numberOfLines={1}
         >
           {t("chatConversation.groupInfo", "Thông tin nhóm")}
         </Animated.Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 44 }} />
       </View>
+
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
 
       <FlatList
         data={group.participants}

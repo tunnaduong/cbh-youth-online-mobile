@@ -163,7 +163,7 @@ export default function WebAppScreen({ navigation, route }) {
       // itself is kept on the site.
       if (request.isTopFrame === false) return true;
       const url = request.url || "";
-      if (url.startsWith("about:")) return true;
+      if (url.startsWith("about:") || url.startsWith("blob:") || url.startsWith("data:")) return true;
 
       const parts = parseUrlParts(url);
       // Sent to a login page (the gift shop sends signed-out visitors to the
@@ -171,7 +171,11 @@ export default function WebAppScreen({ navigation, route }) {
       if (isWebLoginUrl(parts) && retryHandoff()) return false;
 
       const onSite =
-        parts && parts.scheme === "https" && site.hosts.includes(parts.hostname);
+        parts &&
+        parts.scheme === "https" &&
+        (site.hosts.includes(parts.hostname) ||
+          parts.hostname === "chuyenbienhoa.com" ||
+          parts.hostname.endsWith(".chuyenbienhoa.com"));
       if (onSite) return true;
 
       if (site.lockToSite) {

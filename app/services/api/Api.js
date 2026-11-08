@@ -665,6 +665,10 @@ export const searchQuery = (query, type = "") => {
   return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type);
 };
 
+export const getSearchSuggestions = () => {
+  return Api.getRequest("/v1.0/search/suggestions");
+};
+
 export const getSubforumPosts = (id) => {
   return Api.getRequest("/v1.0/forum/subforums/" + id + "/topics");
 };

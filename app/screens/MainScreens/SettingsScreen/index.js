@@ -10,12 +10,11 @@ import {
   Animated,
   StatusBar,
 } from "react-native";
-import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import { Ionicons, FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
-import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,13 +25,11 @@ import { changeLanguage } from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
-import UserNameRow from "../../../components/profile/UserNameRow";
-import StyledUsername from "../../../components/profile/StyledUsername";
-import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
-import { useOwnProfileTheme } from "../../../utils/ownProfileTheme";
+import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 
 const SettingItem = ({
   icon,
+  iconComponent,
   title,
   onPress,
   onLongPress,
@@ -57,7 +54,7 @@ const SettingItem = ({
   >
     <View style={styles.settingItemLeft}>
       <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-        <Ionicons name={icon} size={20} color={theme.primary} />
+        {iconComponent || <Ionicons name={icon} size={20} color={theme.primary} />}
       </View>
       <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
     </View>
@@ -97,8 +94,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  // The signed-in user's own appearance (cached; same source as the sidebar).
-  const ownTheme = useOwnProfileTheme(userInfo?.username);
+  const runningUpdate = getRunningUpdateInfo();
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -144,11 +140,38 @@ export default function SettingsScreen({ navigation }) {
 
   const languageCode = i18n.language?.split("-")[0] || "vi";
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
+
+  const currentThemeIcon = useSystemTheme ? (
+    <MaterialCommunityIcons name="theme-light-dark" size={18} color="#10B981" />
+  ) : isDarkMode ? (
+    <MaterialCommunityIcons name="weather-night" size={18} color="#8B5CF6" />
+  ) : (
+    <MaterialCommunityIcons name="weather-sunny" size={18} color="#F59E0B" />
+  );
+
   const currentThemeLabel = useSystemTheme
     ? t("settings.auto")
     : isDarkMode
     ? t("settings.dark")
     : t("settings.light");
+
+  const themeOptions = [
+    {
+      label: t("settings.auto"),
+      value: "system",
+      icon: <MaterialCommunityIcons name="theme-light-dark" size={20} color="#10B981" />,
+    },
+    {
+      label: t("settings.light"),
+      value: "light",
+      icon: <MaterialCommunityIcons name="weather-sunny" size={20} color="#F59E0B" />,
+    },
+    {
+      label: t("settings.dark"),
+      value: "dark",
+      icon: <MaterialCommunityIcons name="weather-night" size={20} color="#8B5CF6" />,
+    },
+  ];
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -181,6 +204,17 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <AndroidGlassBackdrop providerId="SettingsScreen" style={{ flex: 1 }}>
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+          pointerEvents="none"
+        />
       <Animated.ScrollView
         contentContainerStyle={{ paddingTop: 58 + insets.top, paddingBottom: insets.bottom + 32 }}
         onScroll={Animated.event(
@@ -213,39 +247,6 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="settings" size={26} color="#FFFFFF" />
           </View>
         </LinearGradient>
-
-        {/* Profile Card */}
-        <TouchableOpacity
-          style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
-          onPress={() => navigation.navigate("ProfileScreen", { username: userInfo.username })}
-          activeOpacity={0.8}
-        >
-          <AvatarFrameWrap theme={ownTheme} size={56}>
-            <FastImage
-              source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar` }}
-              style={styles.avatar}
-            />
-          </AvatarFrameWrap>
-          <View style={styles.profileInfo}>
-            <UserNameRow
-              name={userInfo.profile_name}
-              theme={ownTheme}
-              variant="full"
-              style={[styles.profileName, { color: theme.text, marginBottom: 0 }]}
-              containerStyle={{ marginBottom: 3 }}
-            />
-            <StyledUsername
-              theme={ownTheme}
-              username={userInfo.username}
-              variant="full"
-              style={[styles.profileUsername, { color: theme.subText }]}
-              numberOfLines={1}
-            />
-          </View>
-          <View style={[styles.profileChevronWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
-            <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-          </View>
-        </TouchableOpacity>
 
         {/* Account Section */}
         <SettingSection title={t("settings.account")} theme={theme}>
@@ -282,24 +283,22 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
             <View style={styles.settingItemLeft}>
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name="moon-outline" size={20} color={theme.primary} />
+                <Ionicons name="color-palette-outline" size={20} color={theme.primary} />
               </View>
               <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
             </View>
             <Dropdown
-              options={[
-                { label: t("settings.auto"), value: "system" },
-                { label: t("settings.light"), value: "light" },
-                { label: t("settings.dark"), value: "dark" },
-              ]}
+              options={themeOptions}
               selectedValue={{
                 label: currentThemeLabel,
                 value: useSystemTheme ? "system" : isDarkMode ? "dark" : "light",
+                icon: currentThemeIcon,
               }}
               onValueChange={(item) => setThemeMode(item.value)}
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
-              containerStyle={{ marginVertical: 0, minWidth: 100 }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
+              modalTitle={t("settings.theme")}
             />
           </View>
 
@@ -328,7 +327,7 @@ export default function SettingsScreen({ navigation }) {
               }}
               onValueChange={(item) => changeLanguage(item.value)}
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
-              containerStyle={{ marginVertical: 0, minWidth: 120 }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
             />
           </View>
@@ -355,6 +354,11 @@ export default function SettingsScreen({ navigation }) {
             onPress={setShakeToReportEnabled}
           />
           <SettingItem
+            icon="apps-outline"
+            title={t("settings.appIcon", "Biểu tượng ứng dụng")}
+            onPress={() => navigation.navigate("AppIconScreen")}
+          />
+          <SettingItem
             icon="ban-outline"
             title={t("settings.blockedUsers")}
             onPress={() => navigation.navigate("BlockedUsersScreen")}
@@ -362,6 +366,11 @@ export default function SettingsScreen({ navigation }) {
           <SettingItem
             icon="cloud-download-outline"
             title={t("settings.appUpdates", "Cập nhật ứng dụng")}
+            value={
+              runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
+                ? `(OTA Version: Build ${runningUpdate.activeBuildNumber})`
+                : undefined
+            }
             onPress={() => navigation.navigate("AppUpdatesScreen")}
           />
           <SettingItem
@@ -416,6 +425,9 @@ export default function SettingsScreen({ navigation }) {
               appVersion: Application.nativeApplicationVersion,
               buildVersion: Application.nativeBuildVersion,
             })}
+            {runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
+              ? ` (OTA Version: Build ${runningUpdate.activeBuildNumber})`
+              : ""}
           </Text>
         </TouchableOpacity>
 
@@ -544,45 +556,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
-  },
-  // Profile card
-  profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 16,
-    marginBottom: 24,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  profileName: {
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 3,
-  },
-  profileUsername: {
-    fontSize: 14,
-  },
-  profileChevronWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
   },
   // Section
   sectionWrapper: {
