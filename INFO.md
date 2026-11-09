@@ -69,7 +69,7 @@ app/
     LiquidButton.js        Floating glass button used by native screen headers
     GlassModules.js        Liquid-glass wrappers + AndroidGlassBackdrop
     WebViewHeader.js       Plain solid header for WebView screens
-    profile/               Profile customization pieces
+    profile/               Profile customization pieces, ProfilePhotoGallery, ProfileVideoGallery
     StoryOverlays/         Story text/sticker/music overlays
   contexts/                Auth, Theme, Feed, Notification, ChatSocket, UnreadCounts, BottomSheet, StatusBar, Session, Animation
   global/storage.js        MMKV instance (fast local cache / prefs)
@@ -355,6 +355,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 ---
 
 ## 6. Recent work (newest first, as of 2026-11)
+
+- **Modernized Find University Screen & Profile Videos Gallery Toggle**:
+  - `UniversityScreen/index.js`: Modernized header to the standard floating `LiquidButton` back button + fading title (`headerTitleOpacity`), integrated atmospheric gradient backdrop, updated search bar to rounded 14px card input with clear button, converted filters into grouped settings-style card with icon holders and hairline separators, refined score cutoff options into horizontal chips, modernized autocomplete suggestions dropdown with hairline border, redesigned university cards with badge tokens and majors admission scores pill, and modernized the searchable picker modal and regulations list.
+  - `ProfileVideoGallery.js` & `ProfileScreen/index.js`: Added `ProfileVideoGallery` with `useProfileVideos`, `videoRows`, `VideoGridRow` and full-screen `ProfileVideoViewer` modal with playback controls and post link. Added `videos` tab to the segmented toggle on user profile ("Bài viết", "Ảnh", "Video") to display their profile videos from visible posts, complete with load more pagination and localized strings in `en.json`, `vi.json`, and `ru.json`.
+  - `app/services/api/Api.js`: Added `getUserVideos(username, page, perPage)` calling `GET /v1.0/users/{username}/videos`.
+
 
 - **Version 6.7.4 & Build 1103**:
   - `app.json` and `package.json` version bumped to `6.7.4`.

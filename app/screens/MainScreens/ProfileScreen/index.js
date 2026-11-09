@@ -56,6 +56,12 @@ import {
   photoRows,
   useProfilePhotos,
 } from "../../../components/profile/ProfilePhotoGallery";
+import {
+  ProfileVideoViewer,
+  VideoGridRow,
+  videoRows,
+  useProfileVideos,
+} from "../../../components/profile/ProfileVideoGallery";
 
 const LIKED_SORT_OPTIONS = [
   { value: "newest", labelKey: "profile.sortNewest" },
@@ -112,6 +118,8 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   // the first time it is opened.
   const photoGallery = useProfilePhotos(userId, activeTab === "photos");
   const [photoViewer, setPhotoViewer] = useState({ visible: false, index: 0 });
+  const videoGallery = useProfileVideos(userId, activeTab === "videos");
+  const [videoViewer, setVideoViewer] = useState({ visible: false, index: 0 });
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
@@ -407,13 +415,16 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
     if (activeTab === "photos") {
       photoGallery.reload();
     }
+    if (activeTab === "videos") {
+      videoGallery.reload();
+    }
 
     fetchUserData(userId).finally(() => {
       setTimeout(() => {
         setRefreshing(false);
       }, 1000);
     });
-  }, [activeTab, likedSort, photoGallery, userId]);
+  }, [activeTab, likedSort, photoGallery, videoGallery, userId]);
 
   const scrollToTopOrReload = useCallback(() => {
     const now = Date.now();
@@ -672,6 +683,11 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           // Placeholders from the moment the tab opens until the first answer.
           photoGallery.loading || (!photoGallery.loaded && !photoGallery.error)
         )
+      : activeTab === "videos"
+      ? videoRows(
+          videoGallery.videos,
+          videoGallery.loading || (!videoGallery.loaded && !videoGallery.error)
+        )
       : activeTab === "likes"
       ? likedPosts || []
       : activeTab === "following"
@@ -681,12 +697,21 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   const isPostTab = activeTab === "posts" || activeTab === "likes";
 
   const listKeyExtractor = (item) =>
-    isPostTab ? `post-${item.id}` : activeTab === "photos" ? String(item.id) : `user-${item.id}`;
+    isPostTab
+      ? `post-${item.id}`
+      : activeTab === "photos" || activeTab === "videos"
+      ? String(item.id)
+      : `user-${item.id}`;
 
   const renderListItem = ({ item }) => {
     if (activeTab === "photos") {
       return (
         <PhotoGridRow row={item} onPress={(index) => setPhotoViewer({ visible: true, index })} />
+      );
+    }
+    if (activeTab === "videos") {
+      return (
+        <VideoGridRow row={item} onPress={(index) => setVideoViewer({ visible: true, index })} />
       );
     }
     if (isPostTab) {
@@ -737,6 +762,29 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           </Text>
         </View>
       )
+    ) : activeTab === "videos" ? (
+      videoGallery.error ? (
+        <View style={{ alignItems: "center", paddingHorizontal: 16 }}>
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 24 }}>
+            {t("profile.videosError")}
+          </Text>
+          <TouchableOpacity
+            onPress={videoGallery.reload}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={{ marginTop: 12, borderWidth: 1, borderColor: theme.primary, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}
+          >
+            <Text style={{ color: theme.primary, fontWeight: "700" }}>{t("profile.videosRetry")}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ alignItems: "center", marginTop: 20, paddingHorizontal: 16 }}>
+          <Ionicons name="videocam-outline" size={50} color={theme.subText} />
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 10 }}>
+            {t("profile.emptyVideos")}
+          </Text>
+        </View>
+      )
     ) :
     activeTab === "likes" && loadingLiked ? null :
     <View>
@@ -763,6 +811,21 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           ) : (
             <Text style={{ color: theme.primary, fontWeight: "600" }}>
               {t('profile.loadMorePhotos')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
+      {activeTab === "videos" && videoGallery.hasMore && (
+        <TouchableOpacity
+          onPress={videoGallery.loadMore}
+          disabled={videoGallery.loadingMore}
+          style={{ alignItems: "center", paddingVertical: 16 }}
+        >
+          {videoGallery.loadingMore ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Text style={{ color: theme.primary, fontWeight: "600" }}>
+              {t('profile.loadMoreVideos')}
             </Text>
           )}
         </TouchableOpacity>
@@ -1062,7 +1125,7 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                (activeTab === "posts" || activeTab === "photos") && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
+                (activeTab === "posts" || activeTab === "photos" || activeTab === "videos") && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("posts")}
             >
@@ -1122,12 +1185,12 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
             </TouchableOpacity>
           </View>
 
-          {/* Posts tab: the posts themselves, or every photo in them. */}
-          {(activeTab === "posts" || activeTab === "photos") && (
+          {/* Posts tab: the posts themselves, or every photo/video in them. */}
+          {(activeTab === "posts" || activeTab === "photos" || activeTab === "videos") && (
             <View
               style={{
                 marginTop: 16,
-                marginBottom: activeTab === "photos" ? 12 : 0,
+                marginBottom: activeTab === "photos" || activeTab === "videos" ? 12 : 0,
                 alignSelf: "center",
                 flexDirection: "row",
                 backgroundColor: theme.iconBackground,
@@ -1143,6 +1206,13 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
                     photoGallery.loaded && photoGallery.total > 0
                       ? t("profile.photosTabCount", { total: photoGallery.total })
                       : t("profile.photosTab"),
+                },
+                {
+                  value: "videos",
+                  label:
+                    videoGallery.loaded && videoGallery.total > 0
+                      ? t("profile.videosTabCount", { total: videoGallery.total })
+                      : t("profile.videosTab"),
                 },
               ].map((segment) => {
                 const selected = activeTab === segment.value;
@@ -1364,6 +1434,17 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           onOpenPost={(photo) => {
             setPhotoViewer((current) => ({ ...current, visible: false }));
             navigation.push("PostScreen", { postId: photo.post_id });
+          }}
+        />
+
+        <ProfileVideoViewer
+          videos={videoGallery.videos}
+          index={videoViewer.index}
+          visible={videoViewer.visible}
+          onClose={() => setVideoViewer((current) => ({ ...current, visible: false }))}
+          onOpenPost={(video) => {
+            setVideoViewer((current) => ({ ...current, visible: false }));
+            navigation.push("PostScreen", { postId: video.post_id });
           }}
         />
 
