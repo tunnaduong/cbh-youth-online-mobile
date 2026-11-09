@@ -82,6 +82,9 @@ export const CallProvider = ({ children }) => {
   const ringingRetryTimersRef = useRef([]);
   const ringingAckReceivedRef = useRef(false);
   const offerStartedForCallRef = useRef(null);
+  const sdpChunksBufferRef = useRef({});
+  const processedSignalSeqRef = useRef(0);
+  const processedCandidatesSetRef = useRef(new Set());
   const callTypeRef = useRef("audio");
 
   useEffect(() => {
@@ -152,6 +155,9 @@ export const CallProvider = ({ children }) => {
     clearRingingRetryTimers();
     ringingAckReceivedRef.current = false;
     offerStartedForCallRef.current = null;
+    sdpChunksBufferRef.current = {};
+    processedSignalSeqRef.current = 0;
+    processedCandidatesSetRef.current = new Set();
     bridgeRef.current?.sendMessage("STOP_RINGING");
     pendingRemoteOfferRef.current = null;
     stopTimer();
@@ -196,10 +202,7 @@ export const CallProvider = ({ children }) => {
 
   const startOutgoingRingingPhase = useCallback(() => {
     clearConnectingTimeout();
-    if (
-      callStatusRef.current === "calling" ||
-      callStatusRef.current === "ringingOutward"
-    ) {
+    if (callStatusRef.current === "calling") {
       callStatusRef.current = "ringingOutward";
       setCallStatus("ringingOutward");
       bridgeRef.current?.sendMessage("START_OUTGOING_RING");
@@ -226,7 +229,7 @@ export const CallProvider = ({ children }) => {
     }
   }, [clearConnectingTimeout, clearRingingTimeout, endCall]);
 
-  // Shared event handlers for both user private channel and conversation presence channel
+  // Shared event handlers for both user private channel, conversation presence channel, and HTTP sync
   const handleCallAnsweredEvent = useCallback(
     (data) => {
       const callData = data?.call || data;
@@ -265,10 +268,12 @@ export const CallProvider = ({ children }) => {
         }
       }
 
-      playCallConnectedHaptic();
-      callStatusRef.current = "connected";
-      setCallStatus("connected");
-      startTimer();
+      if (callStatusRef.current !== "connected") {
+        playCallConnectedHaptic();
+        callStatusRef.current = "connected";
+        setCallStatus("connected");
+        startTimer();
+      }
     },
     [
       userInfo?.id,
@@ -350,35 +355,145 @@ export const CallProvider = ({ children }) => {
         return;
       }
 
-      if (data?.type === "ringing") {
+      let type = data?.type;
+      let payload = data?.payload;
+
+      if (type === "sdp_chunk" && payload) {
+        const {
+          chunk_group_id,
+          chunk_index,
+          total_chunks,
+          original_type,
+          chunk,
+        } = payload;
+        if (!chunk_group_id || typeof chunk_index !== "number") return;
+        if (!sdpChunksBufferRef.current[chunk_group_id]) {
+          sdpChunksBufferRef.current[chunk_group_id] = {
+            total: total_chunks,
+            parts: {},
+          };
+        }
+        sdpChunksBufferRef.current[chunk_group_id].parts[chunk_index] = chunk;
+        const group = sdpChunksBufferRef.current[chunk_group_id];
+        if (Object.keys(group.parts).length < group.total) {
+          return;
+        }
+        try {
+          let fullJson = "";
+          for (let i = 0; i < group.total; i++) {
+            fullJson += group.parts[i] || "";
+          }
+          delete sdpChunksBufferRef.current[chunk_group_id];
+          type = original_type;
+          payload = JSON.parse(fullJson);
+        } catch (e) {
+          return;
+        }
+      }
+
+      if (type === "ringing") {
         console.log("[CallContext] Callee received call and started ringing.");
         ringingAckReceivedRef.current = true;
         if (callStatusRef.current === "calling") {
           startOutgoingRingingPhase();
         }
         return;
-      } else if (data?.type === "candidate") {
+      } else if (type === "candidate") {
+        if (!payload || !payload.candidate) return;
+        const candKey = payload.candidate;
+        if (processedCandidatesSetRef.current.has(candKey)) return;
+        processedCandidatesSetRef.current.add(candKey);
         bridgeRef.current?.sendMessage("ADD_ICE_CANDIDATE", {
-          candidate: data.payload,
+          candidate: payload,
         });
-      } else if (data?.type === "offer") {
-        pendingRemoteOfferRef.current = data.payload;
+      } else if (type === "offer") {
+        pendingRemoteOfferRef.current = payload;
         bridgeRef.current?.sendMessage("SET_REMOTE_SDP", {
-          sdp: data.payload,
-          callId: data.call_id || current.id,
+          sdp: payload,
+          callId: data?.call_id || current.id,
           callType: callTypeRef.current,
         });
-      } else if (data?.type === "answer") {
+      } else if (type === "answer") {
         bridgeRef.current?.sendMessage("STOP_RINGING");
         bridgeRef.current?.sendMessage("SET_REMOTE_SDP", {
-          sdp: data.payload,
-          callId: data.call_id || current.id,
+          sdp: payload,
+          callId: data?.call_id || current.id,
           callType: callTypeRef.current,
         });
       }
     },
     [userInfo?.id, startOutgoingRingingPhase]
   );
+
+  // Continuous HTTP signal & call state sync while a call is active
+  // (guarantees 100% signal delivery even if WebSocket drops or SDP exceeds Reverb limits)
+  useEffect(() => {
+    if (!isLoggedIn || callStatus === "idle") return;
+
+    let cancelled = false;
+    const syncCallSignals = async () => {
+      const cur = activeCallRef.current;
+      if (!cur?.id || cancelled) return;
+
+      try {
+        const res = await getActiveCallApi(cur.id);
+        if (cancelled) return;
+        const remoteCall = res?.data?.call;
+        const signals = res?.data?.signals;
+
+        if (Array.isArray(signals)) {
+          for (const sig of signals) {
+            if (sig.seq && sig.seq > processedSignalSeqRef.current) {
+              processedSignalSeqRef.current = sig.seq;
+            }
+            if (String(sig.sender_id) !== String(userInfo?.id)) {
+              handleCallSignaledEvent(sig);
+            }
+          }
+        }
+
+        if (remoteCall && String(remoteCall.id) === String(cur.id)) {
+          if (
+            remoteCall.status === "accepted" &&
+            String(remoteCall.caller?.id) === String(userInfo?.id)
+          ) {
+            handleCallAnsweredEvent({ call: remoteCall });
+          } else if (
+            remoteCall.status === "rejected" ||
+            remoteCall.status === "busy"
+          ) {
+            handleCallRejectedEvent({
+              call_id: remoteCall.id,
+              reason: remoteCall.end_reason || remoteCall.status,
+            });
+          } else if (
+            remoteCall.status === "ended" ||
+            remoteCall.status === "cancelled" ||
+            remoteCall.status === "missed"
+          ) {
+            handleCallEndedEvent({ call: remoteCall });
+          }
+        }
+      } catch {}
+    };
+
+    const interval = setInterval(syncCallSignals, 1200);
+    syncCallSignals();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [
+    isLoggedIn,
+    callStatus,
+    activeCall?.id,
+    userInfo?.id,
+    handleCallSignaledEvent,
+    handleCallAnsweredEvent,
+    handleCallRejectedEvent,
+    handleCallEndedEvent,
+  ]);
 
   // Join chat presence channel for call signals & status changes
   const joinConversationPresence = useCallback(
@@ -463,6 +578,7 @@ export const CallProvider = ({ children }) => {
         return;
       }
 
+      processedSignalSeqRef.current = 0;
       activeCallRef.current = call;
       setActiveCall(call);
       callTypeRef.current = call.type || "audio";
@@ -538,6 +654,7 @@ export const CallProvider = ({ children }) => {
 
         ringingAckReceivedRef.current = false;
         offerStartedForCallRef.current = null;
+        processedSignalSeqRef.current = 0;
         callTypeRef.current = type;
         setCallType(type);
         callStatusRef.current = "calling";
@@ -625,7 +742,6 @@ export const CallProvider = ({ children }) => {
     stopRingtoneVibration();
 
     if (!CALL_FEATURES_ENABLED) {
-      // Loophole mode: incoming call UI and ringtone play, but pressing call/answer exits
       playCallEndedHaptic();
       const call = activeCallRef.current;
       cleanupCallState();
@@ -692,6 +808,7 @@ export const CallProvider = ({ children }) => {
         const call = pushData?.call || pushData;
         if (!call || activeCallRef.current) return;
 
+        processedSignalSeqRef.current = 0;
         activeCallRef.current = call;
         setActiveCall(call);
         callTypeRef.current = call.type || "audio";
@@ -763,6 +880,7 @@ export const CallProvider = ({ children }) => {
           !activeCallRef.current &&
           String(call.caller?.id) !== String(userInfo?.id)
         ) {
+          processedSignalSeqRef.current = 0;
           activeCallRef.current = call;
           setActiveCall(call);
           callTypeRef.current = call.type || "audio";

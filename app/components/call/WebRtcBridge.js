@@ -45,6 +45,25 @@ const buildWebRtcHtml = (base64Audio) => `
     let offerCreatedForCallId = null;
     let processedOfferSdp = null;
     let processedAnswerSdp = null;
+    let commandQueue = Promise.resolve();
+
+    function serializeSdp(desc) {
+      if (!desc) return null;
+      return {
+        type: desc.type,
+        sdp: desc.sdp
+      };
+    }
+
+    function serializeCandidate(cand) {
+      if (!cand) return null;
+      return {
+        candidate: cand.candidate,
+        sdpMid: cand.sdpMid != null ? cand.sdpMid : null,
+        sdpMLineIndex: cand.sdpMLineIndex != null ? cand.sdpMLineIndex : null,
+        usernameFragment: cand.usernameFragment != null ? cand.usernameFragment : null
+      };
+    }
 
     function sendToNative(data) {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -254,7 +273,11 @@ const buildWebRtcHtml = (base64Audio) => `
 
       pc.onicecandidate = function(event) {
         if (event.candidate) {
-          sendToNative({ type: 'ICE_CANDIDATE', candidate: event.candidate, callId: callId || currentCallId });
+          sendToNative({
+            type: 'ICE_CANDIDATE',
+            candidate: serializeCandidate(event.candidate),
+            callId: callId || currentCallId
+          });
         }
       };
 
@@ -303,7 +326,7 @@ const buildWebRtcHtml = (base64Audio) => `
       return pc;
     }
 
-    window.handleNativeMessage = async function(msg) {
+    async function processNativeMessage(msg) {
       try {
         const parsed = JSON.parse(msg);
         const action = parsed.action;
@@ -357,7 +380,11 @@ const buildWebRtcHtml = (base64Audio) => `
             offerToReceiveVideo: callType === 'video'
           });
           await peer.setLocalDescription(offer);
-          sendToNative({ type: 'OFFER_CREATED', sdp: peer.localDescription, callId: callId });
+          sendToNative({
+            type: 'OFFER_CREATED',
+            sdp: serializeSdp(peer.localDescription),
+            callId: callId
+          });
         }
 
         else if (action === 'ANSWER_INCOMING_CALL') {
@@ -369,11 +396,12 @@ const buildWebRtcHtml = (base64Audio) => `
           currentCallId = callId;
           currentCallType = callType;
 
-          const offerToUse = remoteOffer || pendingRemoteSdp;
           const stream = await acquireLocalMedia(callType);
           const peer = pc || createPeerConnection(callId);
           attachTracksOrTransceivers(peer, stream, callType);
 
+          // Read pendingRemoteSdp AFTER acquireLocalMedia in case offer arrived during getUserMedia
+          const offerToUse = remoteOffer || pendingRemoteSdp;
           if (offerToUse && offerToUse.type === 'offer') {
             pendingRemoteSdp = null;
             processedOfferSdp = offerToUse.sdp || 'processed';
@@ -381,7 +409,11 @@ const buildWebRtcHtml = (base64Audio) => `
             await drainQueuedCandidates();
             const answer = await peer.createAnswer();
             await peer.setLocalDescription(answer);
-            sendToNative({ type: 'ANSWER_CREATED', sdp: peer.localDescription, callId: callId });
+            sendToNative({
+              type: 'ANSWER_CREATED',
+              sdp: serializeSdp(peer.localDescription),
+              callId: callId
+            });
           }
         }
 
@@ -406,7 +438,11 @@ const buildWebRtcHtml = (base64Audio) => `
 
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            sendToNative({ type: 'ANSWER_CREATED', sdp: pc.localDescription, callId: callId });
+            sendToNative({
+              type: 'ANSWER_CREATED',
+              sdp: serializeSdp(pc.localDescription),
+              callId: callId
+            });
             return;
           }
 
@@ -472,6 +508,14 @@ const buildWebRtcHtml = (base64Audio) => `
         console.error('WebRTC bridge error:', err);
         sendToNative({ type: 'ERROR', message: err.message });
       }
+    }
+
+    window.handleNativeMessage = function(msg) {
+      commandQueue = commandQueue.then(function() {
+        return processNativeMessage(msg);
+      }).catch(function(err) {
+        console.error('Queue error:', err);
+      });
     };
   </script>
 </body>
@@ -532,7 +576,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 1,
     height: 1,
-    opacity: 0,
+    opacity: 0.01,
+    bottom: 0,
+    right: 0,
     zIndex: -999,
   },
 });
