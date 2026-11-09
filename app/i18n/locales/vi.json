@@ -653,6 +653,7 @@
     "turnOff": "Tắt",
     "enabledToastTitle": "Đã bật chế độ nhà phát triển",
     "enabledToastDesc": "Mục Bảng debug giờ đã xuất hiện trong phần Giới thiệu.",
+    "stepsRemaining": "Còn {{count}} bước nữa để bật chế độ nhà phát triển",
     "copied": "Đã sao chép log",
     "copiedAll": "Đã sao chép toàn bộ log"
   },

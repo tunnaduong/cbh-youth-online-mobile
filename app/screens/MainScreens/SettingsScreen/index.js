@@ -102,6 +102,7 @@ export default function SettingsScreen({ navigation }) {
   // Tapping the version text 5 times within 3s toggles on the hidden
   // developer debug console (persistent - re-checked whenever this screen
   // gains focus, since it can also be turned off from inside that screen).
+  const DEV_MODE_TAPS = 5;
   const [devMode, setDevMode] = React.useState(false);
   const versionTapCountRef = useRef(0);
   const versionTapTimerRef = useRef(null);
@@ -113,26 +114,34 @@ export default function SettingsScreen({ navigation }) {
   );
 
   const handleVersionTap = () => {
+    if (isDevModeEnabled()) return;
+
     versionTapCountRef.current += 1;
     clearTimeout(versionTapTimerRef.current);
     versionTapTimerRef.current = setTimeout(() => {
       versionTapCountRef.current = 0;
     }, 3000);
 
-    if (versionTapCountRef.current >= 5) {
+    const count = versionTapCountRef.current;
+    if (count >= DEV_MODE_TAPS) {
       versionTapCountRef.current = 0;
       clearTimeout(versionTapTimerRef.current);
-      if (!isDevModeEnabled()) {
-        setDevModeEnabled(true).then(() => {
-          setDevMode(true);
-          Toast.show({
-            type: "success",
-            text1: t("devConsole.enabledToastTitle"),
-            text2: t("devConsole.enabledToastDesc"),
-            visibilityTime: 3000,
-          });
+      setDevModeEnabled(true).then(() => {
+        setDevMode(true);
+        Toast.show({
+          type: "success",
+          text1: t("devConsole.enabledToastTitle"),
+          text2: t("devConsole.enabledToastDesc"),
+          visibilityTime: 3000,
         });
-      }
+      });
+    } else if (count >= DEV_MODE_TAPS - 2) {
+      const remaining = DEV_MODE_TAPS - count;
+      Toast.show({
+        type: "info",
+        text1: t("devConsole.stepsRemaining", { count: remaining }),
+        visibilityTime: 1800,
+      });
     }
   };
 
@@ -393,32 +402,7 @@ export default function SettingsScreen({ navigation }) {
         {/* Version & Social */}
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => {
-            handleVersionTap();
-            const lines = [
-              "Diễn đàn hs Chuyên Biên Hòa là sân chơi của chuyên Nga :)))",
-              "1 trong 2 người tạo ra là chuyên Nga K60",
-              "Quản lý page chính Nga K67",
-              "Developer chăm chỉ Nga K67 :))",
-              "Phát triển Discord Nga K68",
-              "Thank you Dương Tùng Anh",
-              "Mãi mãi là chuyên Nga!!",
-              "Em yêu chuyên Nga",
-              "Cảm ơn bạn đã dùng app",
-              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ",
-              "Chúc bạn có một ngày vui vẻ!",
-              "Cảm ơn bạn đã sử dụng app",
-              "Test app là 1 cách để đóng góp cho dự án",
-              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3",
-              "Mãi yêu a Tùng Anh",
-            ];
-            Toast.show({
-              type: "success",
-              text1: "Lời nhắn từ nhà phát triển app",
-              text2: lines[Math.floor(Math.random() * lines.length)],
-              visibilityTime: 3000,
-            });
-          }}
+          onPress={handleVersionTap}
         >
           <Text style={[styles.versionText, { color: theme.subText }]}>
             {t("settings.version", {

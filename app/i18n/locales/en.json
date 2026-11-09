@@ -663,6 +663,9 @@
     "turnOff": "Turn off",
     "enabledToastTitle": "Developer mode enabled",
     "enabledToastDesc": "A Debug Console item now appears under About.",
+    "stepsRemaining": "{{count}} more steps to open developer options",
+    "stepsRemaining_one": "{{count}} more step to open developer options",
+    "stepsRemaining_other": "{{count}} more steps to open developer options",
     "copied": "Log copied",
     "copiedAll": "Logs copied"
   },
