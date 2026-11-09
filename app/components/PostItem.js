@@ -34,6 +34,7 @@ import {
   unarchivePost,
   votePost,
   reportUser,
+  translateTopic,
 } from "../services/api/Api";
 import ReportModal from "./ReportModal";
 import PostVotesModal from "./PostVotesModal";
@@ -47,7 +48,6 @@ import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
-import { postRequest } from "../services/api/ApiByAxios";
 import { getAiTranslateLanguage, getLanguageDisplayName } from "../utils/aiTranslation";
 import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
@@ -672,9 +672,7 @@ const PostItem = ({
       visibilityTime: 3000,
     });
     try {
-      const res = await postRequest(`/v1.0/topics/${item.id}/translate`, {
-        target_lang: targetLang,
-      });
+      const res = await translateTopic(item.id, targetLang);
       if (res?.data?.success && res?.data?.translated) {
         setTranslatedData({
           ...res.data.translated,

@@ -51,6 +51,9 @@ export function getLanguageDisplayName(code, t) {
   if (code === "auto") {
     return t ? t("settings.aiTranslateAuto", "Tự động") : "Tự động";
   }
-  const item = AI_TRANSLATION_LANGUAGES.find((l) => l.code === code);
-  return item ? `${item.flag} ${item.label}` : code;
+  const normCode = code === "zh-cn" ? "zh" : code;
+  const item = AI_TRANSLATION_LANGUAGES.find((l) => l.code === normCode);
+  if (!item) return code;
+  const label = item.label || (item.labelKey && t ? t(item.labelKey) : normCode);
+  return `${item.flag} ${label}`;
 }

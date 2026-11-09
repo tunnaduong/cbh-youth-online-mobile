@@ -142,6 +142,10 @@ export const getPostVotes = (id, config = {}) => {
   return Api.getRequest("/v1.0/topics/" + id + "/votes", config);
 };
 
+export const translateTopic = (id, targetLang = "vi") => {
+  return Api.postRequest(`/v1.0/topics/${id}/translate`, { target_lang: targetLang });
+};
+
 export const getCommentVotes = (id, config = {}) => {
   return Api.getRequest("/v1.0/comments/" + id + "/votes", config);
 };
