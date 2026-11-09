@@ -285,7 +285,7 @@ export default function AppUpdatesScreen({ navigation }) {
             </View>
             <Text style={[styles.heroTitle, { color: theme.text }]}>CBH Online</Text>
             <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
-              {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.5.6"} ({Application.nativeBuildVersion || "1100"})
+              {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.7.4"} ({Application.nativeBuildVersion || "1103"})
             </Text>
           </View>
 
@@ -495,7 +495,7 @@ export default function AppUpdatesScreen({ navigation }) {
                 {t("about.baseAppVersion", "Phiên bản gốc (Base)")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
-                {Application.nativeApplicationVersion || "6.5.6"} (Build {Application.nativeBuildVersion || "1100"})
+                {Application.nativeApplicationVersion || "6.7.4"} (Build {Application.nativeBuildVersion || "1103"})
               </Text>
             </View>
 

@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Version 6.7.4 & Build 1103**:
+  - `app.json` and `package.json` version bumped to `6.7.4`.
+  - Android `versionCode` and iOS `buildNumber` set to `1103` via `scripts/set-build-number.js`.
+  - Updated fallback version string in `AppUpdatesScreen.js`.
+
 - **Fix iOS OTA and In-Place Upgrade Missing Assets & Icons**:
   - `app/services/ota/patchLocalAssets.js` & `index.js`: Bridged manifest asset URLs (which contain Metro's MD5 packager hash) directly into `ExpoUpdates.localAssets` at app initialization. Fixes missing icons in `@expo/vector-icons` and blank images on iOS during OTA updates where Metro resolves assets by MD5 hash while `expo-updates` stored only the SHA-256 key.
   - `patches/expo-asset+55.0.18.patch`: Added fallback in `Asset.fx.ts` and `LocalAssets.ts` so unresolved asset sources safely fall back to `resolver.defaultAsset()` rather than rendering blank `resolver.fromSource("")`, and added heuristic key matching in `LocalAssets.ts`.
