@@ -1,3 +1,4 @@
+import "./app/services/ota/patchLocalAssets";
 import React from "react";
 import { registerRootComponent } from "expo";
 import * as SplashScreen from "expo-splash-screen";

@@ -1,0 +1,78 @@
+diff --git a/node_modules/expo-asset/build/Asset.fx.js b/node_modules/expo-asset/build/Asset.fx.js
+index ea2781c..ad3b42c 100644
+--- a/node_modules/expo-asset/build/Asset.fx.js
++++ b/node_modules/expo-asset/build/Asset.fx.js
+@@ -15,7 +15,13 @@ if (IS_ENV_WITH_LOCAL_ASSETS) {
+                     // Please compare `AssetSourceResolver` type from `react-native/Libraries/Image/AssetSourceResolver` against `./AssetSourceResolver`
+                     return resolver.resourceIdentifierWithoutScale();
+                 }
+-                return resolver.fromSource(asset.downloaded ? asset.localUri : asset.uri);
++                if (asset.downloaded && asset.localUri) {
++                    return resolver.fromSource(asset.localUri);
++                }
++                if (asset.uri && asset.uri.length > 0 && !asset.uri.startsWith('http://localhost')) {
++                    return resolver.fromSource(asset.uri);
++                }
++                return resolver.defaultAsset();
+             }
+             else {
+                 return resolver.defaultAsset();
+diff --git a/node_modules/expo-asset/build/LocalAssets.js b/node_modules/expo-asset/build/LocalAssets.js
+index 0f1c966..98ab631 100644
+--- a/node_modules/expo-asset/build/LocalAssets.js
++++ b/node_modules/expo-asset/build/LocalAssets.js
+@@ -15,8 +15,14 @@ export function getLocalAssetUri(hash, type) {
+             // legacy updates store assets with an extension
+             return localAssets[legacyLocalAssetsKey];
+         }
+-        default:
++        default: {
++            for (const key of Object.keys(localAssets)) {
++                if (key.includes(hash) || (typeof localAssets[key] === 'string' && localAssets[key].includes(hash))) {
++                    return localAssets[key];
++                }
++            }
+             return null;
++        }
+     }
+ }
+ //# sourceMappingURL=LocalAssets.js.map
+\ No newline at end of file
+diff --git a/node_modules/expo-asset/src/Asset.fx.ts b/node_modules/expo-asset/src/Asset.fx.ts
+index 75f1fb5..270f43d 100644
+--- a/node_modules/expo-asset/src/Asset.fx.ts
++++ b/node_modules/expo-asset/src/Asset.fx.ts
+@@ -21,7 +21,13 @@ if (IS_ENV_WITH_LOCAL_ASSETS) {
+             resolver as unknown as AssetSourceResolver
+           ).resourceIdentifierWithoutScale() as any;
+         }
+-        return resolver.fromSource(asset.downloaded ? asset.localUri! : asset.uri);
++        if (asset.downloaded && asset.localUri) {
++          return resolver.fromSource(asset.localUri);
++        }
++        if (asset.uri && asset.uri.length > 0 && !asset.uri.startsWith('http://localhost')) {
++          return resolver.fromSource(asset.uri);
++        }
++        return resolver.defaultAsset();
+       } else {
+         return resolver.defaultAsset();
+       }
+diff --git a/node_modules/expo-asset/src/LocalAssets.ts b/node_modules/expo-asset/src/LocalAssets.ts
+index eb588f1..c0291a4 100644
+--- a/node_modules/expo-asset/src/LocalAssets.ts
++++ b/node_modules/expo-asset/src/LocalAssets.ts
+@@ -18,7 +18,13 @@ export function getLocalAssetUri(hash: string, type: string | null): string | nu
+       // legacy updates store assets with an extension
+       return localAssets[legacyLocalAssetsKey];
+     }
+-    default:
++    default: {
++      for (const key of Object.keys(localAssets)) {
++        if (key.includes(hash) || (typeof localAssets[key] === 'string' && localAssets[key].includes(hash))) {
++          return localAssets[key];
++        }
++      }
+       return null;
++    }
+   }
+ }

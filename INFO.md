@@ -356,6 +356,15 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Fix iOS OTA and In-Place Upgrade Missing Assets & Icons**:
+  - `app/services/ota/patchLocalAssets.js` & `index.js`: Bridged manifest asset URLs (which contain Metro's MD5 packager hash) directly into `ExpoUpdates.localAssets` at app initialization. Fixes missing icons in `@expo/vector-icons` and blank images on iOS during OTA updates where Metro resolves assets by MD5 hash while `expo-updates` stored only the SHA-256 key.
+  - `patches/expo-asset+55.0.18.patch`: Added fallback in `Asset.fx.ts` and `LocalAssets.ts` so unresolved asset sources safely fall back to `resolver.defaultAsset()` rather than rendering blank `resolver.fromSource("")`, and added heuristic key matching in `LocalAssets.ts`.
+  - `patches/expo-updates+55.0.26.patch`:
+    - `AppLauncherWithDatabase.swift`: Expanded `assetFilesMap` to index both SHA-256 key, URL MD5 hash, and main bundle filenames with/without extensions; ensured `checkExistence` verifies non-zero file size; removed existing collision files before `FileManager.copyItem`; filtered out stale launchable updates with `commitTime <= embeddedManifest.commitTime` on upgrade so the new embedded binary and fresh assets are launched.
+    - `UpdatesUtils.swift`: Fully mapped embedded asset filenames and keys into `embeddedAssetsMap`, and added resilient fallback lookup in `path(forBundledAsset:)`.
+    - `UpdatesConfig.swift`: Validated configuration unconditionally to `VALID` and defaulted update URL to `https://api.chuyenbienhoa.com/v1.0/ota/manifest` and runtime version to `"7.4.10"`.
+  - `app.json`: Added `"assetBundlePatterns": ["**/*"]` under `"expo"` to ensure all assets are bundled into standalone binaries.
+
 - **Version 6.5.6 & Build 1100**:
   - `app.json` and `package.json` version bumped to `6.5.6`.
   - Android `versionCode` and iOS `buildNumber` set to `1100`.

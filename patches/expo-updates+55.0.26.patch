@@ -88,3 +88,220 @@ index 8d6d273..1a48eb9 100644
        return UpdatesConfigurationValidationResult.VALID
      }
  
+diff --git a/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift b/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift
+index 76737f3..98a52f7 100644
+--- a/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift
++++ b/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift
+@@ -107,6 +107,15 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+             continue
+           }
+ 
++          // When upgrading from an older binary build to a newer native binary, if an older remote update
++          // from a previous binary is in the database with commitTime older than or equal to the new embedded manifest,
++          // ignore the older update so the new embedded update with all its fresh assets is preferred.
++          if let embeddedManifest = embeddedManifest,
++             update.status != UpdateStatus.StatusEmbedded,
++             update.commitTime <= embeddedManifest.commitTime {
++            continue
++          }
++
+           filteredLaunchableUpdates.append(update)
+         }
+ 
+@@ -214,8 +223,33 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+           if asset.isLaunchAsset {
+             self.launchAssetUrl = assetLocalUrl
+           } else {
++            let localUrlString = assetLocalUrl.absoluteString
+             if let assetKey = asset.key {
+-              self.assetFilesMap![assetKey] = assetLocalUrl.absoluteString
++              self.assetFilesMap![assetKey] = localUrlString
++              if let type = asset.type, !type.isEmpty {
++                let cleanType = type.hasPrefix(".") ? String(type.dropFirst()) : type
++                self.assetFilesMap!["\(assetKey).\(cleanType)"] = localUrlString
++                self.assetFilesMap!["\(assetKey).\(type)"] = localUrlString
++              }
++            }
++            if let url = asset.url {
++              let urlFilename = url.lastPathComponent
++              if !urlFilename.isEmpty {
++                self.assetFilesMap![urlFilename] = localUrlString
++                if let type = asset.type, !type.isEmpty {
++                  let cleanType = type.hasPrefix(".") ? String(type.dropFirst()) : type
++                  self.assetFilesMap!["\(urlFilename).\(cleanType)"] = localUrlString
++                  self.assetFilesMap!["\(urlFilename).\(type)"] = localUrlString
++                }
++              }
++            }
++            if let mainBundleFilename = asset.mainBundleFilename, !mainBundleFilename.isEmpty {
++              self.assetFilesMap![mainBundleFilename] = localUrlString
++              if let type = asset.type, !type.isEmpty {
++                let cleanType = type.hasPrefix(".") ? String(type.dropFirst()) : type
++                self.assetFilesMap!["\(mainBundleFilename).\(cleanType)"] = localUrlString
++                self.assetFilesMap!["\(mainBundleFilename).\(type)"] = localUrlString
++              }
+             }
+           }
+         }
+@@ -275,7 +309,13 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+ 
+   private func checkExistence(ofAsset asset: UpdateAsset, withLocalUrl assetLocalUrl: URL, completion: @escaping (Bool) -> Void) {
+     FileDownloader.assetFilesQueue.async {
+-      let exists = FileManager.default.fileExists(atPath: assetLocalUrl.path)
++      var exists = false
++      if FileManager.default.fileExists(atPath: assetLocalUrl.path) {
++        if let attrs = try? FileManager.default.attributesOfItem(atPath: assetLocalUrl.path),
++           let size = attrs[.size] as? UInt64, size > 0 {
++          exists = true
++        }
++      }
+       self.launcherQueue.async {
+         completion(exists)
+       }
+@@ -309,6 +349,9 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+         }
+ 
+         do {
++          if FileManager.default.fileExists(atPath: assetLocalUrl.path) {
++            try? FileManager.default.removeItem(atPath: assetLocalUrl.path)
++          }
+           try FileManager.default.copyItem(atPath: bundlePath, toPath: assetLocalUrl.path)
+           self.launcherQueue.async {
+             completion(true, nil)
+diff --git a/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift b/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift
+index 2bd7b5e..9aa5886 100644
+--- a/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift
++++ b/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift
+@@ -172,45 +172,26 @@ public final class UpdatesConfig: NSObject {
+ 
+   private static func getRuntimeVersion(fromDictionary config: [String: Any]) -> String? {
+     let runtimeVersion: String? = config.optionalValue(forKey: EXUpdatesConfigRuntimeVersionKey)
+-    guard let runtimeVersion = runtimeVersion, !runtimeVersion.isEmpty else {
+-      return nil
+-    }
+-
+-    if runtimeVersion == EXUpdatesConfigRuntimeVersionReadFingerprintFileSentinel {
+-      let frameworkBundle = Bundle(for: UpdatesConfig.self)
+-      guard let resourceUrl = frameworkBundle.resourceURL,
+-        let bundle = Bundle(url: resourceUrl.appendingPathComponent("EXUpdates.bundle")),
+-        let path = bundle.path(forResource: "fingerprint", ofType: nil),
+-        let fingerprint = try? String(contentsOfFile: path) else {
+-        return nil
++    if let runtimeVersion = runtimeVersion, !runtimeVersion.isEmpty {
++      if runtimeVersion == EXUpdatesConfigRuntimeVersionReadFingerprintFileSentinel {
++        let frameworkBundle = Bundle(for: UpdatesConfig.self)
++        guard let resourceUrl = frameworkBundle.resourceURL,
++          let bundle = Bundle(url: resourceUrl.appendingPathComponent("EXUpdates.bundle")),
++          let path = bundle.path(forResource: "fingerprint", ofType: nil),
++          let fingerprint = try? String(contentsOfFile: path) else {
++          return "7.4.10"
++        }
++        return fingerprint
+       }
+-      return fingerprint
++      return runtimeVersion
+     }
+-
+-    return runtimeVersion
++    return "7.4.10"
+   }
+ 
+   public static func getUpdatesConfigurationValidationResult(
+     mergingOtherDictionary: [String: Any]?,
+     configOverride: UpdatesConfigOverride? = UpdatesConfigOverride.load()
+   ) -> UpdatesConfigurationValidationResult {
+-    guard let dictionary = try? configDictionaryWithExpoPlist(mergingOtherDictionary: mergingOtherDictionary) else {
+-      return UpdatesConfigurationValidationResult.InvalidPlistError
+-    }
+-
+-    guard dictionary.optionalValue(forKey: EXUpdatesConfigEnabledKey) ?? true else {
+-      return UpdatesConfigurationValidationResult.InvalidNotEnabled
+-    }
+-
+-    let updateUrl = getUpdateUrl(fromDictionary: dictionary, configOverride: configOverride)
+-    guard updateUrl != nil else {
+-      return UpdatesConfigurationValidationResult.InvalidMissingURL
+-    }
+-
+-    guard getRuntimeVersion(mergingOtherDictionary: mergingOtherDictionary) != nil else {
+-      return UpdatesConfigurationValidationResult.InvalidMissingRuntimeVersion
+-    }
+-
+     return UpdatesConfigurationValidationResult.Valid
+   }
+ 
+@@ -400,7 +381,7 @@ public final class UpdatesConfig: NSObject {
+   private static func getOriginalEmbeddedUpdateUrl(fromDictionary config: [String: Any]) -> URL? {
+     return config.optionalValue(forKey: EXUpdatesConfigUpdateUrlKey).let { it in
+       URL(string: it)
+-    }
++    } ?? URL(string: "https://api.chuyenbienhoa.com/v1.0/ota/manifest")
+   }
+ 
+   private static func getRequestHeaders(
+diff --git a/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift b/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift
+index fa1fb9a..ff88701 100644
+--- a/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift
++++ b/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift
+@@ -116,7 +116,21 @@ public final class UpdatesUtils: NSObject {
+         let message = "AppLauncherWithDatabase: embedded asset key = \(asset.key ?? ""), main bundle filename = \(asset.mainBundleFilename ?? ""), path = \(absolutePath ?? "")"
+         logger.debug(message: message)
+         if let absolutePath = absolutePath {
+-          assetFilesMap[assetKey] = URL(fileURLWithPath: absolutePath).absoluteString
++          let fileUrlString = URL(fileURLWithPath: absolutePath).absoluteString
++          assetFilesMap[assetKey] = fileUrlString
++          if let ext = asset.type, !ext.isEmpty {
++            let cleanExt = ext.hasPrefix(".") ? String(ext.dropFirst()) : ext
++            assetFilesMap["\(assetKey).\(cleanExt)"] = fileUrlString
++            assetFilesMap["\(assetKey).\(ext)"] = fileUrlString
++          }
++          if let mainBundleFilename = asset.mainBundleFilename, !mainBundleFilename.isEmpty {
++            assetFilesMap[mainBundleFilename] = fileUrlString
++            if let ext = asset.type, !ext.isEmpty {
++              let cleanExt = ext.hasPrefix(".") ? String(ext.dropFirst()) : ext
++              assetFilesMap["\(mainBundleFilename).\(cleanExt)"] = fileUrlString
++              assetFilesMap["\(mainBundleFilename).\(ext)"] = fileUrlString
++            }
++          }
+         }
+       }
+     }
+@@ -125,17 +139,32 @@ public final class UpdatesUtils: NSObject {
+   }
+ 
+   internal static func url(forBundledAsset asset: UpdateAsset) -> URL? {
+-    guard let mainBundleDir = asset.mainBundleDir else {
+-      return updatesBundle.url(forResource: asset.mainBundleFilename, withExtension: asset.type)
++    if let mainBundleDir = asset.mainBundleDir {
++      if let url = updatesBundle.url(forResource: asset.mainBundleFilename, withExtension: asset.type, subdirectory: mainBundleDir) {
++        return url
++      }
++      return updatesBundle.url(forResource: asset.mainBundleFilename, withExtension: nil, subdirectory: mainBundleDir)
++    }
++    if let url = updatesBundle.url(forResource: asset.mainBundleFilename, withExtension: asset.type) {
++      return url
+     }
+-    return updatesBundle.url(forResource: asset.mainBundleFilename, withExtension: asset.type, subdirectory: mainBundleDir)
++    return updatesBundle.url(forResource: asset.mainBundleFilename, withExtension: nil)
+   }
+ 
+   internal static func path(forBundledAsset asset: UpdateAsset) -> String? {
+-    guard let mainBundleDir = asset.mainBundleDir else {
+-      return updatesBundle.path(forResource: asset.mainBundleFilename, ofType: asset.type)
++    var resolvedPath: String?
++    if let mainBundleDir = asset.mainBundleDir {
++      resolvedPath = updatesBundle.path(forResource: asset.mainBundleFilename, ofType: asset.type, inDirectory: mainBundleDir)
++        ?? updatesBundle.path(forResource: asset.mainBundleFilename, ofType: nil, inDirectory: mainBundleDir)
++    } else {
++      resolvedPath = updatesBundle.path(forResource: asset.mainBundleFilename, ofType: asset.type)
++        ?? updatesBundle.path(forResource: asset.mainBundleFilename, ofType: nil)
++    }
++    if resolvedPath == nil, let key = asset.key {
++      resolvedPath = updatesBundle.path(forResource: key, ofType: asset.type)
++        ?? updatesBundle.path(forResource: key, ofType: nil)
+     }
+-    return updatesBundle.path(forResource: asset.mainBundleFilename, ofType: asset.type, inDirectory: mainBundleDir)
++    return resolvedPath
+   }
+ 
+   /**
