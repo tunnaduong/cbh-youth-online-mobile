@@ -7,7 +7,7 @@ import {
 } from "../services/api/Api";
 import { AuthContext } from "../contexts/AuthContext";
 import { useChatSocket } from "../contexts/ChatSocketContext";
-import { storage } from "../mmkv";
+import { storage } from "../global/storage";
 
 export const useUnreadCounts = () => {
   const { isLoggedIn, userInfo } = useContext(AuthContext);
