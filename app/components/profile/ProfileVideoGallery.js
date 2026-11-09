@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
+  FlatList,
   Image,
   Modal,
   StyleSheet,
@@ -17,6 +19,7 @@ import MediaShimmer from "../MediaShimmer";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getUserVideos } from "../../services/api/Api";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PAGE_SIZE = 30;
 export const VIDEO_COLUMNS = 3;
 const SKELETON_TILES = VIDEO_COLUMNS * 2;
@@ -219,19 +222,12 @@ export function VideoGridRow({ row, onPress }) {
 }
 
 /**
- * Full-screen Video Viewer for profile videos.
+ * Individual full-screen slide for a video with playback lifecycle.
  */
-export function ProfileVideoViewer({ videos = [], index = 0, visible, onClose, onOpenPost }) {
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-  const { autoplayVideos } = useTheme();
-
-  const currentVideo = videos[index] || null;
-  const videoUri = currentVideo?.url || null;
-
-  const player = useVideoPlayer(videoUri, (p) => {
+function VideoSlide({ video, isActive, autoplayVideos }) {
+  const player = useVideoPlayer(video?.url || null, (p) => {
     p.loop = false;
-    if (videoUri && autoplayVideos) p.play();
+    if (isActive && video?.url && autoplayVideos) p.play();
   });
 
   const [loadingVideo, setLoadingVideo] = useState(true);
@@ -250,24 +246,80 @@ export function ProfileVideoViewer({ videos = [], index = 0, visible, onClose, o
   }, [player]);
 
   useEffect(() => {
+    if (!player) return;
+    try {
+      if (isActive && autoplayVideos) {
+        player.play();
+      } else {
+        player.pause();
+      }
+    } catch {}
+  }, [isActive, player, autoplayVideos]);
+
+  useEffect(() => {
     return () => {
-      if (!player) return;
       try {
-        if (typeof player.pause === "function") player.pause();
-        if (typeof player.release === "function") player.release();
+        if (player) {
+          player.pause();
+          player.release();
+        }
       } catch {}
     };
-  }, [player, videoUri]);
-
-  if (!visible || !currentVideo) return null;
+  }, [player]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <View style={styles.slide}>
+      {player && (
+        <VideoView
+          style={StyleSheet.absoluteFill}
+          player={player}
+          allowsFullscreen
+          allowsPictureInPicture
+          nativeControls
+        />
+      )}
+      {loadingVideo && (
+        <View style={styles.spinnerWrapper} pointerEvents="none">
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Full-screen swipeable video viewer modal.
+ */
+function ProfileVideoViewerModal({ videos = [], initialIndex = 0, onClose, onOpenPost }) {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { autoplayVideos } = useTheme();
+
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const flatListRef = useRef(null);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (viewableItems && viewableItems.length > 0) {
+      const idx = viewableItems[0].index;
+      if (typeof idx === "number") {
+        setCurrentIndex(idx);
+      }
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 60,
+  }).current;
+
+  const currentVideo = videos[currentIndex] || videos[initialIndex] || null;
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.viewerBackdrop}>
         {/* Top Header */}
         <View style={[styles.viewerHeader, { paddingTop: insets.top + 8 }]}>
           <Text style={styles.viewerCount}>
-            {index + 1} / {videos.length}
+            {currentIndex + 1} / {videos.length}
           </Text>
           <TouchableOpacity
             onPress={onClose}
@@ -280,27 +332,37 @@ export function ProfileVideoViewer({ videos = [], index = 0, visible, onClose, o
           </TouchableOpacity>
         </View>
 
-        {/* Video Area */}
-        <View style={styles.videoWrapper}>
-          {player && (
-            <VideoView
-              style={StyleSheet.absoluteFill}
-              player={player}
-              allowsFullscreen
-              allowsPictureInPicture
-              nativeControls
-            />
-          )}
-          {loadingVideo && (
-            <View style={styles.spinnerWrapper} pointerEvents="none">
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-          )}
+        {/* Swipeable Video FlatList (like photos) */}
+        <View style={styles.carouselWrapper}>
+          <FlatList
+            ref={flatListRef}
+            data={videos}
+            keyExtractor={(item) => String(item.id)}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={initialIndex}
+            getItemLayout={(_, i) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * i,
+              index: i,
+            })}
+            onScrollToIndexFailed={() => {}}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            renderItem={({ item, index }) => (
+              <VideoSlide
+                video={item}
+                isActive={index === currentIndex}
+                autoplayVideos={autoplayVideos}
+              />
+            )}
+          />
         </View>
 
         {/* Bottom Footer */}
         <View style={[styles.viewerFooter, { paddingBottom: insets.bottom + 12 }]}>
-          {currentVideo.post_title ? (
+          {currentVideo?.post_title ? (
             <Text style={styles.viewerTitle} numberOfLines={2}>
               {currentVideo.post_title}
             </Text>
@@ -318,6 +380,22 @@ export function ProfileVideoViewer({ videos = [], index = 0, visible, onClose, o
         </View>
       </View>
     </Modal>
+  );
+}
+
+/**
+ * Full-screen Video Viewer for profile videos with swipe support.
+ */
+export function ProfileVideoViewer({ videos = [], index = 0, visible, onClose, onOpenPost }) {
+  if (!visible || !videos[index]) return null;
+
+  return (
+    <ProfileVideoViewerModal
+      videos={videos}
+      initialIndex={index}
+      onClose={onClose}
+      onOpenPost={onOpenPost}
+    />
   );
 }
 
@@ -356,8 +434,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     justifyContent: "space-between",
   },
-  videoWrapper: {
+  carouselWrapper: {
     flex: 1,
+  },
+  slide: {
+    width: SCREEN_WIDTH,
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
