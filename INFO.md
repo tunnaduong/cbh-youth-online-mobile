@@ -753,6 +753,11 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Added toggle switches in `AppUpdatesScreen.js` for "Bật cập nhật OTA" and "Kiểm tra khi khởi động", backed by MMKV storage keys `ota_enabled` and `ota_check_startup`, with full i18n support in `vi.json`, `en.json`, and `ru.json`.
   - For chats without avatar (such as support chats, bots, or users without profile pictures), the avatar is replaced with a clean circular thumbnail displaying the capitalized first letter on `theme.iconBackground` across `ChatScreen/index.js`, `ConversationHeader.js`, and `MessageRow.js`.
 
+- **Fix WebRTC End-to-End Signaling, Secure Context `baseUrl`, Two-Way Audio & Native Permissions** (`app/components/call/WebRtcBridge.js`, `app/contexts/CallContext.js`, `app/services/call/WebRtcBridge.js`, `app.json`, `plugins/withNativeTweaks.js`):
+  - `app/components/call/WebRtcBridge.js`: Added `baseUrl: "https://chuyenbienhoa.com"` to WebView `source` so `window.isSecureContext` is true and `navigator.mediaDevices.getUserMedia` is available on Android/iOS WebViews. Fixed `SET_REMOTE_SDP` to automatically create and send `ANSWER_CREATED` when an SDP `offer` arrives after answering, and guarded `ANSWER_INCOMING_CALL` against calling `createAnswer()` before a remote offer is set. Added OpenRelay TURN servers and `recvonly` transceiver fallback.
+  - `app/contexts/CallContext.js`: Requests native OS microphone/camera permissions before starting or answering calls; triggers `START_OUTGOING_CALL` upon receiving `.call.answered` so Mobile callers create and send the WebRTC SDP offer; listens on both `App.Models.User.{id}` and `chat.{conversationId}`; retries `ringing` acknowledgment at 1.5s/3.5s.
+  - `app.json` & `plugins/withNativeTweaks.js`: Added `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS`, `CAMERA`, and `NSMicrophoneUsageDescription`.
+
 - **Rename Profile tab label to "Cá nhân" ("Profile")**:
   - Updated `navigation.profile` in `app/i18n/locales/vi.json` from `"Tôi"` to `"Cá nhân"`, and in `en.json` to `"Profile"`.
 

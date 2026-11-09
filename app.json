@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -43,7 +46,8 @@
         "UIApplicationSceneManifest": {
           "UIApplicationSupportsMultipleScenes": false,
           "UISceneConfigurations": {}
-        }
+        },
+        "NSMicrophoneUsageDescription": "Cho ph?p CBH Youth Online truy c?p microphone c?a b?n ?? th?c hi?n cu?c g?i tho?i v? video"
       },
       "associatedDomains": [
         "applinks:chuyenbienhoa.com",
@@ -58,7 +62,10 @@
         "USE_FULL_SCREEN_INTENT",
         "WAKE_LOCK",
         "VIBRATE",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "CAMERA"
       ],
       "intentFilters": [
         {

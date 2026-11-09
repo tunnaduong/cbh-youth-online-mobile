@@ -94,6 +94,9 @@ const withIncomingCallLockscreenFlags = (config) =>
     AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.WAKE_LOCK");
     AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.VIBRATE");
     AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.FOREGROUND_SERVICE");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.RECORD_AUDIO");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.MODIFY_AUDIO_SETTINGS");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.CAMERA");
 
     return cfg;
   });

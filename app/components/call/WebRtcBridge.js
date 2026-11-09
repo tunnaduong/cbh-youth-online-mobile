@@ -14,15 +14,37 @@ const buildWebRtcHtml = (base64Audio) => `
   <audio id="remoteAudio" autoplay playsinline></audio>
   <audio id="ringtoneAudio" loop playsinline preload="auto" src="data:audio/mp3;base64,${base64Audio}"></audio>
   <script>
+    const DEFAULT_ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      {
+        urls: [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp'
+        ],
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ];
+
     let pc = null;
     let localStream = null;
+    let remoteStream = null;
     let audioCtx = null;
     let ringOscillator = null;
     let ringInterval = null;
     let activeOscillators = [];
-    let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+    let iceServers = DEFAULT_ICE_SERVERS.slice();
     let queuedCandidates = [];
     let pendingRemoteSdp = null;
+    let currentCallId = null;
+    let currentCallType = 'audio';
+    let offerCreatedForCallId = null;
+    let processedOfferSdp = null;
+    let processedAnswerSdp = null;
 
     function sendToNative(data) {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -31,13 +53,15 @@ const buildWebRtcHtml = (base64Audio) => `
     }
 
     function initAudioContext() {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) audioCtx = new AudioContext();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(function(){});
+        }
+      } catch(e) {}
     }
 
     function stopTones() {
@@ -57,14 +81,15 @@ const buildWebRtcHtml = (base64Audio) => `
         ringOscillator = null;
       }
       if (activeOscillators && activeOscillators.length > 0) {
-        activeOscillators.forEach(osc => {
+        activeOscillators.forEach(function(osc) {
           try { osc.stop(); osc.disconnect(); } catch(e){}
         });
         activeOscillators = [];
       }
     }
 
-    function playTone(freq1, freq2, duration, type = 'sine') {
+    function playTone(freq1, freq2, duration, type) {
+      type = type || 'sine';
       try {
         initAudioContext();
         if (!audioCtx) return;
@@ -93,12 +118,12 @@ const buildWebRtcHtml = (base64Audio) => `
 
         activeOscillators.push(osc1);
         if (osc2) activeOscillators.push(osc2);
-        osc1.onended = () => {
-          activeOscillators = activeOscillators.filter(o => o !== osc1);
+        osc1.onended = function() {
+          activeOscillators = activeOscillators.filter(function(o) { return o !== osc1; });
         };
         if (osc2) {
-          osc2.onended = () => {
-            activeOscillators = activeOscillators.filter(o => o !== osc2);
+          osc2.onended = function() {
+            activeOscillators = activeOscillators.filter(function(o) { return o !== osc2; });
           };
         }
       } catch(e) {
@@ -109,7 +134,7 @@ const buildWebRtcHtml = (base64Audio) => `
     function startOutgoingRing() {
       stopTones();
       playTone(440, 480, 1.8);
-      ringInterval = setInterval(() => {
+      ringInterval = setInterval(function() {
         playTone(440, 480, 1.8);
       }, 4000);
     }
@@ -119,6 +144,7 @@ const buildWebRtcHtml = (base64Audio) => `
       const ringAudio = document.getElementById('ringtoneAudio');
       if (ringAudio) {
         ringAudio.currentTime = 0;
+        ringAudio.volume = 1.0;
         const playPromise = ringAudio.play();
         if (playPromise !== undefined) {
           playPromise.catch(function(err) {
@@ -136,26 +162,79 @@ const buildWebRtcHtml = (base64Audio) => `
     function playEndTone() {
       stopTones();
       playTone(425, null, 0.25);
-      setTimeout(() => playTone(425, null, 0.25), 350);
-      setTimeout(() => playTone(425, null, 0.35), 700);
+      setTimeout(function() { playTone(425, null, 0.25); }, 350);
+      setTimeout(function() { playTone(425, null, 0.35); }, 700);
     }
 
     async function acquireLocalMedia(callType) {
-      if (localStream) return localStream;
-      const constraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: callType === 'video' ? { facingMode: 'user', width: 640, height: 480 } : false
-      };
-      localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      return localStream;
+      initAudioContext();
+      if (localStream && localStream.getTracks().some(function(t) { return t.readyState === 'live'; })) {
+        return localStream;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        sendToNative({ type: 'MEDIA_WARNING', message: 'mediaDevices unavailable, using recvonly fallback' });
+        return null;
+      }
+      try {
+        const constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: callType === 'video' ? { facingMode: 'user', width: 640, height: 480 } : false
+        };
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        return localStream;
+      } catch (err) {
+        if (callType === 'video') {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+              },
+              video: false
+            });
+            return localStream;
+          } catch (audioErr) {}
+        }
+        sendToNative({ type: 'MEDIA_WARNING', message: err.message || 'getUserMedia failed, using recvonly' });
+        return null;
+      }
+    }
+
+    function attachTracksOrTransceivers(peer, stream, callType) {
+      if (stream && stream.getTracks().length > 0) {
+        const existingTracks = peer.getSenders().map(function(s) { return s.track; }).filter(Boolean);
+        stream.getTracks().forEach(function(track) {
+          if (existingTracks.indexOf(track) === -1) {
+            peer.addTrack(track, stream);
+          }
+        });
+      } else {
+        try {
+          const hasAudio = peer.getTransceivers().some(function(t) {
+            return t.receiver && t.receiver.track && t.receiver.track.kind === 'audio';
+          });
+          if (!hasAudio) {
+            peer.addTransceiver('audio', { direction: 'recvonly' });
+          }
+          if (callType === 'video') {
+            const hasVideo = peer.getTransceivers().some(function(t) {
+              return t.receiver && t.receiver.track && t.receiver.track.kind === 'video';
+            });
+            if (!hasVideo) {
+              peer.addTransceiver('video', { direction: 'recvonly' });
+            }
+          }
+        } catch(e) {}
+      }
     }
 
     async function drainQueuedCandidates() {
-      if (!pc || !pc.remoteDescription) return;
+      if (!pc || !pc.remoteDescription || !pc.remoteDescription.type) return;
       while (queuedCandidates.length > 0) {
         const candidate = queuedCandidates.shift();
         try {
@@ -170,32 +249,54 @@ const buildWebRtcHtml = (base64Audio) => `
       if (pc) {
         try { pc.close(); } catch(e){}
       }
-      pc = new RTCPeerConnection({ iceServers });
+      remoteStream = new MediaStream();
+      pc = new RTCPeerConnection({ iceServers: iceServers });
 
-      pc.onicecandidate = (event) => {
+      pc.onicecandidate = function(event) {
         if (event.candidate) {
-          sendToNative({ type: 'ICE_CANDIDATE', candidate: event.candidate, callId });
+          sendToNative({ type: 'ICE_CANDIDATE', candidate: event.candidate, callId: callId || currentCallId });
         }
       };
 
-      pc.ontrack = (event) => {
+      pc.ontrack = function(event) {
         stopTones();
+        initAudioContext();
         const remoteAudio = document.getElementById('remoteAudio');
         if (remoteAudio) {
           if (event.streams && event.streams[0]) {
             remoteAudio.srcObject = event.streams[0];
-          } else {
-            remoteAudio.srcObject = new MediaStream([event.track]);
+          } else if (event.track) {
+            if (!remoteStream) remoteStream = new MediaStream();
+            remoteStream.addTrack(event.track);
+            remoteAudio.srcObject = remoteStream;
           }
-          remoteAudio.play().catch(e => console.warn('Remote play error', e));
+          remoteAudio.muted = false;
+          remoteAudio.volume = 1.0;
+          const p = remoteAudio.play();
+          if (p && typeof p.catch === 'function') {
+            p.catch(function() {
+              setTimeout(function() {
+                try { remoteAudio.play().catch(function(){}); } catch(e){}
+              }, 300);
+            });
+          }
         }
         sendToNative({ type: 'REMOTE_STREAM_READY' });
       };
 
-      pc.onconnectionstatechange = () => {
+      pc.onconnectionstatechange = function() {
+        if (!pc) return;
         sendToNative({ type: 'CONNECTION_STATE_CHANGE', state: pc.connectionState });
         if (pc.connectionState === 'connected') {
           playConnectedTone();
+          const remoteAudio = document.getElementById('remoteAudio');
+          if (remoteAudio && remoteAudio.srcObject) {
+            try {
+              remoteAudio.muted = false;
+              remoteAudio.volume = 1.0;
+              remoteAudio.play().catch(function(){});
+            } catch(e) {}
+          }
         }
       };
 
@@ -204,29 +305,30 @@ const buildWebRtcHtml = (base64Audio) => `
 
     window.handleNativeMessage = async function(msg) {
       try {
-        const { action, payload } = JSON.parse(msg);
+        const parsed = JSON.parse(msg);
+        const action = parsed.action;
+        const payload = parsed.payload || {};
 
         if (action === 'SET_ICE_SERVERS') {
-          if (Array.isArray(payload)) iceServers = payload;
+          if (Array.isArray(payload) && payload.length > 0) {
+            const merged = payload.slice();
+            const hasTurn = merged.some(function(s) {
+              return JSON.stringify(s.urls || '').indexOf('turn:') !== -1;
+            });
+            if (!hasTurn) {
+              merged.push(DEFAULT_ICE_SERVERS[DEFAULT_ICE_SERVERS.length - 1]);
+            }
+            iceServers = merged;
+          }
         }
 
         else if (action === 'STOP_RINGING') {
           stopTones();
         }
 
-        else if (action === 'START_OUTGOING_CALL') {
+        else if (action === 'START_OUTGOING_RING') {
           initAudioContext();
           startOutgoingRing();
-          queuedCandidates = [];
-          pendingRemoteSdp = null;
-          const { callId, callType } = payload;
-          const stream = await acquireLocalMedia(callType);
-          const peer = createPeerConnection(callId);
-          stream.getTracks().forEach(track => peer.addTrack(track, stream));
-
-          const offer = await peer.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === 'video' });
-          await peer.setLocalDescription(offer);
-          sendToNative({ type: 'OFFER_CREATED', sdp: offer, callId });
         }
 
         else if (action === 'START_INCOMING_RING') {
@@ -234,35 +336,99 @@ const buildWebRtcHtml = (base64Audio) => `
           startIncomingRing();
         }
 
-        else if (action === 'ANSWER_INCOMING_CALL') {
+        else if (action === 'START_OUTGOING_CALL') {
           stopTones();
-          const { callId, callType, remoteOffer } = payload;
-          const offerToUse = remoteOffer || pendingRemoteSdp;
+          initAudioContext();
+          const callId = payload.callId;
+          const callType = payload.callType || 'audio';
+          if (callId && offerCreatedForCallId === String(callId) && pc) {
+            return;
+          }
+          currentCallId = callId;
+          currentCallType = callType;
+          if (callId) offerCreatedForCallId = String(callId);
+
           const stream = await acquireLocalMedia(callType);
           const peer = createPeerConnection(callId);
-          stream.getTracks().forEach(track => peer.addTrack(track, stream));
+          attachTracksOrTransceivers(peer, stream, callType);
 
-          if (offerToUse) {
+          const offer = await peer.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: callType === 'video'
+          });
+          await peer.setLocalDescription(offer);
+          sendToNative({ type: 'OFFER_CREATED', sdp: peer.localDescription, callId: callId });
+        }
+
+        else if (action === 'ANSWER_INCOMING_CALL') {
+          stopTones();
+          initAudioContext();
+          const callId = payload.callId;
+          const callType = payload.callType || 'audio';
+          const remoteOffer = payload.remoteOffer;
+          currentCallId = callId;
+          currentCallType = callType;
+
+          const offerToUse = remoteOffer || pendingRemoteSdp;
+          const stream = await acquireLocalMedia(callType);
+          const peer = pc || createPeerConnection(callId);
+          attachTracksOrTransceivers(peer, stream, callType);
+
+          if (offerToUse && offerToUse.type === 'offer') {
+            pendingRemoteSdp = null;
+            processedOfferSdp = offerToUse.sdp || 'processed';
             await peer.setRemoteDescription(new RTCSessionDescription(offerToUse));
             await drainQueuedCandidates();
+            const answer = await peer.createAnswer();
+            await peer.setLocalDescription(answer);
+            sendToNative({ type: 'ANSWER_CREATED', sdp: peer.localDescription, callId: callId });
           }
-          const answer = await peer.createAnswer();
-          await peer.setLocalDescription(answer);
-          sendToNative({ type: 'ANSWER_CREATED', sdp: answer, callId });
         }
 
         else if (action === 'SET_REMOTE_SDP') {
           stopTones();
-          const { sdp } = payload;
-          pendingRemoteSdp = sdp;
-          if (pc && sdp) {
+          const sdp = payload.sdp;
+          const callId = payload.callId || currentCallId;
+          const callType = payload.callType || currentCallType || 'audio';
+          if (!sdp) return;
+
+          if (sdp.type === 'offer') {
+            if (processedOfferSdp && sdp.sdp && processedOfferSdp === sdp.sdp) {
+              return;
+            }
+            if (!pc) {
+              pendingRemoteSdp = sdp;
+              return;
+            }
+            processedOfferSdp = sdp.sdp || 'processed';
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            await drainQueuedCandidates();
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            sendToNative({ type: 'ANSWER_CREATED', sdp: pc.localDescription, callId: callId });
+            return;
+          }
+
+          if (sdp.type === 'answer') {
+            if (!pc) {
+              pendingRemoteSdp = sdp;
+              return;
+            }
+            if (processedAnswerSdp && sdp.sdp && processedAnswerSdp === sdp.sdp) {
+              return;
+            }
+            if (pc.signalingState !== 'have-local-offer') {
+              return;
+            }
+            processedAnswerSdp = sdp.sdp || 'processed';
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
             await drainQueuedCandidates();
           }
         }
 
         else if (action === 'ADD_ICE_CANDIDATE') {
-          const { candidate } = payload;
+          const candidate = payload.candidate;
           if (candidate) {
             if (pc && pc.remoteDescription && pc.remoteDescription.type) {
               try {
@@ -277,9 +443,9 @@ const buildWebRtcHtml = (base64Audio) => `
         }
 
         else if (action === 'SET_MUTED') {
-          const { muted } = payload;
+          const muted = Boolean(payload.muted);
           if (localStream) {
-            localStream.getAudioTracks().forEach(track => { track.enabled = !muted; });
+            localStream.getAudioTracks().forEach(function(track) { track.enabled = !muted; });
           }
         }
 
@@ -288,14 +454,19 @@ const buildWebRtcHtml = (base64Audio) => `
           playEndTone();
           queuedCandidates = [];
           pendingRemoteSdp = null;
+          currentCallId = null;
+          offerCreatedForCallId = null;
+          processedOfferSdp = null;
+          processedAnswerSdp = null;
           if (localStream) {
-            localStream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+            localStream.getTracks().forEach(function(t) { try { t.stop(); } catch(e){} });
             localStream = null;
           }
           if (pc) {
             try { pc.close(); } catch(e){}
             pc = null;
           }
+          remoteStream = null;
         }
       } catch (err) {
         console.error('WebRTC bridge error:', err);
@@ -311,7 +482,10 @@ export const WebRtcBridge = forwardRef(({ onMessage }, ref) => {
   const webViewRef = useRef(null);
 
   const htmlSource = useMemo(() => {
-    return { html: buildWebRtcHtml(RINGTONE_OPPO_BASE64) };
+    return {
+      html: buildWebRtcHtml(RINGTONE_OPPO_BASE64),
+      baseUrl: "https://chuyenbienhoa.com",
+    };
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -344,6 +518,7 @@ export const WebRtcBridge = forwardRef(({ onMessage }, ref) => {
         allowsInlineMediaPlayback
         javaScriptEnabled
         domStorageEnabled
+        mixedContentMode="always"
         androidLayerType="hardware"
         mediaCapturePermissionGrantType="grant"
         onMessage={handleMessage}
