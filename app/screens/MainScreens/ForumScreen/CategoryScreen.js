@@ -61,6 +61,66 @@ const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity,
   </View>
 );
 
+const ThreadItem = React.memo(({ thread, lastItem, navigation, theme, t }) => (
+  <TouchableOpacity
+    onPress={() => navigation.navigate("PostScreen", { postId: thread?.id })}
+    style={[
+      styles.threadRow,
+      {
+        borderBottomWidth: lastItem ? 0 : StyleSheet.hairlineWidth,
+        borderBottomColor: theme.border,
+      },
+    ]}
+  >
+    <View style={styles.threadContentRow}>
+      <View style={styles.threadMetaRow}>
+        <AvatarFrameWrap theme={thread?.author?.profile_theme} size={20} style={{ marginRight: 8 }}>
+          <FastImage
+            source={{ uri: thread?.author?.avatar }}
+            style={[styles.avatar, { marginRight: 0 }]}
+          />
+        </AvatarFrameWrap>
+        <UserNameRow
+          name={thread?.author?.profile_name}
+          theme={thread?.author?.profile_theme}
+          verified={!!thread?.author?.verified}
+          verifiedSize={14}
+          verifiedColor={theme.primary}
+          style={[styles.metaName, { color: theme.text }]}
+          containerStyle={{ flex: 1 }}
+        >
+          <Text style={[styles.metaDate, { color: theme.subText }]} numberOfLines={1}>
+            {" · "}{thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
+          </Text>
+        </UserNameRow>
+      </View>
+      <View style={styles.threadRight}>
+        <Text style={[styles.threadLatestName, { color: theme.subText }]} numberOfLines={1}>
+          {thread?.latest_reply?.user?.profile_name}
+        </Text>
+        <Text style={[styles.threadLatestTime, { color: theme.subText }]} numberOfLines={1}>
+          · {thread?.latest_reply?.created_at ? formatTime(thread?.latest_reply?.created_at) : ""}
+        </Text>
+      </View>
+    </View>
+    <Text style={[styles.threadTitle, { color: theme.text }]} numberOfLines={2} ellipsizeMode="tail">
+      {thread?.title}
+    </Text>
+    <View style={styles.threadStatsRow}>
+      <View style={styles.threadStatsGroup}>
+        <View style={styles.statItem}>
+          <Ionicons name="chatbubble-outline" size={16} color={theme.subText} />
+          <Text style={[styles.statText, { color: theme.subText }]}>{thread?.reply_count}+</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Ionicons name="eye-outline" size={16} color={theme.subText} />
+          <Text style={[styles.statText, { color: theme.subText }]}>{thread?.view_count}</Text>
+        </View>
+      </View>
+    </View>
+  </TouchableOpacity>
+));
+
 const CategoryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
@@ -220,66 +280,6 @@ const CategoryScreen = ({ navigation, route }) => {
     );
   }
 
-  const ThreadItem = ({ thread, lastItem }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate("PostScreen", { postId: thread?.id })}
-      style={[
-        styles.threadRow,
-        {
-          borderBottomWidth: lastItem ? 0 : StyleSheet.hairlineWidth,
-          borderBottomColor: theme.border,
-        },
-      ]}
-    >
-      <View style={styles.threadContentRow}>
-        <View style={styles.threadMetaRow}>
-          <AvatarFrameWrap theme={thread?.author?.profile_theme} size={20} style={{ marginRight: 8 }}>
-            <FastImage
-              source={{ uri: thread?.author?.avatar }}
-              style={[styles.avatar, { marginRight: 0 }]}
-            />
-          </AvatarFrameWrap>
-          <UserNameRow
-            name={thread?.author?.profile_name}
-            theme={thread?.author?.profile_theme}
-            verified={!!thread?.author?.verified}
-            verifiedSize={14}
-            verifiedColor={theme.primary}
-            style={[styles.metaName, { color: theme.text }]}
-            containerStyle={{ flex: 1 }}
-          >
-            <Text style={[styles.metaDate, { color: theme.subText }]} numberOfLines={1}>
-              {" · "}{thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
-            </Text>
-          </UserNameRow>
-        </View>
-        <View style={styles.threadRight}>
-          <Text style={[styles.threadLatestName, { color: theme.subText }]} numberOfLines={1}>
-            {thread?.latest_reply?.user?.profile_name}
-          </Text>
-          <Text style={[styles.threadLatestTime, { color: theme.subText }]} numberOfLines={1}>
-            · {thread?.latest_reply?.created_at ? formatTime(thread?.latest_reply?.created_at) : ""}
-          </Text>
-        </View>
-      </View>
-      <Text style={[styles.threadTitle, { color: theme.text }]} numberOfLines={2} ellipsizeMode="tail">
-        {thread?.title}
-      </Text>
-      <View style={styles.threadStatsRow}>
-        <View style={styles.threadStatsGroup}>
-          <View style={styles.statItem}>
-            <Ionicons name="chatbubble-outline" size={16} color={theme.subText} />
-            <Text style={[styles.statText, { color: theme.subText }]}>{thread?.reply_count}+</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="eye-outline" size={16} color={theme.subText} />
-            <Text style={[styles.statText, { color: theme.subText }]}>{thread?.view_count}</Text>
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   const descriptionText = getCategoryDescription(forumData.subforum.description, t);
   const isDescriptionLong = descriptionText.length > 120;
 
@@ -354,7 +354,7 @@ const CategoryScreen = ({ navigation, route }) => {
           overflow: "hidden",
         }}
       >
-        <ThreadItem thread={item} lastItem={isLast} />
+        <ThreadItem thread={item} lastItem={isLast} navigation={navigation} theme={theme} t={t} />
       </View>
     );
   };

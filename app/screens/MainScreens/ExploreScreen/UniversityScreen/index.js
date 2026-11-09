@@ -220,7 +220,9 @@ const TypeTag = ({ type, theme, isDarkMode }) => {
   );
 };
 
-function UniversityCard({ uni, theme, isDarkMode, t }) {
+const UNI_NAME_PAGE_SIZE = 15;
+
+const UniversityCard = React.memo(function UniversityCard({ uni, theme, isDarkMode, t }) {
   const [expanded, setExpanded] = useState(false);
   const majors = uni.universityMajors || [];
   const visibleMajors = expanded ? majors : majors.slice(0, 4);
@@ -409,7 +411,7 @@ function UniversityCard({ uni, theme, isDarkMode, t }) {
       )}
     </View>
   );
-}
+});
 
 const UniversityScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -441,6 +443,7 @@ const UniversityScreen = ({ navigation }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [nameResults, setNameResults] = useState([]);
+  const [visibleNameCount, setVisibleNameCount] = useState(UNI_NAME_PAGE_SIZE);
   const [nameLoading, setNameLoading] = useState(false);
   const [nameSearched, setNameSearched] = useState(false);
   const suggestTimer = useRef(null);
@@ -571,9 +574,11 @@ const UniversityScreen = ({ navigation }) => {
       if (controller.signal.aborted) return;
       const data = res?.data || res;
       setNameResults(Array.isArray(data) ? data : []);
+      setVisibleNameCount(UNI_NAME_PAGE_SIZE);
     } catch (err) {
       if (isRequestCanceled(err) || controller.signal.aborted) return;
       setNameResults([]);
+      setVisibleNameCount(UNI_NAME_PAGE_SIZE);
     } finally {
       if (!controller.signal.aborted) {
         setNameLoading(false);
@@ -679,6 +684,15 @@ const UniversityScreen = ({ navigation }) => {
           scrollEventThrottle={16}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
             useNativeDriver: false,
+            listener: (e) => {
+              if (tab !== "search" || visibleNameCount >= nameResults.length) return;
+              const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+              if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 280) {
+                setVisibleNameCount((prev) =>
+                  Math.min(prev + UNI_NAME_PAGE_SIZE, nameResults.length)
+                );
+              }
+            },
           })}
           keyboardShouldPersistTaps="handled"
         >
@@ -1014,7 +1028,7 @@ const UniversityScreen = ({ navigation }) => {
                         {t("universities.schoolsUnit", "trường")}
                       </Text>
                     </View>
-                    {nameResults.map((uni, i) => (
+                    {nameResults.slice(0, visibleNameCount).map((uni, i) => (
                       <UniversityCard
                         key={uni.universityCode ?? i}
                         uni={uni}
@@ -1023,6 +1037,24 @@ const UniversityScreen = ({ navigation }) => {
                         t={t}
                       />
                     ))}
+                    {visibleNameCount < nameResults.length && (
+                      <TouchableOpacity
+                        style={[
+                          styles.searchButton,
+                          { backgroundColor: theme.iconBackground, marginTop: 4 },
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() =>
+                          setVisibleNameCount((prev) =>
+                            Math.min(prev + UNI_NAME_PAGE_SIZE, nameResults.length)
+                          )
+                        }
+                      >
+                        <Text style={[styles.searchButtonText, { color: theme.primary }]}>
+                          {t("universities.showMore", "Xem thêm")} ({nameResults.length - visibleNameCount})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </>
                 ) : (
                   !nameSearched && (

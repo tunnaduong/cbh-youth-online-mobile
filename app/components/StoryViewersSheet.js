@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
   useWindowDimensions,
-  ScrollView,
+  FlatList,
+  Platform,
 } from "react-native";
 import ActionSheet from "react-native-actions-sheet";
 import { getStoryViewers } from "../services/api/Api";
@@ -144,7 +145,7 @@ const StoryViewersSheet = () => {
     }
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = useCallback(({ item }) => (
     <TouchableOpacity
       activeOpacity={0.85}
       style={[
@@ -189,7 +190,9 @@ const StoryViewersSheet = () => {
         </View>
       ) : null}
     </TouchableOpacity>
-  );
+  ), [theme, isDarkMode, t]);
+
+  const keyExtractor = useCallback((item, i) => item.id?.toString() || item.username || i.toString(), []);
 
   const sheetBackground = theme.cardBackground || theme.sheetBackground || theme.background || (isDarkMode ? "#0b0b0b" : "#ffffff");
   const accentColor = theme.primary || "#6366f1";
@@ -252,18 +255,19 @@ const StoryViewersSheet = () => {
           <Text style={[styles.emptyText, { color: theme.subText }]}>{t("storyViewers.empty")}</Text>
         </View>
       ) : (
-        <ScrollView
+        <FlatList
+          data={viewers}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === "android"}
           style={{ flexShrink: 1, minHeight: 0, maxHeight: windowHeight * 0.85 - (headerHeight || 90) - (insets.bottom || 0) }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
-        >
-          {viewers.map((item, i) => (
-            <React.Fragment key={item.id?.toString() || i.toString()}>
-              {renderItem({ item })}
-            </React.Fragment>
-          ))}
-        </ScrollView>
+        />
       )}
       </View>
     </ActionSheet>

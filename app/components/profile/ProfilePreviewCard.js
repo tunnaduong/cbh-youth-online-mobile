@@ -45,7 +45,7 @@ export function ThemedSurface({ theme, radius = 0 }) {
  * làm bản xem trước: mọi thay đổi hiện ngay trên đó, kèm cách tên + avatar
  * trông ra sao cạnh bài viết/bình luận.
  */
-export default function ProfilePreviewCard({
+const ProfilePreviewCard = React.memo(function ProfilePreviewCard({
   theme: profileTheme,
   username,
   profileName,
@@ -136,7 +136,9 @@ export default function ProfilePreviewCard({
       <ProfileFrame theme={profileTheme} radius={RADIUS} />
     </View>
   );
-}
+});
+
+export default ProfilePreviewCard;
 
 const styles = StyleSheet.create({
   card: {

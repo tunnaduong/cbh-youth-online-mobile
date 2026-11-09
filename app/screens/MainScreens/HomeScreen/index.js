@@ -1593,30 +1593,39 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
   };
 
-  const handleViewableItemsChanged = ({ viewableItems }) => {
+  const handleViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (!viewableItems) return;
 
-    // Facebook-style autoplay: only one post's video plays at a time. The
-    // viewability config below (itemVisiblePercentThreshold: 50) means
-    // viewableItems is already just the post(s) crossing that threshold, in
-    // list order, so the first one is the best candidate to autoplay.
+    // Facebook-style autoplay: only one post's video plays at a time. Only
+    // pick a post that actually contains a video so scrolling past text/image
+    // posts does not trigger activePostId state updates and list re-renders.
     let activeItem = null;
 
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
       if (viewableItem.item.type === "divider") return;
-      const postId = viewableItem.item.id;
+      const item = viewableItem.item;
+      const postId = item.id;
 
       if (postId != null && !viewedPosts.current.has(postId)) {
         viewedPosts.current.add(postId); // Mark as viewed
         increasePostView(postId); // Call API
       }
 
-      if (!activeItem) activeItem = viewableItem.item;
+      if (
+        !activeItem &&
+        ((Array.isArray(item.video_urls) && item.video_urls.length > 0) ||
+          (typeof item.video_urls === "string" && item.video_urls.trim()) ||
+          item.video_url ||
+          item.video)
+      ) {
+        activeItem = item;
+      }
     });
 
-    setActivePostId(activeItem ? activeItem.id : null);
-  };
+    const nextId = activeItem ? activeItem.id : null;
+    setActivePostId((prev) => (prev === nextId ? prev : nextId));
+  }, []);
 
   const increasePostView = async (postId) => {
     try {

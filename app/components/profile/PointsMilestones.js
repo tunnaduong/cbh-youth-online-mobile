@@ -46,7 +46,7 @@ function Sample({ item, profileTheme, avatarUrl }) {
 
   if (field === "avatar_frame") {
     return (
-      <AvatarFrameWrap theme={{ ...profileTheme, avatar_frame: key }} size={26}>
+      <AvatarFrameWrap theme={{ ...profileTheme, avatar_frame: key }} size={26} staticPreview>
         <FastImage source={{ uri: avatarUrl }} style={styles.sampleAvatar} />
       </AvatarFrameWrap>
     );
@@ -75,7 +75,7 @@ function Sample({ item, profileTheme, avatarUrl }) {
   if (field === "profile_frame") {
     return (
       <View style={[styles.sampleFrame, { backgroundColor: isDarkMode ? "#525252" : "#e5e7eb" }]}>
-        <ProfileFrame theme={{ ...profileTheme, profile_frame: key }} radius={4} />
+        <ProfileFrame theme={{ ...profileTheme, profile_frame: key }} radius={4} staticPreview />
       </View>
     );
   }
@@ -114,7 +114,7 @@ function Sample({ item, profileTheme, avatarUrl }) {
  *   theme  - bản nháp (mẫu được vẽ bằng màu của người dùng)
  *   onTry(field, key)
  */
-export default function PointsMilestones({ editor, theme: profileTheme, avatarUrl, onTry }) {
+const PointsMilestones = React.memo(function PointsMilestones({ editor, theme: profileTheme, avatarUrl, onTry }) {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const points = editor.current_points;
@@ -282,7 +282,9 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
       </View>
     </View>
   );
-}
+});
+
+export default PointsMilestones;
 
 const styles = StyleSheet.create({
   card: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16 },

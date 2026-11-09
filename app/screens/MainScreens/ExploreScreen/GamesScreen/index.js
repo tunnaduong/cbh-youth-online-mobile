@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FastImage from "../../../../components/FastImage";
 import {
   View,
@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Animated,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,8 +38,9 @@ const CATEGORY_KEYS = [
 ];
 
 const CARD_GAP = 12;
+const GAMES_PAGE_SIZE = 16;
 
-const GameCard = ({ game, width, t, onPress, theme, rank, badge }) => (
+const GameCard = React.memo(({ game, width, t, onPress, theme, rank, badge }) => (
   <TouchableOpacity
     style={{ width, marginBottom: 16 }}
     activeOpacity={0.85}
@@ -75,7 +77,7 @@ const GameCard = ({ game, width, t, onPress, theme, rank, badge }) => (
       </Text>
     </View>
   </TouchableOpacity>
-);
+));
 
 const GamesScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -85,6 +87,9 @@ const GamesScreen = ({ navigation }) => {
 
   const [loading, setLoading] = useState(true);
   const [allGames, setAllGames] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(GAMES_PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
   const [mostPlayed, setMostPlayed] = useState([]);
   const [newest, setNewest] = useState([]);
   const [search, setSearch] = useState("");
@@ -116,7 +121,9 @@ const GamesScreen = ({ navigation }) => {
       const res = await getGames(params, { signal });
       if (signal?.aborted) return;
       const data = res?.data || res;
-      setAllGames(filterMobileCompatible(data.games));
+      const filtered = filterMobileCompatible(data.games);
+      setAllGames(filtered);
+      setVisibleCount(GAMES_PAGE_SIZE);
       setMostPlayed(filterMobileCompatible(data.most_played));
       setNewest(filterMobileCompatible(data.newest));
     } catch (error) {
@@ -152,7 +159,7 @@ const GamesScreen = ({ navigation }) => {
     })();
     (async () => {
       try {
-        const res = await getGameLeaderboard("week", undefined, { signal: controller.signal });
+        const res = await getGameLeaderboard("week", { signal: controller.signal });
         if (controller.signal.aborted) return;
         const data = res?.data || res;
         setLeaderboard((data?.leaderboard || []).slice(0, 8));
@@ -163,7 +170,7 @@ const GamesScreen = ({ navigation }) => {
     return () => controller.abort();
   }, []);
 
-  const handleRandom = async () => {
+  const handleRandom = useCallback(async () => {
     setRolling(true);
     try {
       const res = await getRandomGame("mobile");
@@ -174,11 +181,326 @@ const GamesScreen = ({ navigation }) => {
     } finally {
       setRolling(false);
     }
-  };
+  }, [navigation, t]);
 
-  const openGame = (game) => {
+  const openGame = useCallback((game) => {
     navigation.navigate("GamePlayScreen", { slug: game.slug, name: game.name });
-  };
+  }, [navigation]);
+
+  const displayedGames = useMemo(
+    () => (loading ? [] : allGames.slice(0, visibleCount)),
+    [allGames, visibleCount, loading]
+  );
+
+  const hasMoreGames = !loading && visibleCount < allGames.length;
+
+  const handleLoadMoreGames = useCallback(() => {
+    if (loading || loadingMoreRef.current || visibleCount >= allGames.length) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + GAMES_PAGE_SIZE, allGames.length));
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
+    }, 60);
+  }, [loading, visibleCount, allGames.length]);
+
+  const renderGameItem = useCallback(
+    ({ item: g }) => (
+      <View style={{ width: "48%" }}>
+        <GameCard game={g} width="100%" t={t} theme={theme} onPress={() => openGame(g)} />
+      </View>
+    ),
+    [t, theme, openGame]
+  );
+
+  const keyExtractor = useCallback((item, index) => String(item?.id ?? item?.slug ?? index), []);
+
+  const listHeader = useMemo(
+    () => (
+      <View style={{ paddingHorizontal: 16 }}>
+        <Text style={[styles.description, { color: theme.subText }]}>
+          {t("games.subtitle", "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!")}
+        </Text>
+
+        {/* Random Game Hero Action */}
+        <TouchableOpacity
+          style={[styles.randomButton, { backgroundColor: theme.primary }]}
+          onPress={handleRandom}
+          disabled={rolling}
+          activeOpacity={0.85}
+        >
+          {rolling ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="shuffle" size={18} color="#fff" />
+          )}
+          <Text style={styles.randomButtonText}>{t("games.random", "Game ngẫu nhiên")}</Text>
+        </TouchableOpacity>
+
+        {/* Now Playing Section */}
+        {nowPlaying.length > 0 && (
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+              {t("games.nowPlaying", "Đang chơi")}
+            </Text>
+            <View
+              style={[
+                styles.cardGroup,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              {nowPlaying.slice(0, 8).map((p, i, arr) => (
+                <View
+                  key={`${p.user_id}-${i}`}
+                  style={[
+                    styles.rowItem,
+                    i < arr.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                  ]}
+                >
+                  <AvatarFrameWrap theme={p.profile_theme} size={36} style={{ marginRight: 12 }}>
+                    <FastImage
+                      source={{ uri: p.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${p.username}/avatar` }}
+                      style={styles.avatar}
+                    />
+                  </AvatarFrameWrap>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <UserNameRow
+                      name={p.profile_name || p.username}
+                      theme={p.profile_theme}
+                      style={{ fontSize: 15, fontWeight: "600", color: theme.text }}
+                    />
+                    <Text style={[styles.subRowText, { color: theme.subText }]} numberOfLines={1}>
+                      {t("games.isPlaying", "đang chơi")} {p.game_name}
+                    </Text>
+                  </View>
+                  <View style={[styles.liveDot, { backgroundColor: theme.primary }]} />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Leaderboard Section */}
+        {leaderboard.length > 0 && (
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+              {t("games.leaderboard", "Bảng xếp hạng XP")}
+            </Text>
+            <View
+              style={[
+                styles.cardGroup,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              {leaderboard.map((u, i, arr) => (
+                <TouchableOpacity
+                  key={u.id || i}
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate("ProfileScreen", { username: u.username })}
+                  style={[
+                    styles.rowItem,
+                    i < arr.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.rankHolder,
+                      i === 0 && styles.rank1,
+                      i === 1 && styles.rank2,
+                      i === 2 && styles.rank3,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.rankNum,
+                        i < 3 ? { color: "#fff", fontWeight: "800" } : { color: theme.subText },
+                      ]}
+                    >
+                      {i + 1}
+                    </Text>
+                  </View>
+                  <AvatarFrameWrap theme={u.profile_theme} size={36} style={{ marginRight: 12 }}>
+                    <FastImage
+                      source={{ uri: u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar` }}
+                      style={styles.avatar}
+                    />
+                  </AvatarFrameWrap>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <UserNameRow
+                      name={u.profile_name || u.username}
+                      theme={u.profile_theme}
+                      style={{ fontSize: 15, fontWeight: "600", color: theme.text }}
+                    />
+                  </View>
+                  <Text style={[styles.xpText, { color: theme.primary }]}>{u.xp} XP</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Most Played Carousel */}
+        {mostPlayed.length > 0 && (
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+              {t("games.mostPlayed", "Game được chơi nhiều nhất")}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 4 }}
+            >
+              {mostPlayed.map((g, i) => (
+                <View key={g.id} style={{ marginRight: CARD_GAP }}>
+                  <GameCard
+                    game={g}
+                    width={cardWidth}
+                    t={t}
+                    theme={theme}
+                    rank={i + 1}
+                    onPress={() => openGame(g)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Newest Games Carousel */}
+        {newest.length > 0 && (
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+              {t("games.newest", "Game mới cập nhật")}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 4 }}
+            >
+              {newest.map((g) => (
+                <View key={g.id} style={{ marginRight: CARD_GAP }}>
+                  <GameCard
+                    game={g}
+                    width={cardWidth}
+                    t={t}
+                    theme={theme}
+                    badge={g.is_new ? t("games.newBadge", "MỚI") : null}
+                    onPress={() => openGame(g)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Filter & Search Section */}
+        <View style={styles.sectionWrap}>
+          <View
+            style={[
+              styles.searchBox,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Ionicons name="search-outline" size={18} color={theme.subText} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t("games.searchPlaceholder", "Tìm kiếm game...")}
+              placeholderTextColor={theme.subText}
+              style={[styles.searchInput, { color: theme.text }]}
+            />
+            {Boolean(search) && (
+              <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={18} color={theme.subText} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: theme.subText, marginTop: 4 }]}>
+            {t("games.byCategory", "Game theo thể loại")}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+            style={{ marginBottom: 16 }}
+          >
+            {CATEGORY_KEYS.map((cat) => {
+              const active = activeCategory === cat;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  onPress={() => setActiveCategory(cat)}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: active ? theme.primary : theme.iconBackground,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: active ? "#fff" : theme.text,
+                      fontWeight: "600",
+                      fontSize: 12,
+                      lineHeight: 16,
+                    }}
+                  >
+                    {t(`games.category_${cat}`, cat === "all" ? "Tất cả" : cat)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    ),
+    [
+      theme,
+      t,
+      handleRandom,
+      rolling,
+      nowPlaying,
+      leaderboard,
+      navigation,
+      mostPlayed,
+      cardWidth,
+      openGame,
+      newest,
+      search,
+      activeCategory,
+    ]
+  );
+
+  const listEmpty = useMemo(
+    () => (
+      <View style={{ paddingHorizontal: 16 }}>
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24, width: "100%" }} />
+        ) : (
+          <Text style={[styles.emptyText, { color: theme.subText }]}>
+            {t("games.empty", "Không tìm thấy game nào.")}
+          </Text>
+        )}
+      </View>
+    ),
+    [loading, theme.primary, theme.subText, t]
+  );
+
+  const listFooter = useMemo(
+    () =>
+      hasMoreGames || loadingMore ? (
+        <View style={{ paddingVertical: 16, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      ) : null,
+    [hasMoreGames, loadingMore, theme.primary]
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -239,10 +561,24 @@ const GamesScreen = ({ navigation }) => {
       />
 
       <AndroidGlassBackdrop style={{ flex: 1 }}>
-        <Animated.ScrollView
+        <Animated.FlatList
+          data={displayedGames}
+          numColumns={2}
+          keyExtractor={keyExtractor}
+          renderItem={renderGameItem}
+          columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 16 }}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={listEmpty}
+          ListFooterComponent={listFooter}
+          onEndReached={handleLoadMoreGames}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === "android"}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
-            padding: 16,
-            paddingTop: 64 + insets.top,
+            paddingTop: 64 + insets.top + 16,
             paddingBottom: insets.bottom + 32,
           }}
           showsVerticalScrollIndicator={false}
@@ -250,264 +586,7 @@ const GamesScreen = ({ navigation }) => {
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
             useNativeDriver: false,
           })}
-        >
-          <Text style={[styles.description, { color: theme.subText }]}>
-            {t("games.subtitle", "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!")}
-          </Text>
-
-          {/* Random Game Hero Action */}
-          <TouchableOpacity
-            style={[styles.randomButton, { backgroundColor: theme.primary }]}
-            onPress={handleRandom}
-            disabled={rolling}
-            activeOpacity={0.85}
-          >
-            {rolling ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="shuffle" size={18} color="#fff" />
-            )}
-            <Text style={styles.randomButtonText}>{t("games.random", "Game ngẫu nhiên")}</Text>
-          </TouchableOpacity>
-
-          {/* Now Playing Section */}
-          {nowPlaying.length > 0 && (
-            <View style={styles.sectionWrap}>
-              <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-                {t("games.nowPlaying", "Đang chơi")}
-              </Text>
-              <View
-                style={[
-                  styles.cardGroup,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
-              >
-                {nowPlaying.slice(0, 8).map((p, i, arr) => (
-                  <View
-                    key={`${p.user_id}-${i}`}
-                    style={[
-                      styles.rowItem,
-                      i < arr.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
-                    ]}
-                  >
-                    <AvatarFrameWrap theme={p.profile_theme} size={36} style={{ marginRight: 12 }}>
-                      <FastImage
-                        source={{ uri: p.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${p.username}/avatar` }}
-                        style={styles.avatar}
-                      />
-                    </AvatarFrameWrap>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <UserNameRow
-                        name={p.profile_name || p.username}
-                        theme={p.profile_theme}
-                        style={{ fontSize: 15, fontWeight: "600", color: theme.text }}
-                      />
-                      <Text style={[styles.subRowText, { color: theme.subText }]} numberOfLines={1}>
-                        {t("games.isPlaying", "đang chơi")} {p.game_name}
-                      </Text>
-                    </View>
-                    <View style={[styles.liveDot, { backgroundColor: theme.primary }]} />
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Leaderboard Section */}
-          {leaderboard.length > 0 && (
-            <View style={styles.sectionWrap}>
-              <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-                {t("games.leaderboard", "Bảng xếp hạng XP")}
-              </Text>
-              <View
-                style={[
-                  styles.cardGroup,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
-              >
-                {leaderboard.map((u, i, arr) => (
-                  <TouchableOpacity
-                    key={u.id || i}
-                    activeOpacity={0.7}
-                    onPress={() => navigation.navigate("ProfileScreen", { username: u.username })}
-                    style={[
-                      styles.rowItem,
-                      i < arr.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.rankHolder,
-                        i === 0 && styles.rank1,
-                        i === 1 && styles.rank2,
-                        i === 2 && styles.rank3,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.rankNum,
-                          i < 3 ? { color: "#fff", fontWeight: "800" } : { color: theme.subText },
-                        ]}
-                      >
-                        {i + 1}
-                      </Text>
-                    </View>
-                    <AvatarFrameWrap theme={u.profile_theme} size={36} style={{ marginRight: 12 }}>
-                      <FastImage
-                        source={{ uri: u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar` }}
-                        style={styles.avatar}
-                      />
-                    </AvatarFrameWrap>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <UserNameRow
-                        name={u.profile_name || u.username}
-                        theme={u.profile_theme}
-                        style={{ fontSize: 15, fontWeight: "600", color: theme.text }}
-                      />
-                    </View>
-                    <Text style={[styles.xpText, { color: theme.primary }]}>{u.xp} XP</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Most Played Carousel */}
-          {mostPlayed.length > 0 && (
-            <View style={styles.sectionWrap}>
-              <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-                {t("games.mostPlayed", "Game được chơi nhiều nhất")}
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 4 }}
-              >
-                {mostPlayed.map((g, i) => (
-                  <View key={g.id} style={{ marginRight: CARD_GAP }}>
-                    <GameCard
-                      game={g}
-                      width={cardWidth}
-                      t={t}
-                      theme={theme}
-                      rank={i + 1}
-                      onPress={() => openGame(g)}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Newest Games Carousel */}
-          {newest.length > 0 && (
-            <View style={styles.sectionWrap}>
-              <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-                {t("games.newest", "Game mới cập nhật")}
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 4 }}
-              >
-                {newest.map((g) => (
-                  <View key={g.id} style={{ marginRight: CARD_GAP }}>
-                    <GameCard
-                      game={g}
-                      width={cardWidth}
-                      t={t}
-                      theme={theme}
-                      badge={g.is_new ? t("games.newBadge", "MỚI") : null}
-                      onPress={() => openGame(g)}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Filter & Search Section */}
-          <View style={styles.sectionWrap}>
-            <View
-              style={[
-                styles.searchBox,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Ionicons name="search-outline" size={18} color={theme.subText} />
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder={t("games.searchPlaceholder", "Tìm kiếm game...")}
-                placeholderTextColor={theme.subText}
-                style={[styles.searchInput, { color: theme.text }]}
-              />
-              {Boolean(search) && (
-                <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={18} color={theme.subText} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <Text style={[styles.sectionTitle, { color: theme.subText, marginTop: 4 }]}>
-              {t("games.byCategory", "Game theo thể loại")}
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
-              style={{ marginBottom: 16 }}
-            >
-              {CATEGORY_KEYS.map((cat) => {
-                const active = activeCategory === cat;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    onPress={() => setActiveCategory(cat)}
-                    activeOpacity={0.8}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active ? theme.primary : theme.iconBackground,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: active ? "#fff" : theme.text,
-                        fontWeight: "600",
-                        fontSize: 12,
-                        lineHeight: 16,
-                      }}
-                    >
-                      {t(`games.category_${cat}`, cat === "all" ? "Tất cả" : cat)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* Grid of All Games */}
-          <View style={styles.grid}>
-            {loading ? (
-              <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24, width: "100%" }} />
-            ) : allGames.length === 0 ? (
-              <Text style={[styles.emptyText, { color: theme.subText }]}>
-                {t("games.empty", "Không tìm thấy game nào.")}
-              </Text>
-            ) : (
-              allGames.map((g) => (
-                <View key={g.id} style={{ width: "48%" }}>
-                  <GameCard game={g} width="100%" t={t} theme={theme} onPress={() => openGame(g)} />
-                </View>
-              ))
-            )}
-          </View>
-        </Animated.ScrollView>
+        />
       </AndroidGlassBackdrop>
     </View>
   );

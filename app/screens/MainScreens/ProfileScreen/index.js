@@ -76,6 +76,14 @@ const LIKED_SORT_OPTIONS = [
 // instance whose posts are in it right now - see fetchUserData.
 let profilePostsOwner = null;
 
+const postHasVideo = (item) =>
+  Boolean(
+    (Array.isArray(item?.video_urls) && item.video_urls.length > 0) ||
+      (typeof item?.video_urls === "string" && item.video_urls.trim()) ||
+      item?.video_url ||
+      item?.video
+  );
+
 const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) => {
   const instanceToken = useRef({}).current;
   const flatListRef = useRef(null);
@@ -84,16 +92,16 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   // Facebook-style autoplay: only one post's video should ever be playing
-  // at once. This used to just pass the raw autoplayVideos boolean as
-  // isActive to *every* post, so with more than one video post loaded they
-  // all tried to autoplay (and grab audio) simultaneously - multiple
-  // concurrent expo-video players contending for the same audio session,
-  // which is exactly the kind of thing that leaves one of them silent.
-  // Mirrors HomeScreen's activePostId/viewability tracking.
+  // at once. Only update activePostId when a post that actually contains a
+  // video enters/leaves viewability — avoids re-rendering ProfileScreen on
+  // every text/image post scrolled past.
   const [activePostId, setActivePostId] = useState(null);
   const handleViewableItemsChanged = useRef(({ viewableItems }) => {
-    const activeItem = viewableItems?.find((v) => v?.item && v.item.id != null)?.item;
-    setActivePostId(activeItem ? activeItem.id : null);
+    const activeItem = viewableItems?.find(
+      (v) => v?.item && v.item.id != null && postHasVideo(v.item)
+    )?.item;
+    const nextId = activeItem ? activeItem.id : null;
+    setActivePostId((prev) => (prev === nextId ? prev : nextId));
   }).current;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
   const [loading, setLoading] = useState(true);
@@ -663,6 +671,21 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
     videoGallery,
   ]);
 
+    // Pre-stamp is_owner on current user's posts once via useMemo so renderListItem
+  // never creates a fresh `{ ...item, is_owner: true }` object on every render
+  // (which previously defeated React.memo on PostItem during scrolling).
+  const normalizedRecentPosts = React.useMemo(() => {
+    if (!recentPostsProfile) return [];
+    if (!isCurrentUser) return recentPostsProfile;
+    return recentPostsProfile.map((p) => (p.is_owner === true ? p : { ...p, is_owner: true }));
+  }, [recentPostsProfile, isCurrentUser]);
+
+  const normalizedLikedPosts = React.useMemo(() => {
+    if (!likedPosts) return [];
+    if (!isCurrentUser) return likedPosts;
+    return likedPosts.map((p) => (p.is_owner === true ? p : { ...p, is_owner: true }));
+  }, [likedPosts, isCurrentUser]);
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
@@ -785,7 +808,7 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   // with virtualized rows instead of the old flat list of JSX children.
   const listData =
     activeTab === "posts"
-      ? recentPostsProfile || []
+      ? normalizedRecentPosts
       : activeTab === "photos"
       ? photoRows(
           photoGallery.photos,
@@ -798,7 +821,7 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           videoGallery.loading || (!videoGallery.loaded && !videoGallery.error)
         )
       : activeTab === "likes"
-      ? likedPosts || []
+      ? normalizedLikedPosts
       : activeTab === "following"
       ? userData?.following || []
       : userData?.followers || [];
@@ -826,7 +849,7 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
     if (isPostTab) {
       return (
         <PostItem
-          item={isCurrentUser ? { ...item, is_owner: true } : item}
+          item={item}
           navigation={navigation}
           onVoteUpdate={handleVoteUpdate}
           onSaveUpdate={handleSaveUpdate}

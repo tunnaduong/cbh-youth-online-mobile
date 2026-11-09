@@ -42,7 +42,7 @@ import GiftPointsModal from "./GiftPointsModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { useResponsiveLayout } from "../utils/responsive";
-import { FeedContext } from "../contexts/FeedContext";
+import { FeedActionsContext } from "../contexts/FeedContext";
 import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
@@ -70,6 +70,22 @@ export const customHTMLElementModels = {
     contentModel: HTMLContentModel.block,
   }),
 };
+
+// Persistent measured-height cache (postId -> pixel height) so recycled or
+// remounted feed cards lock their exact height and prevent scroll jumps when
+// scrolling back up rapidly.
+export const postHeightCache = new Map();
+const MAX_HEIGHT_CACHE_SIZE = 500;
+function recordPostHeight(postId, height) {
+  if (!postId || !(height > 0)) return;
+  const key = String(postId);
+  if (postHeightCache.has(key)) postHeightCache.delete(key);
+  postHeightCache.set(key, height);
+  if (postHeightCache.size > MAX_HEIGHT_CACHE_SIZE) {
+    const oldestKey = postHeightCache.keys().next().value;
+    postHeightCache.delete(oldestKey);
+  }
+}
 
 // Constant RenderHTML props of a post row (see postHtmlSource in PostItem).
 
@@ -396,7 +412,7 @@ const PostItem = ({
   const insets = useSafeAreaInsets();
   const { contentWidth } = useResponsiveLayout();
   const { username, userInfo } = useContext(AuthContext);
-  const { feed, setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const { setFeed, setRecentPostsProfile, feedRef } = useContext(FeedActionsContext) || {};
   const [isArchived, setIsArchived] = useState(!!item.archived);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
@@ -469,8 +485,9 @@ const PostItem = ({
   const handleHidePost = async () => {
     hideBottomSheet();
 
-    const removedIndex = Array.isArray(feed)
-      ? feed.findIndex((post) => post.id === item.id)
+    const currentFeed = feedRef?.current;
+    const removedIndex = Array.isArray(currentFeed)
+      ? currentFeed.findIndex((post) => post.id === item.id)
       : -1;
 
     const restorePost = () => {
@@ -1113,9 +1130,17 @@ const PostItem = ({
     [AnchorRenderer]
   );
 
+  const cachedHeight = !single && !isExpanded && item?.id ? postHeightCache.get(String(item.id)) : undefined;
+
   return (
     <View
+      onLayout={(e) => {
+        if (!single && !isExpanded && item?.id) {
+          recordPostHeight(item.id, e.nativeEvent.layout.height);
+        }
+      }}
       style={{
+        minHeight: cachedHeight,
         borderBottomWidth: single ? 15 : 10,
         borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
         backgroundColor: theme.background,
@@ -1384,7 +1409,6 @@ const PostItem = ({
       </View>
       {((item.image_urls && item.image_urls.length > 0) || (videoUrls && videoUrls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
-          <MediaShimmer />
           {item.image_urls && item.image_urls.length > 0 && (
             <>
               <FBCollage
@@ -1757,8 +1781,20 @@ const PostItem = ({
 // which would defeat the memo - and comparing them away would leave stale
 // closures - so the card gets stable functions that always call the latest
 // ones.
-const MemoPostItem = React.memo(PostItem);
 const CALLBACK_PROPS = ["onExpand", "onVoteUpdate", "onSaveUpdate", "onVote", "onSave", "onArchiveChange"];
+
+const MemoPostItem = React.memo(PostItem, (prev, next) => {
+  return (
+    prev.item === next.item &&
+    prev.isActive === next.isActive &&
+    prev.single === next.single &&
+    prev.votes === next.votes &&
+    prev.saved === next.saved &&
+    prev.screenName === next.screenName &&
+    prev.navigation === next.navigation &&
+    prev.optionsOpenerRef === next.optionsOpenerRef
+  );
+});
 
 const PostItemContainer = (props) => {
   const latestProps = React.useRef(props);

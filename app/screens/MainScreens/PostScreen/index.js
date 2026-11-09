@@ -54,7 +54,7 @@ import MentionSuggestions, { useMentionInput } from "../../../components/Mention
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
-import { FeedContext } from "../../../contexts/FeedContext";
+import { FeedActionsContext } from "../../../contexts/FeedContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
@@ -328,7 +328,7 @@ const PostScreen = ({ route, navigation }) => {
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
   const [highlightedCommentId, setHighlightedCommentId] = useState(null);
-  const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const { setFeed, setRecentPostsProfile } = useContext(FeedActionsContext);
   const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
   const [imageViewer, setImageViewer] = useState({ visible: false, images: [], index: 0 });
   const insets = useSafeAreaInsets();
@@ -512,7 +512,7 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleVote = async (newVotes) => {
+  const handleVote = React.useCallback(async (newVotes) => {
     // Update UI instantly
     setVotes(newVotes);
 
@@ -534,9 +534,9 @@ const PostScreen = ({ route, navigation }) => {
       ...prevPost,
       votes: newVotes,
     }));
-  };
+  }, [postId, screenName, setFeed, setRecentPostsProfile]);
 
-  const handleSavePost = async (newSavedStatus) => {
+  const handleSavePost = React.useCallback(async (newSavedStatus) => {
     setIsSaved(newSavedStatus); // Update UI instantly
 
     // Update the FeedContext
@@ -557,7 +557,41 @@ const PostScreen = ({ route, navigation }) => {
       ...prevPost,
       saved: newSavedStatus,
     }));
-  };
+  }, [postId, screenName, setFeed, setRecentPostsProfile]);
+
+  const listHeaderComponent = React.useMemo(
+    () =>
+      post ? (
+        <>
+          <PostItem
+            navigation={navigation}
+            item={post}
+            single={true}
+            votes={votes}
+            saved={isSaved}
+            onVote={handleVote}
+            onSave={handleSavePost}
+            screenName={screenName}
+            isActive={autoplayVideos}
+            optionsOpenerRef={postOptionsRef}
+          />
+          {/* comment section */}
+          <View style={{ paddingHorizontal: 15 }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: 20,
+                marginVertical: 16,
+                color: theme.text,
+              }}
+            >
+              {t("post.commentsTitle")}
+            </Text>
+          </View>
+        </>
+      ) : null,
+    [post, navigation, votes, isSaved, handleVote, handleSavePost, screenName, autoplayVideos, theme.text, t]
+  );
 
   const findParentIdForReply = (comments, targetId, currentParentId = null) => {
     for (const comment of comments) {
@@ -1404,35 +1438,7 @@ const PostScreen = ({ route, navigation }) => {
           removeClippedSubviews={Platform.OS === "android"}
           data={comments}
           keyExtractor={(comment) => String(comment.id)}
-          ListHeaderComponent={
-            <>
-              <PostItem
-                navigation={navigation}
-                item={post}
-                single={true}
-                votes={votes}
-                saved={isSaved}
-                onVote={handleVote}
-                onSave={handleSavePost}
-                screenName={screenName}
-                isActive={autoplayVideos}
-                optionsOpenerRef={postOptionsRef}
-              />
-              {/* comment section */}
-              <View style={{ paddingHorizontal: 15 }}>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: 20,
-                    marginVertical: 16,
-                    color: theme.text,
-                  }}
-                >
-                  {t("post.commentsTitle")}
-                </Text>
-              </View>
-            </>
-          }
+          ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={
             <View style={{ paddingHorizontal: 15 }}>
               <Text style={{ color: theme.subText }}>

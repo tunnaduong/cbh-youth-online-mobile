@@ -484,8 +484,8 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const coverUrl = profile.profile?.cover_photo_url ? (getCoverUrl ? getCoverUrl(username) : profile.profile.cover_photo_url) : null;
   const sampleBackground = isDarkMode ? ["#525252", "#262626"] : ["#9ca3af", "#4b5563"];
 
-  const avatar = (size, previewTheme) => (
-    <AvatarFrameWrap theme={previewTheme} size={size}>
+  const avatar = (size, previewTheme, staticPreview = false) => (
+    <AvatarFrameWrap theme={previewTheme} size={size} staticPreview={staticPreview}>
       <FastImage source={{ uri: avatarUrl }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#fff" }} />
     </AvatarFrameWrap>
   );
@@ -545,7 +545,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
       title: t("profileTheme.groups.avatar_frame", "Khung ảnh đại diện"),
       render: (key) => (
         <>
-          <View style={{ marginVertical: 4 }}>{avatar(52, { ...themed, avatar_frame: key })}</View>
+          <View style={{ marginVertical: 4 }}>{avatar(52, { ...themed, avatar_frame: key }, true)}</View>
           <Text style={[styles.tileLabel, { color: theme.text }]}>{optionLabel("avatar_frame", key)}</Text>
         </>
       ),
@@ -556,7 +556,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
         <>
           <View style={styles.tileSample}>
             <LinearGradient colors={sampleBackground} style={StyleSheet.absoluteFill} />
-            <ProfileEffect theme={{ ...draft, profile_effect: key }} replayKey={picker} />
+            <ProfileEffect theme={{ ...draft, profile_effect: key }} replayKey={picker} staticPreview />
           </View>
           <Text style={[styles.tileLabel, { color: theme.text }]}>{optionLabel("profile_effect", key)}</Text>
         </>
@@ -567,7 +567,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
       render: (key) => (
         <>
           <View style={[styles.tileSample, { backgroundColor: isDarkMode ? "#404040" : "#e5e7eb" }]}>
-            <ProfileFrame theme={{ ...themed, profile_frame: key }} radius={10} />
+            <ProfileFrame theme={{ ...themed, profile_frame: key }} radius={10} staticPreview />
           </View>
           <Text style={[styles.tileLabel, { color: theme.text }]}>{optionLabel("profile_frame", key)}</Text>
         </>
@@ -726,7 +726,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 ) : (
                   <>
                     <LinearGradient colors={sampleBackground} style={StyleSheet.absoluteFill} />
-                    <ProfileEffect theme={draft} replayKey={draft.profile_effect} />
+                    <ProfileEffect theme={draft} replayKey={draft.profile_effect} staticPreview />
                     <Text style={styles.slotCaptionLight}>{optionLabel("profile_effect", draft.profile_effect)}</Text>
                   </>
                 )}
@@ -736,7 +736,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
                   <AddIcon />
                 ) : (
                   <>
-                    <ProfileFrame theme={themed} radius={14} />
+                    <ProfileFrame theme={themed} radius={14} staticPreview />
                     <Text style={[styles.slotCaption, { color: theme.text }]}>{optionLabel("profile_frame", draft.profile_frame)}</Text>
                   </>
                 )}
@@ -978,6 +978,8 @@ function OptionPickerSheet({ visible, title, options, value, renderOption, onApp
     if (visible) setSelected(value);
   }, [visible, value]);
 
+  if (!visible) return null;
+
   return (
     <ThemeSheet
       visible={visible}
@@ -1029,7 +1031,7 @@ function NameStyleSheet({ visible, theme: draftTheme, options, profileName, opti
     }
   }, [visible, draftTheme, fontField, effectField, colorsField]);
 
-  if (!style) return null;
+  if (!visible || !style) return null;
 
   // The samples are drawn by StyledName, which reads the name_* fields.
   const preview = {

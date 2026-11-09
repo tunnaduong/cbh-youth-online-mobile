@@ -1576,15 +1576,21 @@ const ConversationScreen = ({ navigation, route }) => {
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
 
+    const prevOffsetY = scrollOffsetRef.current || 0;
+    const dy = offsetY - prevOffsetY;
     scrollOffsetRef.current = offsetY;
 
     const viewH = scrollViewHeightRef.current || 800;
-    const BUFFER = 1200;
-    if (Math.abs(offsetY - lastViewportYRef.current) > 250) {
+    // Directional lookahead buffer: when scrolling up (dy < 0), pre-mount a
+    // larger buffer above the viewport so fast reverse flings never hit
+    // unmounted rows; when scrolling down, pre-mount more below.
+    if (Math.abs(offsetY - lastViewportYRef.current) > 180) {
       lastViewportYRef.current = offsetY;
+      const topBuffer = dy < 0 ? 1600 : 800;
+      const bottomBuffer = dy < 0 ? 800 : 1600;
       setVisibleViewport({
-        top: Math.max(0, offsetY - BUFFER),
-        bottom: offsetY + viewH + BUFFER,
+        top: Math.max(0, offsetY - topBuffer),
+        bottom: offsetY + viewH + bottomBuffer,
       });
     }
 

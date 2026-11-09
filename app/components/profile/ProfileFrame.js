@@ -35,7 +35,7 @@ const GOLD = ["#b45309", "#fde68a", "#d97706", "#fef3c7", "#b45309"];
  *   neon - viền gradient màu theme xoay vòng
  *   custom - ảnh người dùng tự tải lên (profile_frame_url), vẽ kiểu nine-slice
  */
-export default function ProfileFrame({ theme, radius = 0 }) {
+const ProfileFrame = React.memo(function ProfileFrame({ theme, radius = 0, staticPreview = false }) {
   const normalized = normalizeTheme(theme);
   const frame = normalized?.profile_frame || "none";
   const [size, setSize] = useState(null);
@@ -43,6 +43,29 @@ export default function ProfileFrame({ theme, radius = 0 }) {
   if (frame === "none") return null;
   // No image (removed, or an API that sends none): no frame.
   if (frame === "custom" && !normalized.profile_frame_url) return null;
+
+  const [primary, accent] = themeColors(normalized);
+
+  // For tiny sample boxes (e.g. 32x20 in PointsMilestones or static picker tiles),
+  // avoid allocating a dedicated Skia GPU surface + BlurMask shader.
+  if (staticPreview || (size && (size.height <= 44 || size.width <= 48))) {
+    const borderColor =
+      frame === "gold" ? "#eab308" : frame === "neon" ? accent : primary;
+    return (
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            zIndex: 10,
+            borderRadius: radius,
+            borderWidth: frame === "gold" ? 2 : 2.5,
+            borderColor,
+          },
+        ]}
+      />
+    );
+  }
 
   return (
     <View
@@ -58,17 +81,19 @@ export default function ProfileFrame({ theme, radius = 0 }) {
       ) : (
         <Canvas style={{ width: size.width, height: size.height }}>
           {frame === "glow" ? (
-            <Glow size={size} radius={radius} colors={themeColors(normalized)} />
+            <Glow size={size} radius={radius} colors={[primary, accent]} />
           ) : frame === "gold" ? (
             <Gold size={size} radius={radius} />
           ) : (
-            <Neon size={size} radius={radius} colors={themeColors(normalized)} />
+            <Neon size={size} radius={radius} colors={[primary, accent]} />
           )}
         </Canvas>
       )}
     </View>
   );
-}
+});
+
+export default ProfileFrame;
 
 // Part of each side of an uploaded frame that is border art (the API's
 // CustomFrameService uses the same number), and the border's thickness on

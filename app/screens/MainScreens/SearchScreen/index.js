@@ -7,6 +7,7 @@ import {
   Image,
   TextInput,
   ScrollView,
+  ActivityIndicator,
   Platform,
   TouchableOpacity,
   Animated,
@@ -30,6 +31,99 @@ import { storage } from "../../../global/storage";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const RECENT_SEARCHES_KEY = "recent_search_queries_v1";
 const MAX_RECENT_SEARCHES = 8;
+const SEARCH_PAGE_SIZE = 15;
+
+const UserSearchCard = React.memo(({ user, isDarkMode, theme, navigation }) => (
+  <TouchableOpacity
+    activeOpacity={0.75}
+    style={[
+      styles.userCard,
+      {
+        marginBottom: 8,
+        backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)",
+        borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      },
+    ]}
+    onPress={() => navigation.push("ProfileScreen", { username: user.username })}
+  >
+    <AvatarFrameWrap theme={user.profile_theme} size={52}>
+      <FastImage
+        source={{
+          uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
+          priority: FastImage.priority.normal,
+        }}
+        style={styles.userAvatar}
+      />
+    </AvatarFrameWrap>
+    <View style={styles.userInfo}>
+      <View style={styles.nameBadgeRow}>
+        <UserNameRow
+          name={user.profile_name || user.username}
+          theme={user.profile_theme}
+          verified={!!user.verified}
+          verifiedColor={theme.primary}
+          style={[styles.userName, { color: theme.text }]}
+        />
+      </View>
+      <StyledUsername
+        theme={user.profile_theme}
+        username={user.username}
+        style={[styles.userUsername, { color: theme.subText }]}
+        numberOfLines={1}
+      />
+      {user.bio ? (
+        <Text style={[styles.userBio, { color: theme.subText }]} numberOfLines={1}>
+          {user.bio}
+        </Text>
+      ) : null}
+    </View>
+    <View style={[styles.arrowCircle, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }]}>
+      <Ionicons name="chevron-forward" size={16} color={theme.subText} />
+    </View>
+  </TouchableOpacity>
+));
+
+const PostSearchCard = React.memo(({ post, isDarkMode, theme, navigation }) => (
+  <TouchableOpacity
+    activeOpacity={0.75}
+    style={[
+      styles.postCard,
+      {
+        marginBottom: 8,
+        backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)",
+        borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      },
+    ]}
+    onPress={() => navigation.navigate("PostScreen", { postId: post.id })}
+  >
+    <View style={styles.postBody}>
+      {post.image_urls && post.image_urls.length > 0 && (
+        <FastImage
+          source={{ uri: post.image_urls[0] }}
+          style={styles.postThumb}
+          resizeMode="cover"
+        />
+      )}
+      <View style={styles.postInfo}>
+        <Text style={[styles.postTitle, { color: theme.text }]} numberOfLines={2}>
+          {post.title}
+        </Text>
+        <View style={styles.postMetaRow}>
+          {post.author ? (
+            <UserNameRow
+              name={post.author?.profile_name || post.author?.username}
+              theme={post.author?.profile_theme}
+              style={[styles.postAuthorName, { color: theme.subText }]}
+            />
+          ) : null}
+          <Text style={[styles.postDate, { color: theme.subText }]}>
+            {post.author ? " • " : ""}{post.created_at ? formatTime(post.created_at) : ""}
+          </Text>
+        </View>
+      </View>
+    </View>
+  </TouchableOpacity>
+));
 
 export default function SearchScreen({ navigation, route }) {
   const inset = useSafeAreaInsets();
@@ -38,6 +132,7 @@ export default function SearchScreen({ navigation, route }) {
 
   const [query, setQuery] = useState(route?.params?.initialQuery || "");
   const [results, setResults] = useState({ users: [], posts: [] });
+  const [visibleCount, setVisibleCount] = useState(SEARCH_PAGE_SIZE);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [activeFilter, setActiveFilter] = useState(
@@ -162,6 +257,7 @@ export default function SearchScreen({ navigation, route }) {
               setResults({ users: [], posts: [] });
             }
             setHasSearched(true);
+            setVisibleCount(SEARCH_PAGE_SIZE);
           })
           .catch((error) => {
             if (isRequestCanceled(error) || controller.signal.aborted) return;
@@ -169,6 +265,7 @@ export default function SearchScreen({ navigation, route }) {
             setHashtagTag(null);
             setResults({ users: [], posts: [] });
             setHasSearched(true);
+            setVisibleCount(SEARCH_PAGE_SIZE);
           })
           .finally(() => {
             if (!controller.signal.aborted) {
@@ -180,6 +277,7 @@ export default function SearchScreen({ navigation, route }) {
         setResults({ users: [], posts: [] });
         setHasSearched(false);
         setLoading(false);
+        setVisibleCount(SEARCH_PAGE_SIZE);
       }
     }, 400);
 
@@ -189,108 +287,315 @@ export default function SearchScreen({ navigation, route }) {
     };
   }, [query, activeFilter, saveRecentSearch]);
 
-  const selectFilter = (filterKey) => {
+  const selectFilter = useCallback((filterKey) => {
     setActiveFilter(filterKey);
-  };
+    setVisibleCount(SEARCH_PAGE_SIZE);
+  }, []);
 
-  const handleChipPress = (text) => {
+  const handleChipPress = useCallback((text) => {
     setQuery(text);
-  };
+  }, []);
 
-  // Render User Result Card
-  const renderUserItem = (user) => (
-    <TouchableOpacity
-      key={user.id}
-      activeOpacity={0.75}
-      style={[
-        styles.userCard,
-        {
-          backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)",
-          borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        },
-      ]}
-      onPress={() =>
-        navigation.push("ProfileScreen", { username: user.username })
+  const allFlatItems = useMemo(() => {
+    if (!query.trim() || loading) return [];
+    const users = results.users || [];
+    const posts = results.posts || [];
+    if (hasSearched && !users.length && !posts.length) return [];
+
+    const items = [];
+    const showUsersSection =
+      activeFilter === "user" || (activeFilter === "all" && users.length > 0);
+    if (showUsersSection) {
+      items.push({
+        type: "section_header",
+        key: "header_users",
+        icon: "people",
+        title: t("search.users", "Người dùng"),
+        count: users.length,
+      });
+      if (users.length > 0) {
+        for (let i = 0; i < users.length; i++) {
+          items.push({
+            type: "user",
+            key: `user_${users[i].id ?? i}`,
+            user: users[i],
+          });
+        }
+      } else if (activeFilter === "user") {
+        items.push({
+          type: "empty_section",
+          key: "empty_users",
+          icon: "person-circle-outline",
+          text: t("search.noUsersForQuery", { query }),
+        });
       }
-    >
-      <AvatarFrameWrap theme={user.profile_theme} size={52}>
-        <FastImage
-          source={{
-            uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
-            priority: FastImage.priority.normal,
-          }}
-          style={styles.userAvatar}
-        />
-      </AvatarFrameWrap>
-      <View style={styles.userInfo}>
-        <View style={styles.nameBadgeRow}>
-          <UserNameRow
-            name={user.profile_name || user.username}
-            theme={user.profile_theme}
-            verified={!!user.verified}
-            verifiedColor={theme.primary}
-            style={[styles.userName, { color: theme.text }]}
-          />
-        </View>
-        <StyledUsername
-          theme={user.profile_theme}
-          username={user.username}
-          style={[styles.userUsername, { color: theme.subText }]}
-          numberOfLines={1}
-        />
-        {user.bio ? (
-          <Text style={[styles.userBio, { color: theme.subText }]} numberOfLines={1}>
-            {user.bio}
-          </Text>
-        ) : null}
-      </View>
-      <View style={[styles.arrowCircle, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }]}>
-        <Ionicons name="chevron-forward" size={16} color={theme.subText} />
-      </View>
-    </TouchableOpacity>
+    }
+
+    const showPostsSection =
+      activeFilter === "post" ||
+      activeFilter === "hashtag" ||
+      (activeFilter === "all" && posts.length > 0);
+    if (showPostsSection) {
+      items.push({
+        type: "section_header",
+        key: "header_posts",
+        icon: hashtagTag ? "pricetag" : "newspaper",
+        title: hashtagTag
+          ? t("search.hashtagResultsTitle", { tag: hashtagTag })
+          : t("search.posts", "Bài viết"),
+        count: posts.length,
+        marginTop: showUsersSection ? 12 : 0,
+      });
+      if (posts.length > 0) {
+        for (let i = 0; i < posts.length; i++) {
+          items.push({
+            type: "post",
+            key: `post_${posts[i].id ?? i}`,
+            post: posts[i],
+          });
+        }
+      } else if (activeFilter === "post" || activeFilter === "hashtag") {
+        items.push({
+          type: "empty_section",
+          key: "empty_posts",
+          icon: "document-outline",
+          text: t("search.noPostsForQuery", { query }),
+        });
+      }
+    }
+
+    return items;
+  }, [query, loading, results.users, results.posts, hasSearched, activeFilter, hashtagTag, t]);
+
+  const displayedItems = useMemo(
+    () => allFlatItems.slice(0, visibleCount),
+    [allFlatItems, visibleCount]
   );
 
-  // Render Post Result Card
-  const renderPostItem = (post) => (
-    <TouchableOpacity
-      key={post.id}
-      activeOpacity={0.75}
-      style={[
-        styles.postCard,
-        {
-          backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)",
-          borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        },
-      ]}
-      onPress={() => navigation.navigate("PostScreen", { postId: post.id })}
-    >
-      <View style={styles.postBody}>
-        {post.image_urls && post.image_urls.length > 0 && (
-          <FastImage
-            source={{ uri: post.image_urls[0] }}
-            style={styles.postThumb}
-            resizeMode="cover"
+  const hasMoreResults = visibleCount < allFlatItems.length;
+
+  const handleLoadMoreResults = useCallback(() => {
+    if (visibleCount >= allFlatItems.length) return;
+    setVisibleCount((prev) => Math.min(prev + SEARCH_PAGE_SIZE, allFlatItems.length));
+  }, [visibleCount, allFlatItems.length]);
+
+  const renderFlatItem = useCallback(
+    ({ item }) => {
+      if (item.type === "section_header") {
+        return (
+          <View style={[styles.resultSectionHeader, item.marginTop ? { marginTop: item.marginTop } : null]}>
+            <View style={styles.resultHeaderLeft}>
+              <Ionicons name={item.icon} size={17} color={theme.primary} />
+              <Text style={[styles.resultSectionTitle, { color: theme.text }]}>
+                {item.title}
+              </Text>
+            </View>
+            {item.count > 0 && (
+              <View style={[styles.countBadge, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
+                <Text style={[styles.countBadgeText, { color: theme.subText }]}>
+                  {item.count}
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+      }
+      if (item.type === "user") {
+        return (
+          <UserSearchCard
+            user={item.user}
+            isDarkMode={isDarkMode}
+            theme={theme}
+            navigation={navigation}
           />
-        )}
-        <View style={styles.postInfo}>
-          <Text style={[styles.postTitle, { color: theme.text }]} numberOfLines={2}>
-            {post.title}
-          </Text>
-          <View style={styles.postMetaRow}>
-            {post.author ? (
-              <UserNameRow
-                name={post.author?.profile_name || post.author?.username}
-                theme={post.author?.profile_theme}
-                style={[styles.postAuthorName, { color: theme.subText }]}
-              />
-            ) : null}
-            <Text style={[styles.postDate, { color: theme.subText }]}>
-              {post.author ? " • " : ""}{post.created_at ? formatTime(post.created_at) : ""}
+        );
+      }
+      if (item.type === "post") {
+        return (
+          <PostSearchCard
+            post={item.post}
+            isDarkMode={isDarkMode}
+            theme={theme}
+            navigation={navigation}
+          />
+        );
+      }
+      if (item.type === "empty_section") {
+        return (
+          <View style={styles.noSectionBox}>
+            <Ionicons name={item.icon} size={44} color={theme.subText} />
+            <Text style={[styles.noSectionText, { color: theme.subText }]}>
+              {item.text}
+            </Text>
+          </View>
+        );
+      }
+      return null;
+    },
+    [isDarkMode, theme, navigation]
+  );
+
+  const keyExtractor = useCallback((item) => item.key, []);
+
+  const listEmptyComponent = useMemo(() => {
+    if (!query.trim()) {
+      return (
+        <View style={styles.emptyDiscoverWrap}>
+          {/* Recent Searches */}
+          {recentSearches.length > 0 && (
+            <View style={styles.discoverSection}>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionTitleWithIcon}>
+                  <Ionicons name="time-outline" size={17} color={theme.primary} />
+                  <Text style={[styles.discoverSectionTitle, { color: theme.text }]}>
+                    {t("search.recentSearches", "Tìm kiếm gần đây")}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={clearAllRecent} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={[styles.clearAllText, { color: theme.subText }]}>
+                    {t("search.clearRecent", "Xóa lịch sử")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.recentTagsWrap}>
+                {recentSearches.map((term, idx) => (
+                  <View
+                    key={`recent-${idx}`}
+                    style={[
+                      styles.recentTagChip,
+                      {
+                        backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                        borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                      },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => handleChipPress(term)}
+                      style={styles.recentTagPressable}
+                    >
+                      <Ionicons name="search-outline" size={13} color={theme.subText} style={{ marginRight: 6 }} />
+                      <Text style={[styles.recentTagText, { color: theme.text }]} numberOfLines={1}>
+                        {term}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removeRecentSearch(term)}
+                      style={styles.recentTagRemove}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Ionicons name="close" size={14} color={theme.subText} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Trending / Suggested Topics fetched from Server */}
+          {suggestedTopics.length > 0 && (
+            <View style={styles.discoverSection}>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionTitleWithIcon}>
+                  <Ionicons name="trending-up-outline" size={17} color={theme.primary} />
+                  <Text style={[styles.discoverSectionTitle, { color: theme.text }]}>
+                    {t("search.popularTopics", "Chủ đề gợi ý")}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.popularTagsGrid}>
+                {suggestedTopics.map((item, idx) => (
+                  <TouchableOpacity
+                    key={`${item.label}-${idx}`}
+                    activeOpacity={0.75}
+                    onPress={() => handleChipPress(item.label?.startsWith("#") ? item.label : `#${item.label}`)}
+                    style={[
+                      styles.suggestedChip,
+                      {
+                        backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.10)" : "rgba(34, 197, 94, 0.08)",
+                        borderColor: isDarkMode ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.20)",
+                      },
+                    ]}
+                  >
+                    <Ionicons name={item.icon || "pricetag-outline"} size={14} color={theme.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.suggestedChipText, { color: theme.primary }]}>
+                      {item.label?.startsWith("#") ? item.label : `#${item.label}`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Friendly Mascot Art & Prompt */}
+          <View style={styles.emptyPromptCard}>
+            <Image
+              source={require("../../../assets/search-main.png")}
+              style={styles.mascotArt}
+              resizeMode="contain"
+            />
+            <Text style={[styles.emptyPromptTitle, { color: theme.text }]}>
+              {t("search.emptySearchTitle", "Khám phá thế giới CYO")}
+            </Text>
+            <Text style={[styles.emptyPromptDesc, { color: theme.subText }]}>
+              {t("search.emptySearchDesc", "Nhập tên bạn bè, chủ đề yêu thích hoặc #hashtag để bắt đầu tìm kiếm.")}
             </Text>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      );
+    }
+    if (loading) {
+      return (
+        <View style={styles.statusCenterBox}>
+          <CustomLoading />
+          <Text style={[styles.statusLoadingText, { color: theme.subText }]}>
+            {t("search.searching", "Đang tìm kiếm...")}
+          </Text>
+        </View>
+      );
+    }
+    if (hasSearched && !results.users?.length && !results.posts?.length) {
+      return (
+        <View style={styles.noResultsBox}>
+          <Image
+            source={require("../../../assets/search-main.png")}
+            style={styles.noResultsImg}
+            resizeMode="contain"
+          />
+          <Text style={[styles.noResultsTitle, { color: theme.text }]}>
+            {t("search.noResults", { query })}
+          </Text>
+          <Text style={[styles.noResultsSub, { color: theme.subText }]}>
+            {t("search.hint", "Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, chủ đề...")}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }, [
+    query,
+    recentSearches,
+    theme,
+    t,
+    clearAllRecent,
+    isDarkMode,
+    handleChipPress,
+    removeRecentSearch,
+    suggestedTopics,
+    loading,
+    hasSearched,
+    results.users,
+    results.posts,
+  ]);
+
+  const listFooterComponent = useMemo(
+    () =>
+      hasMoreResults ? (
+        <View style={{ paddingVertical: 14, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      ) : null,
+    [hasMoreResults, theme.primary]
   );
 
   const filterTabs = [
@@ -417,8 +722,19 @@ export default function SearchScreen({ navigation, route }) {
 
       {/* Main Content Area */}
       <AndroidGlassBackdrop providerId="SearchScreen" style={{ flex: 1 }}>
-        <Animated.ScrollView
+        <Animated.FlatList
           style={styles.scrollView}
+          data={displayedItems}
+          keyExtractor={keyExtractor}
+          renderItem={renderFlatItem}
+          ListEmptyComponent={listEmptyComponent}
+          ListFooterComponent={listFooterComponent}
+          onEndReached={handleLoadMoreResults}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === "android"}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 12,
@@ -430,217 +746,7 @@ export default function SearchScreen({ navigation, route }) {
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
-        >
-          {/* STATE 1: Empty Query - Show Recent Searches & Trending Topics */}
-          {!query.trim() ? (
-            <View style={styles.emptyDiscoverWrap}>
-              {/* Recent Searches */}
-              {recentSearches.length > 0 && (
-                <View style={styles.discoverSection}>
-                  <View style={styles.sectionHeaderRow}>
-                    <View style={styles.sectionTitleWithIcon}>
-                      <Ionicons name="time-outline" size={17} color={theme.primary} />
-                      <Text style={[styles.discoverSectionTitle, { color: theme.text }]}>
-                        {t("search.recentSearches", "Tìm kiếm gần đây")}
-                      </Text>
-                    </View>
-                    <TouchableOpacity onPress={clearAllRecent} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={[styles.clearAllText, { color: theme.subText }]}>
-                        {t("search.clearRecent", "Xóa lịch sử")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.recentTagsWrap}>
-                    {recentSearches.map((term, idx) => (
-                      <View
-                        key={`recent-${idx}`}
-                        style={[
-                          styles.recentTagChip,
-                          {
-                            backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                            borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
-                          },
-                        ]}
-                      >
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => handleChipPress(term)}
-                          style={styles.recentTagPressable}
-                        >
-                          <Ionicons name="search-outline" size={13} color={theme.subText} style={{ marginRight: 6 }} />
-                          <Text style={[styles.recentTagText, { color: theme.text }]} numberOfLines={1}>
-                            {term}
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => removeRecentSearch(term)}
-                          style={styles.recentTagRemove}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        >
-                          <Ionicons name="close" size={14} color={theme.subText} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Trending / Suggested Topics fetched from Server */}
-              {suggestedTopics.length > 0 && (
-                <View style={styles.discoverSection}>
-                  <View style={styles.sectionHeaderRow}>
-                    <View style={styles.sectionTitleWithIcon}>
-                      <Ionicons name="trending-up-outline" size={17} color={theme.primary} />
-                      <Text style={[styles.discoverSectionTitle, { color: theme.text }]}>
-                        {t("search.popularTopics", "Chủ đề gợi ý")}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.popularTagsGrid}>
-                    {suggestedTopics.map((item, idx) => (
-                      <TouchableOpacity
-                        key={`${item.label}-${idx}`}
-                        activeOpacity={0.75}
-                        onPress={() => handleChipPress(item.label?.startsWith("#") ? item.label : `#${item.label}`)}
-                        style={[
-                          styles.suggestedChip,
-                          {
-                            backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.10)" : "rgba(34, 197, 94, 0.08)",
-                            borderColor: isDarkMode ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.20)",
-                          },
-                        ]}
-                      >
-                        <Ionicons name={item.icon || "pricetag-outline"} size={14} color={theme.primary} style={{ marginRight: 6 }} />
-                        <Text style={[styles.suggestedChipText, { color: theme.primary }]}>
-                          {item.label?.startsWith("#") ? item.label : `#${item.label}`}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Friendly Mascot Art & Prompt */}
-              <View style={styles.emptyPromptCard}>
-                <Image
-                  source={require("../../../assets/search-main.png")}
-                  style={styles.mascotArt}
-                  resizeMode="contain"
-                />
-                <Text style={[styles.emptyPromptTitle, { color: theme.text }]}>
-                  {t("search.emptySearchTitle", "Khám phá thế giới CYO")}
-                </Text>
-                <Text style={[styles.emptyPromptDesc, { color: theme.subText }]}>
-                  {t("search.emptySearchDesc", "Nhập tên bạn bè, chủ đề yêu thích hoặc #hashtag để bắt đầu tìm kiếm.")}
-                </Text>
-              </View>
-            </View>
-          ) : loading ? (
-            /* STATE 2: Loading */
-            <View style={styles.statusCenterBox}>
-              <CustomLoading />
-              <Text style={[styles.statusLoadingText, { color: theme.subText }]}>
-                {t("search.searching", "Đang tìm kiếm...")}
-              </Text>
-            </View>
-          ) : hasSearched && !results.users?.length && !results.posts?.length ? (
-            /* STATE 3: No Results */
-            <View style={styles.noResultsBox}>
-              <Image
-                source={require("../../../assets/search-main.png")}
-                style={styles.noResultsImg}
-                resizeMode="contain"
-              />
-              <Text style={[styles.noResultsTitle, { color: theme.text }]}>
-                {t("search.noResults", { query })}
-              </Text>
-              <Text style={[styles.noResultsSub, { color: theme.subText }]}>
-                {t("search.hint", "Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, chủ đề...")}
-              </Text>
-            </View>
-          ) : (
-            /* STATE 4: Search Results */
-            <View style={styles.resultsWrap}>
-              {/* User Results Section */}
-              {(activeFilter === "user" || (activeFilter === "all" && results.users?.length > 0)) && (
-                <View style={styles.resultSection}>
-                  <View style={styles.resultSectionHeader}>
-                    <View style={styles.resultHeaderLeft}>
-                      <Ionicons name="people" size={17} color={theme.primary} />
-                      <Text style={[styles.resultSectionTitle, { color: theme.text }]}>
-                        {t("search.users", "Người dùng")}
-                      </Text>
-                    </View>
-                    {results.users?.length > 0 && (
-                      <View style={[styles.countBadge, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
-                        <Text style={[styles.countBadgeText, { color: theme.subText }]}>
-                          {results.users.length}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {results.users?.length > 0 ? (
-                    <View style={styles.usersList}>
-                      {results.users.map(renderUserItem)}
-                    </View>
-                  ) : (
-                    activeFilter === "user" && (
-                      <View style={styles.noSectionBox}>
-                        <Ionicons name="person-circle-outline" size={44} color={theme.subText} />
-                        <Text style={[styles.noSectionText, { color: theme.subText }]}>
-                          {t("search.noUsersForQuery", { query })}
-                        </Text>
-                      </View>
-                    )
-                  )}
-                </View>
-              )}
-
-              {/* Post Results Section */}
-              {(activeFilter === "all" || activeFilter === "post" || activeFilter === "hashtag") && (
-                <View style={styles.resultSection}>
-                  {(activeFilter === "post" || activeFilter === "hashtag" || (activeFilter === "all" && results.posts?.length > 0)) && (
-                    <>
-                      <View style={styles.resultSectionHeader}>
-                        <View style={styles.resultHeaderLeft}>
-                          <Ionicons name={hashtagTag ? "pricetag" : "newspaper"} size={17} color={theme.primary} />
-                          <Text style={[styles.resultSectionTitle, { color: theme.text }]}>
-                            {hashtagTag
-                              ? t("search.hashtagResultsTitle", { tag: hashtagTag })
-                              : t("search.posts", "Bài viết")}
-                          </Text>
-                        </View>
-                        {results.posts?.length > 0 && (
-                          <View style={[styles.countBadge, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
-                            <Text style={[styles.countBadgeText, { color: theme.subText }]}>
-                              {results.posts.length}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {results.posts?.length > 0 ? (
-                        <View style={styles.postsList}>
-                          {results.posts.map(renderPostItem)}
-                        </View>
-                      ) : (
-                        (activeFilter === "post" || activeFilter === "hashtag") && (
-                          <View style={styles.noSectionBox}>
-                            <Ionicons name="document-outline" size={44} color={theme.subText} />
-                            <Text style={[styles.noSectionText, { color: theme.subText }]}>
-                              {t("search.noPostsForQuery", { query })}
-                            </Text>
-                          </View>
-                        )
-                      )}
-                    </>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
-        </Animated.ScrollView>
+        />
       </AndroidGlassBackdrop>
     </View>
   );
