@@ -609,7 +609,10 @@
     "viewTranslation": "Xem bản dịch",
     "translatedByAi": "Dịch bởi Yoyo AI ({{lang}})",
     "translating": "Đang dịch bằng Yoyo AI...",
-    "translateError": "Không thể dịch bài viết lúc này"
+    "translateError": "Không thể dịch bài viết lúc này",
+    "originalRestored": "Đã chuyển về bài viết gốc",
+    "translatingSubtitle": "Vui lòng đợi trong giây lát...",
+    "translateSuccess": "Dịch thành công"
   },
   "sharePost": {
     "title": "Chia sẻ bài viết",

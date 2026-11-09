@@ -619,7 +619,10 @@
     "viewTranslation": "View translation",
     "translatedByAi": "Translated by Yoyo AI ({{lang}})",
     "translating": "Translating with Yoyo AI...",
-    "translateError": "Unable to translate post right now"
+    "translateError": "Unable to translate post right now",
+    "originalRestored": "Original post restored",
+    "translatingSubtitle": "Please wait a moment...",
+    "translateSuccess": "Translation complete"
   },
   "sharePost": {
     "title": "Share post",

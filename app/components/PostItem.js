@@ -641,15 +641,36 @@ const PostItem = ({
   const handleToggleAiTranslate = async () => {
     if (isTranslated) {
       setIsTranslated(false);
+      Toast.show({
+        type: "info",
+        text1: t("post.viewOriginal", "Bản gốc"),
+        text2: t("post.originalRestored", "Đã chuyển về bài viết gốc"),
+        visibilityTime: 2000,
+      });
       return;
     }
     if (translatedData) {
       setIsTranslated(true);
+      Toast.show({
+        type: "success",
+        text1: t("post.translateByAi", "Dịch bằng Yoyo AI"),
+        text2: t("post.translatedByAi", {
+          lang: getLanguageDisplayName(translatedData.target_lang, t),
+          defaultValue: `Đã dịch (${getLanguageDisplayName(translatedData.target_lang, t)})`,
+        }),
+        visibilityTime: 2000,
+      });
       return;
     }
     const appLang = i18n.language || "vi";
     const targetLang = getAiTranslateLanguage(appLang);
     setIsTranslating(true);
+    Toast.show({
+      type: "info",
+      text1: t("post.translating", "Đang dịch bằng Yoyo AI..."),
+      text2: t("post.translatingSubtitle", "Vui lòng đợi trong giây lát..."),
+      visibilityTime: 3000,
+    });
     try {
       const res = await postRequest(`/v1.0/topics/${item.id}/translate`, {
         target_lang: targetLang,
@@ -662,7 +683,7 @@ const PostItem = ({
         setIsTranslated(true);
         Toast.show({
           type: "success",
-          text1: t("post.translateByAi", "Dịch bằng Yoyo AI"),
+          text1: t("post.translateSuccess", "Dịch thành công"),
           text2: t("post.translatedByAi", {
             lang: getLanguageDisplayName(res.data.target_lang || targetLang, t),
             defaultValue: `Đã dịch (${getLanguageDisplayName(res.data.target_lang || targetLang, t)})`,
@@ -1297,7 +1318,15 @@ const PostItem = ({
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() => setIsTranslated(false)}
+                onPress={() => {
+                  setIsTranslated(false);
+                  Toast.show({
+                    type: "info",
+                    text1: t("post.viewOriginal", "Bản gốc"),
+                    text2: t("post.originalRestored", "Đã chuyển về bài viết gốc"),
+                    visibilityTime: 2000,
+                  });
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: "700", color: isDarkMode ? "#A7F3D0" : "#065F46" }}>

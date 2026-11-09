@@ -753,9 +753,9 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Added toggle switches in `AppUpdatesScreen.js` for "Bật cập nhật OTA" and "Kiểm tra khi khởi động", backed by MMKV storage keys `ota_enabled` and `ota_check_startup`, with full i18n support in `vi.json`, `en.json`, and `ru.json`.
   - For chats without avatar (such as support chats, bots, or users without profile pictures), the avatar is replaced with a clean circular thumbnail displaying the capitalized first letter on `theme.iconBackground` across `ChatScreen/index.js`, `ConversationHeader.js`, and `MessageRow.js`.
 
-- **Post Translation by Yoyo AI, Target Language in Settings & PostItem in Profile & Feeds** (`app/components/PostItem.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/utils/aiTranslation.js`, `app/i18n/locales/*.json`):
+- **Post Translation by Yoyo AI with Translation Status Toasts, Target Language in Settings & PostItem in Profile & Feeds** (`app/components/PostItem.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/utils/aiTranslation.js`, `app/i18n/locales/*.json`):
   - Added "Dịch bằng Yoyo AI" / "Xem bản gốc" / "Xem bản dịch" in `PostItem.js` bottom sheet options menu (accessible across Home feed, Explore, Profile screen timeline & liked posts, and PostScreen detail header).
-  - Translates post title and description into the selected language (4 supported languages: Vietnamese, English, Russian, Simplified Chinese), displays emerald sparkle badge `Dịch bởi Yoyo AI (<lang>)` with one-tap toggle back to original, and caches translation in component state.
+  - Displays full translation lifecycle toasts via `Toast.show` (translating progress, translation success with target language, original restored, error alerts). Displays emerald sparkle badge `Dịch bởi Yoyo AI (<lang>)` with one-tap toggle back to original, and caches translation in component state.
   - Added "Ngôn ngữ dịch Yoyo AI" setting with `Dropdown` selector in `SettingsScreen/index.js` backed by MMKV storage key `cbh_ai_translate_lang`.
   - Added UI localization keys across `vi.json`, `en.json`, and `ru.json`.
 

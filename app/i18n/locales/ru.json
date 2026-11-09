@@ -629,7 +629,10 @@
     "viewTranslation": "Показать перевод",
     "translatedByAi": "Переведено с Yoyo AI ({{lang}})",
     "translating": "Перевод с Yoyo AI...",
-    "translateError": "Не удалось перевести пост"
+    "translateError": "Не удалось перевести пост",
+    "originalRestored": "Оригинальный пост восстановлен",
+    "translatingSubtitle": "Пожалуйста, подождите...",
+    "translateSuccess": "Перевод завершен"
   },
   "sharePost": {
     "title": "Поделиться записью",
