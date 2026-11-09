@@ -386,7 +386,6 @@ Every new or changed screen must follow this section. If a screen you touch does
   - `QuizScreen/CustomQuizCreateScreen.js`: Redesigned header to floating `LiquidButton`, unified mode toggles with `SegmentedControl`, updated inputs, toolbar and document upload dropzone to modern cards, and modernized success screen with primary and secondary button tokens.
   - `StudyMaterialScreen/index.js`: Upgraded to standard floating header with `LiquidButton` back & upload action, added search box with clear button, refined category & price filter chips, updated author rows to `UserNameRow` and `AvatarFrameWrap`, and removed legacy box shadows in favor of sleek cards with `theme.border`.
   - Added localized `reviewQuestions` key to `en.json`, `vi.json`, and `ru.json`.
-
 - **Version 6.5.4 & Build 1096**:
   - `app.json` and `package.json` version bumped to `6.5.4`.
   - Android `versionCode` and iOS `buildNumber` set to `1096`.
