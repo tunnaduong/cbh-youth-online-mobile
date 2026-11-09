@@ -603,7 +603,13 @@
     "reply": "Trả lời",
     "pendingModerationTitle": "Bình luận đang chờ kiểm duyệt",
     "pendingModerationBody": "Bình luận của bạn sẽ hiển thị với mọi người sau khi được duyệt.",
-    "commentError": "Không thể gửi bình luận. Vui lòng thử lại."
+    "commentError": "Không thể gửi bình luận. Vui lòng thử lại.",
+    "translateByAi": "Dịch bằng Yoyo AI",
+    "viewOriginal": "Xem bản gốc",
+    "viewTranslation": "Xem bản dịch",
+    "translatedByAi": "Dịch bởi Yoyo AI ({{lang}})",
+    "translating": "Đang dịch bằng Yoyo AI...",
+    "translateError": "Không thể dịch bài viết lúc này"
   },
   "sharePost": {
     "title": "Chia sẻ bài viết",
@@ -1279,7 +1285,9 @@
     "cancel": "Hủy",
     "save": "Lưu",
     "subtitle": "Tuỳ chỉnh theo sở thích của bạn",
-    "greeting": "Xin chào, {{name}}!"
+    "greeting": "Xin chào, {{name}}!",
+    "aiTranslate": "Ngôn ngữ dịch Yoyo AI",
+    "aiTranslateAuto": "Tự động (Theo ngôn ngữ ứng dụng)"
   },
   "security": {
     "passkeys": "Passkey",

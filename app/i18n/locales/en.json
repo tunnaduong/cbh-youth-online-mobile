@@ -613,7 +613,13 @@
     "reply": "Reply",
     "pendingModerationTitle": "Comment is awaiting review",
     "pendingModerationBody": "Your comment will be visible to everyone once it has been approved.",
-    "commentError": "Could not post the comment. Please try again."
+    "commentError": "Could not post the comment. Please try again.",
+    "translateByAi": "Translate with Yoyo AI",
+    "viewOriginal": "View original",
+    "viewTranslation": "View translation",
+    "translatedByAi": "Translated by Yoyo AI ({{lang}})",
+    "translating": "Translating with Yoyo AI...",
+    "translateError": "Unable to translate post right now"
   },
   "sharePost": {
     "title": "Share post",
@@ -1292,7 +1298,9 @@
     "cancel": "Cancel",
     "save": "Save",
     "subtitle": "Customize the app your way",
-    "greeting": "Hello, {{name}}!"
+    "greeting": "Hello, {{name}}!",
+    "aiTranslate": "Yoyo AI translation language",
+    "aiTranslateAuto": "Auto (App language)"
   },
   "security": {
     "passkeys": "Passkeys",

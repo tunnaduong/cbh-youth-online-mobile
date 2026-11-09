@@ -26,6 +26,7 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 import { getRunningUpdateInfo } from "../../../services/ota/otaService";
+import { getAiTranslatePreference, setAiTranslatePreference } from "../../../utils/aiTranslation";
 
 const SettingItem = ({
   icon,
@@ -148,6 +149,17 @@ export default function SettingsScreen({ navigation }) {
   if (!userInfo) return null;
 
   const languageCode = i18n.language?.split("-")[0] || "vi";
+  const [aiTranslatePref, setAiTranslatePref] = React.useState(() => getAiTranslatePreference());
+
+  const aiTranslateOptions = [
+    { label: `✨ ${t("settings.aiTranslateAuto", "Tự động")}`, value: "auto" },
+    { label: "🇻🇳 Tiếng Việt", value: "vi" },
+    { label: "🇬🇧 English", value: "en" },
+    { label: "🇷🇺 Русский", value: "ru" },
+    { label: "🇨🇳 简体中文", value: "zh" },
+  ];
+
+  const currentAiTranslateOption = aiTranslateOptions.find((o) => o.value === aiTranslatePref) || aiTranslateOptions[0];
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
 
   const currentThemeIcon = useSystemTheme ? (
@@ -338,6 +350,34 @@ export default function SettingsScreen({ navigation }) {
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
               containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
+            />
+          </View>
+
+          {/* AI Translation Language dropdown */}
+          <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
+              </View>
+              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.aiTranslate")}</Text>
+            </View>
+            <Dropdown
+              options={aiTranslateOptions}
+              selectedValue={currentAiTranslateOption}
+              onValueChange={(item) => {
+                setAiTranslatePref(item.value);
+                setAiTranslatePreference(item.value);
+                Toast.show({
+                  type: "success",
+                  text1: t("settings.aiTranslate"),
+                  text2: item.label,
+                  visibilityTime: 2000,
+                });
+              }}
+              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
+              textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
+              modalTitle={t("settings.aiTranslate")}
             />
           </View>
 

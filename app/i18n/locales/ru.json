@@ -623,7 +623,13 @@
     "reply": "Ответить",
     "pendingModerationTitle": "Комментарий ожидает проверки",
     "pendingModerationBody": "Ваш комментарий станет виден всем после одобрения.",
-    "commentError": "Не удалось отправить комментарий. Попробуйте ещё раз."
+    "commentError": "Не удалось отправить комментарий. Попробуйте ещё раз.",
+    "translateByAi": "Перевести с Yoyo AI",
+    "viewOriginal": "Показать оригинал",
+    "viewTranslation": "Показать перевод",
+    "translatedByAi": "Переведено с Yoyo AI ({{lang}})",
+    "translating": "Перевод с Yoyo AI...",
+    "translateError": "Не удалось перевести пост"
   },
   "sharePost": {
     "title": "Поделиться записью",
@@ -1305,7 +1311,9 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "subtitle": "Настройте приложение под себя",
-    "greeting": "Привет, {{name}}!"
+    "greeting": "Привет, {{name}}!",
+    "aiTranslate": "Язык перевода Yoyo AI",
+    "aiTranslateAuto": "Авто (Язык приложения)"
   },
   "security": {
     "passkeys": "Passkey",

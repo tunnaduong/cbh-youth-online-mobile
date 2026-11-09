@@ -47,6 +47,8 @@ import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
+import { postRequest } from "../services/api/ApiByAxios";
+import { getAiTranslateLanguage, getLanguageDisplayName } from "../utils/aiTranslation";
 import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
@@ -414,6 +416,12 @@ const PostItem = ({
   const { username, userInfo } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile, feedRef } = useContext(FeedActionsContext) || {};
   const [isArchived, setIsArchived] = useState(!!item.archived);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedData, setTranslatedData] = useState(null);
+  const [isTranslated, setIsTranslated] = useState(false);
+
+  const displayTitle = isTranslated && translatedData?.title ? translatedData.title : item.title;
+  const displayContent = isTranslated && translatedData?.content_html ? translatedData.content_html : item.content;
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [votesModalVisible, setVotesModalVisible] = useState(false);
@@ -630,6 +638,56 @@ const PostItem = ({
     }
   };
 
+  const handleToggleAiTranslate = async () => {
+    if (isTranslated) {
+      setIsTranslated(false);
+      return;
+    }
+    if (translatedData) {
+      setIsTranslated(true);
+      return;
+    }
+    const appLang = i18n.language || "vi";
+    const targetLang = getAiTranslateLanguage(appLang);
+    setIsTranslating(true);
+    try {
+      const res = await postRequest(`/v1.0/topics/${item.id}/translate`, {
+        target_lang: targetLang,
+      });
+      if (res?.data?.success && res?.data?.translated) {
+        setTranslatedData({
+          ...res.data.translated,
+          target_lang: res.data.target_lang || targetLang,
+        });
+        setIsTranslated(true);
+        Toast.show({
+          type: "success",
+          text1: t("post.translateByAi", "Dịch bằng Yoyo AI"),
+          text2: t("post.translatedByAi", {
+            lang: getLanguageDisplayName(res.data.target_lang || targetLang, t),
+            defaultValue: `Đã dịch (${getLanguageDisplayName(res.data.target_lang || targetLang, t)})`,
+          }),
+          visibilityTime: 2500,
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("post.translateError", "Không thể dịch bài viết lúc này"),
+          visibilityTime: 2000,
+        });
+      }
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: t("post.translateError", "Không thể dịch bài viết lúc này"),
+        text2: err?.response?.data?.message || err?.message,
+        visibilityTime: 2500,
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleMoreOptions = () => {
     showBottomSheet(
       <View style={{ backgroundColor: theme.cardBackground }}>
@@ -648,6 +706,32 @@ const PostItem = ({
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
               {currentSaved ? t('post.unsave') : t('post.save')}
             </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          disabled={isTranslating}
+          onPress={() => {
+            hideBottomSheet();
+            handleToggleAiTranslate();
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons
+              name="sparkles"
+              size={23}
+              color={theme.primary}
+            />
+            <View style={{ padding: 12, flex: 1 }}>
+              <Text style={{ fontSize: 17, color: theme.text }}>
+                {isTranslating
+                  ? t("post.translating", "Đang dịch bằng Yoyo AI...")
+                  : isTranslated
+                  ? t("post.viewOriginal", "Xem bản gốc")
+                  : translatedData
+                  ? t("post.viewTranslation", "Xem bản dịch")
+                  : t("post.translateByAi", "Dịch bằng Yoyo AI")}
+              </Text>
+            </View>
           </View>
         </TouchableOpacity>
         {!isCurrentUser && (
@@ -946,8 +1030,8 @@ const PostItem = ({
 
   const isLongContent =
     !single &&
-    Boolean(item.content) &&
-    (item.content.length > 280 || (item.content.match(/<br|<p/gi) || []).length > 3);
+    Boolean(displayContent) &&
+    (displayContent.length > 280 || (displayContent.match(/<br|<p/gi) || []).length > 3);
 
   const handleExpandPost = () => {
     setIsExpanded((prev) => !prev);
@@ -978,12 +1062,12 @@ const PostItem = ({
     () => ({
       html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
         linkifyMentionsInHtml(
-          item.content || "",
+          displayContent || "",
           validMentions
         )
       )),
     }),
-    [item.content, validMentions]
+    [displayContent, validMentions]
   );
   const postBaseStyle = useMemo(() => ({ fontSize: 16, color: theme.text }), [theme.text]);
   const postTagsStyles = useMemo(
@@ -1184,7 +1268,46 @@ const PostItem = ({
             borderRadius: 10,
           }}
         >
-          {item.title ? (
+          {isTranslated && translatedData && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#E8F8EA",
+                borderColor: isDarkMode ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0",
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                marginBottom: 6,
+                marginTop: single ? 0 : 4,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
+                <Ionicons name="sparkles" size={14} color="#10B981" style={{ marginRight: 6 }} />
+                <Text
+                  style={{ fontSize: 12, fontWeight: "600", color: isDarkMode ? "#6EE7B7" : "#047857" }}
+                  numberOfLines={1}
+                >
+                  {t("post.translatedByAi", {
+                    lang: getLanguageDisplayName(translatedData.target_lang, t),
+                    defaultValue: `Dịch bởi Yoyo AI (${getLanguageDisplayName(translatedData.target_lang, t)})`,
+                  })}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setIsTranslated(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: isDarkMode ? "#A7F3D0" : "#065F46" }}>
+                  {t("post.viewOriginal", "Bản gốc")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {displayTitle ? (
             <View
               style={{
                 position: "relative",
@@ -1241,7 +1364,7 @@ const PostItem = ({
                       color: theme.text,
                     }}
                   >
-                    {item.title}
+                    {displayTitle}
                   </Text>
                 </Pressable>
               ) : (
@@ -1279,19 +1402,19 @@ const PostItem = ({
                     numberOfLines={3}
                     ellipsizeMode="tail"
                   >
-                    {item.title}
+                    {displayTitle}
                   </Text>
                 </Pressable>
               )}
             </View>
           ) : null}
 
-          {item.content ? (
+          {displayContent ? (
             <View
               style={{
                 position: "relative",
                 zIndex: activeCopyTarget === "caption" ? 30 : 20,
-                marginTop: item.title ? 4 : 6,
+                marginTop: displayTitle ? 4 : 6,
               }}
             >
               {activeCopyTarget === "caption" && (
