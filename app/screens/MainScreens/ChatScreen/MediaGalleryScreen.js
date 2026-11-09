@@ -14,6 +14,7 @@ import {
   Clipboard,
   Animated,
   Easing,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,7 +34,7 @@ import {
 } from "../../../components/GlassModules";
 import { openExternalLink } from "../../../utils/externalLink";
 import formatTime from "../../../utils/formatTime";
-import { getConversationMedia } from "../../../services/api/Api";
+import { getConversationMedia, isRequestCanceled } from "../../../services/api/Api";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
 import { VideoViewerModal } from "./conversation/VideoViewerModal";
 import ForwardMessageModal from "../../../components/ForwardMessageModal";
@@ -190,7 +191,13 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   const [itemsByTab, setItemsByTab] = useState({ image: [], file: [], link: [] });
   const [pageByTab, setPageByTab] = useState({ image: 1, file: 1, link: 1 });
   const [lastPageByTab, setLastPageByTab] = useState({ image: 1, file: 1, link: 1 });
-  const [loading, setLoading] = useState(false);
+  const [loadingByTab, setLoadingByTab] = useState({ image: false, file: false, link: false });
+  const [errorByTab, setErrorByTab] = useState({ image: false, file: false, link: false });
+  const loadingRef = useRef({ image: false, file: false, link: false });
+  const pageRef = useRef({ image: 1, file: 1, link: 1 });
+  const lastPageRef = useRef({ image: 1, file: 1, link: 1 });
+  const abortByTabRef = useRef({ image: null, file: null, link: null });
+  const loading = loadingByTab[activeTab];
   const [downloadingId, setDownloadingId] = useState(null);
   const [imageViewer, setImageViewer] = useState({ visible: false, items: [], index: 0 });
   const [videoViewer, setVideoViewer] = useState({ visible: false, item: null });
@@ -216,58 +223,85 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     scrollY.setValue(0);
   }, [activeTab]);
 
+  useEffect(() => {
+    return () => {
+      Object.values(abortByTabRef.current).forEach((ctrl) => ctrl?.abort());
+    };
+  }, []);
+
   // "image" tab actually fetches both images and videos (the API's `type`
   // filter is per-request) - request both and merge, sorted by recency,
   // since Messenger's Photos/Videos tab is a single combined grid.
   const fetchTab = useCallback(
     async (tab, page = 1) => {
-      setLoading(true);
+      if (loadingRef.current[tab]) return;
+      loadingRef.current[tab] = true;
+      setLoadingByTab((prev) => ({ ...prev, [tab]: true }));
+      setErrorByTab((prev) => ({ ...prev, [tab]: false }));
+
+      abortByTabRef.current[tab]?.abort();
+      const controller = new AbortController();
+      abortByTabRef.current[tab] = controller;
+
       try {
         if (tab === "image") {
           const [imagesRes, videosRes] = await Promise.all([
-            getConversationMedia(conversationId, "image", page),
-            getConversationMedia(conversationId, "video", page),
+            getConversationMedia(conversationId, "image", page, { signal: controller.signal }),
+            getConversationMedia(conversationId, "video", page, { signal: controller.signal }),
           ]);
+          if (controller.signal.aborted) return;
           const merged = [...(imagesRes.data.data || []), ...(videosRes.data.data || [])].sort(
             (a, b) => new Date(b.created_at) - new Date(a.created_at)
           );
+          const nextLastPage = Math.max(imagesRes.data.last_page || 1, videosRes.data.last_page || 1);
           setItemsByTab((prev) => ({
             ...prev,
             image: page === 1 ? merged : [...prev.image, ...merged],
           }));
+          lastPageRef.current.image = nextLastPage;
           setLastPageByTab((prev) => ({
             ...prev,
-            image: Math.max(imagesRes.data.last_page, videosRes.data.last_page),
+            image: nextLastPage,
           }));
         } else {
-          const res = await getConversationMedia(conversationId, tab, page);
+          const res = await getConversationMedia(conversationId, tab, page, { signal: controller.signal });
+          if (controller.signal.aborted) return;
+          const nextLastPage = res.data.last_page || 1;
           setItemsByTab((prev) => ({
             ...prev,
             [tab]: page === 1 ? res.data.data : [...prev[tab], ...res.data.data],
           }));
-          setLastPageByTab((prev) => ({ ...prev, [tab]: res.data.last_page }));
+          lastPageRef.current[tab] = nextLastPage;
+          setLastPageByTab((prev) => ({ ...prev, [tab]: nextLastPage }));
         }
+        pageRef.current[tab] = page;
         setPageByTab((prev) => ({ ...prev, [tab]: page }));
       } catch (error) {
+        if (isRequestCanceled(error) || controller.signal.aborted) return;
+        setErrorByTab((prev) => ({ ...prev, [tab]: true }));
         Toast.show({ type: "error", text1: t("common.error"), text2: error?.message });
       } finally {
-        setLoading(false);
+        if (abortByTabRef.current[tab] === controller) {
+          loadingRef.current[tab] = false;
+          setLoadingByTab((prev) => ({ ...prev, [tab]: false }));
+        }
       }
     },
     [conversationId, t]
   );
 
   useEffect(() => {
-    if (itemsByTab[activeTab].length === 0) {
+    if (itemsByTab[activeTab].length === 0 && !loadingRef.current[activeTab]) {
       fetchTab(activeTab, 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const loadMore = () => {
-    if (loading || pageByTab[activeTab] >= lastPageByTab[activeTab]) return;
-    fetchTab(activeTab, pageByTab[activeTab] + 1);
-  };
+  const loadMore = useCallback(() => {
+    if (loadingRef.current[activeTab] || errorByTab[activeTab]) return;
+    if (pageRef.current[activeTab] >= lastPageRef.current[activeTab]) return;
+    fetchTab(activeTab, pageRef.current[activeTab] + 1);
+  }, [activeTab, errorByTab, fetchTab]);
 
   // Downloads to a scratch cache file and hands it to the OS share sheet -
   // used for both "Share" (any file type) and, for files specifically, is
@@ -511,17 +545,51 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     paddingBottom: (insets.bottom > 0 ? insets.bottom + 8 : 16) + NAV_HEIGHT + 16,
   };
 
+  const gridTileSize = Dimensions.get("window").width / 3;
+  const getGridItemLayout = useCallback(
+    (_, index) => {
+      const rowIndex = Math.floor(index / 3);
+      return {
+        length: gridTileSize,
+        offset: gridTileSize * rowIndex,
+        index,
+      };
+    },
+    [gridTileSize]
+  );
+  const getFileItemLayout = useCallback(
+    (_, index) => ({
+      length: 65,
+      offset: 65 * index,
+      index,
+    }),
+    []
+  );
+
   const sharedListProps = {
-    keyExtractor: (item, index) => `${item.message_id}-${index}`,
+    keyExtractor: (item, index) => `${item.message_id || index}-${item.file_url || item.url || index}`,
     onEndReached: loadMore,
     onEndReachedThreshold: 0.5,
     onScroll,
     scrollEventThrottle: 16,
     showsVerticalScrollIndicator: false,
     contentContainerStyle: listContentStyle,
+    initialNumToRender: 12,
+    maxToRenderPerBatch: 9,
+    windowSize: 5,
+    removeClippedSubviews: Platform.OS === "android",
     ListEmptyComponent: !loading ? <EmptyState theme={theme} t={t} /> : null,
     ListFooterComponent: loading ? (
       <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary} />
+    ) : errorByTab[activeTab] ? (
+      <TouchableOpacity
+        onPress={() => fetchTab(activeTab, pageRef.current[activeTab] + (itemsByTab[activeTab].length > 0 ? 1 : 0))}
+        style={{ paddingVertical: 14, alignItems: "center" }}
+      >
+        <Text style={{ color: theme.primary, fontWeight: "600" }}>
+          {t("common.retry", "Thử lại")}
+        </Text>
+      </TouchableOpacity>
     ) : null,
   };
 
@@ -533,6 +601,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         data={itemsByTab.image}
         renderItem={renderPhotoVideoItem}
         numColumns={3}
+        getItemLayout={getGridItemLayout}
       />
     ) : (
       <Animated.FlatList
@@ -540,6 +609,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         {...sharedListProps}
         data={itemsByTab[tabKey]}
         renderItem={tabKey === "file" ? renderFileItem : renderLinkItem}
+        getItemLayout={getFileItemLayout}
       />
     );
 

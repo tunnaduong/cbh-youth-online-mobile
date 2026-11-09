@@ -21,7 +21,7 @@ import LiquidButton from "../../../../components/LiquidButton";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import UserNameRow from "../../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../../components/profile/AvatarFrame";
-import { getGames, getRandomGame, getGameNowPlaying, getGameLeaderboard } from "../../../../services/api/Api";
+import { getGames, getRandomGame, getGameNowPlaying, getGameLeaderboard, isRequestCanceled } from "../../../../services/api/Api";
 
 // Category values are backend-defined (English) - only these get translated;
 // game names/descriptions are never translated.
@@ -107,33 +107,43 @@ const GamesScreen = ({ navigation }) => {
   const filterMobileCompatible = (list) =>
     (list || []).filter((g) => g.platform !== "pc");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal) => {
     setLoading(true);
     try {
       const params = {};
       if (search) params.q = search;
       if (activeCategory !== "all") params.category = activeCategory;
-      const res = await getGames(params);
+      const res = await getGames(params, { signal });
+      if (signal?.aborted) return;
       const data = res?.data || res;
       setAllGames(filterMobileCompatible(data.games));
       setMostPlayed(filterMobileCompatible(data.most_played));
       setNewest(filterMobileCompatible(data.newest));
     } catch (error) {
+      if (isRequestCanceled(error) || signal?.aborted) return;
       Toast.show({ type: "error", text1: t("games.loadError", "Không thể tải danh sách game") });
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }, [search, activeCategory, t]);
 
   useEffect(() => {
-    const timeout = setTimeout(load, 300);
-    return () => clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => load(controller.signal), 300);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [load]);
 
   useEffect(() => {
+    const controller = new AbortController();
     (async () => {
       try {
-        const res = await getGameNowPlaying();
+        const res = await getGameNowPlaying({ signal: controller.signal });
+        if (controller.signal.aborted) return;
         const data = res?.data || res;
         setNowPlaying(data?.playing || []);
       } catch (error) {
@@ -142,13 +152,15 @@ const GamesScreen = ({ navigation }) => {
     })();
     (async () => {
       try {
-        const res = await getGameLeaderboard("week");
+        const res = await getGameLeaderboard("week", undefined, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         const data = res?.data || res;
         setLeaderboard((data?.leaderboard || []).slice(0, 8));
       } catch (error) {
         // Silent - same as above
       }
     })();
+    return () => controller.abort();
   }, []);
 
   const handleRandom = async () => {

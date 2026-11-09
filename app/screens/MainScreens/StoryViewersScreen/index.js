@@ -5,9 +5,10 @@ import {
   Animated,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getStoryViewers } from "../../../services/api/Api";
+import { getStoryViewers, isRequestCanceled } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -35,17 +36,21 @@ const StoryViewersScreen = ({ route, navigation }) => {
   });
 
   useEffect(() => {
-    fetchViewers();
-  }, []);
+    const controller = new AbortController();
+    fetchViewers(controller.signal);
+    return () => controller.abort();
+  }, [storyId]);
 
-  const fetchViewers = async () => {
+  const fetchViewers = async (signal) => {
     try {
       setLoading(true);
-      const response = await getStoryViewers(storyId);
+      const response = await getStoryViewers(storyId, { signal });
+      if (signal?.aborted) return;
       if (response?.data?.data) {
         setViewers(response.data.data.viewers || []);
       }
     } catch (error) {
+      if (isRequestCanceled(error) || signal?.aborted) return;
       console.error("Error fetching viewers:", error);
       Toast.show({
         type: "error",
@@ -53,7 +58,9 @@ const StoryViewersScreen = ({ route, navigation }) => {
         text2: t('storyViewers.loadError'),
       });
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
@@ -158,6 +165,16 @@ const StoryViewersScreen = ({ route, navigation }) => {
             data={viewers}
             renderItem={renderViewerItem}
             keyExtractor={(item) => item.id.toString()}
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={Platform.OS === "android"}
+            getItemLayout={(_data, index) => ({
+              length: 76,
+              offset: 76 * index,
+              index,
+            })}
             scrollEventThrottle={16}
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
               useNativeDriver: false,

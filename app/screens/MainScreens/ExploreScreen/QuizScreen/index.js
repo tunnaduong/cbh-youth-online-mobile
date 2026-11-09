@@ -74,12 +74,15 @@ const QuizScreen = ({ navigation, route }) => {
   const [leaderboard, setLeaderboard] = useState([]);
 
   React.useEffect(() => {
-    getQuizTopics()
+    const controller = new AbortController();
+    getQuizTopics({ signal: controller.signal })
       .then((res) => {
+        if (controller.signal.aborted) return;
         const data = res?.data || res;
         setTopics(data?.topics || []);
       })
       .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   // Opened via a shared quiz link
@@ -162,15 +165,18 @@ const QuizScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     React.useCallback(() => {
+      const controller = new AbortController();
       (async () => {
         try {
-          const res = await getQuizLeaderboard("week");
+          const res = await getQuizLeaderboard("week", { signal: controller.signal });
+          if (controller.signal.aborted) return;
           const data = res?.data || res;
           setLeaderboard((data?.leaderboard || []).slice(0, 8));
         } catch (error) {
           // Silent
         }
       })();
+      return () => controller.abort();
     }, [])
   );
 

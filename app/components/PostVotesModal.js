@@ -7,7 +7,8 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
-  ScrollView,
+  FlatList,
+  Platform,
 } from "react-native";
 import FastImage from "./FastImage";
 import UserNameRow from "./profile/UserNameRow";
@@ -17,7 +18,7 @@ import ActionSheet from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getPostVotes } from "../services/api/Api";
+import { getPostVotes, isRequestCanceled } from "../services/api/Api";
 
 const getVoteLabel = (t, voteValue) => {
   if (voteValue === 1) return t("voteModal.upvote");
@@ -63,29 +64,27 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
       return;
     }
 
-    let isActive = true;
+    const controller = new AbortController();
 
     const fetchVotes = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await getPostVotes(postId);
+        const response = await getPostVotes(postId, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         const data = response?.data ?? response;
-        if (isActive) {
-          setVotes(Array.isArray(data) ? data : []);
-        }
+        setVotes(Array.isArray(data) ? data : []);
       } catch (err) {
-        if (isActive) {
-          setError(
-            err?.response?.data?.message ||
-              err?.message ||
-              t("voteModal.loadError")
-          );
-          setVotes([]);
-        }
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
+        setError(
+          err?.response?.data?.message ||
+            err?.message ||
+            t("voteModal.loadError")
+        );
+        setVotes([]);
       } finally {
-        if (isActive) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -94,7 +93,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
     fetchVotes();
 
     return () => {
-      isActive = false;
+      controller.abort();
     };
   }, [visible, postId]);
 
@@ -221,7 +220,10 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
               <Text style={[styles.emptyText, { color: theme.subText }]}>{t("voteModal.empty")}</Text>
             </View>
           ) : (
-            <ScrollView
+            <FlatList
+              data={votes}
+              keyExtractor={(item, i) => item.user_id?.toString() || item.username || String(i)}
+              renderItem={renderItem}
               style={[
                 styles.list,
                 { maxHeight: windowHeight * 0.85 - (headerHeight || 160) - Math.max(insets.bottom, 16) },
@@ -229,13 +231,17 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
-            >
-              {votes.map((item, i) => (
-                <React.Fragment key={item.user_id?.toString() || item.username || JSON.stringify(item) + i}>
-                  {renderItem({ item })}
-                </React.Fragment>
-              ))}
-            </ScrollView>
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={Platform.OS === "android"}
+              getItemLayout={(_, index) => ({
+                length: 80,
+                offset: 80 * index,
+                index,
+              })}
+            />
           )}
         </View>
     </ActionSheet>

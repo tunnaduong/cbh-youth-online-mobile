@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getForumCategories } from "../../../services/api/Api";
+import { getForumCategories, isRequestCanceled } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -151,6 +151,8 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const innerScrollRefs = useRef({});
+  const isFetchingRef = useRef(false);
+  const abortControllerRef = useRef(null);
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -181,7 +183,11 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       isProcessingRef.current = true;
       const scrollRef = innerScrollRefs.current[activeCategory];
       if (scrollRef) {
-        scrollRef.scrollTo({ y: 0, animated: true });
+        if (typeof scrollRef.scrollToOffset === "function") {
+          scrollRef.scrollToOffset({ offset: 0, animated: true });
+        } else if (typeof scrollRef.scrollTo === "function") {
+          scrollRef.scrollTo({ y: 0, animated: true });
+        }
       }
       setTimeout(() => {
         scrollPositionRef.current = 0;
@@ -208,6 +214,13 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   }, [categories, activeCategory]);
 
   const fetchForumData = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isFetchingRef.current = true;
+
     try {
       const cachedStr = storage.getString("cached_forum");
       if (cachedStr) {
@@ -221,7 +234,8 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         } catch(e) {}
       }
 
-      const response = await getForumCategories();
+      const response = await getForumCategories({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       const categoriesData = response?.data;
       if (Array.isArray(categoriesData) && categoriesData.length > 0) {
         setCategories(categoriesData);
@@ -230,9 +244,14 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       setLoading(false);
       setTimeout(() => setRefreshing(false), 1000);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.log(error);
       setLoading(false);
       setTimeout(() => setRefreshing(false), 1000);
+    } finally {
+      if (!controller.signal.aborted) {
+        isFetchingRef.current = false;
+      }
     }
   };
 
@@ -264,6 +283,11 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   useEffect(() => {
     fetchForumData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   if (loading) {
@@ -518,7 +542,10 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           });
         }}
         renderItem={({ item }) => (
-          <ScrollView
+          <FlatList
+            ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
+            data={item.subforums || []}
+            keyExtractor={(section) => `subforum-${section.id}`}
             style={{ flex: 1, width, backgroundColor: theme.background }}
             contentContainerStyle={{
               backgroundColor: "transparent",
@@ -533,6 +560,11 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               paddingTop: 8,
             }}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={Platform.OS === "android"}
             onScroll={(e) => {
               const offsetY = e.nativeEvent.contentOffset.y;
               if (item.id === activeCategory) {
@@ -540,7 +572,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               }
               handleScroll(e);
             }}
-            ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -552,18 +584,16 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                 progressViewOffset={-1000}
               />
             }
-          >
-            {item.subforums.map((section) => (
+            renderItem={({ item: section }) => (
               <ForumSection
-                key={section.id}
                 section={section}
                 navigation={navigation}
                 theme={theme}
                 isDarkMode={isDarkMode}
                 t={t}
               />
-            ))}
-          </ScrollView>
+            )}
+          />
         )}
       />
     </View>

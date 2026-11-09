@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
   uploadConversationBackground,
   selectConversationBackground,
   resetConversationBackground,
+  isRequestCanceled,
 } from "../services/api/Api";
 
 // Background picker for a chat conversation (private or group — never the
@@ -36,28 +37,41 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
   const [applyingId, setApplyingId] = useState(null);
   const [resetting, setResetting] = useState(false);
 
+  const abortControllerRef = useRef(null);
+
   useEffect(() => {
     if (visible && conversationId) {
       loadBackground();
     } else {
+      abortControllerRef.current?.abort();
       setBackgroundUrl(null);
       setHistory([]);
     }
+    return () => {
+      abortControllerRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, conversationId]);
 
   const loadBackground = async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setLoading(true);
     try {
-      const res = await getConversationBackground(conversationId);
+      const res = await getConversationBackground(conversationId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       const data = res?.data || res;
       setBackgroundUrl(data?.background_url || null);
       setHistory(Array.isArray(data?.history) ? data.history : []);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("[ChatBackgroundModal] loadBackground failed:", error?.response?.status, error?.response?.data || error?.message);
       Toast.show({ type: "error", text1: t("chatBackground.loadError", "Không thể tải hình nền cuộc trò chuyện") });
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   RefreshControl,
@@ -23,6 +24,7 @@ import {
   getWalletBalance,
   getWalletTransactions,
   getWithdrawalRequests,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 
 const getPayload = (response) => response?.data ?? response ?? {};
@@ -62,37 +64,95 @@ export default function PointWalletScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [txPage, setTxPage] = useState(1);
+  const [txHasMore, setTxHasMore] = useState(false);
+  const [loadingMoreTx, setLoadingMoreTx] = useState(false);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const abortControllerRef = useRef(null);
+  const txAbortRef = useRef(null);
+  const isFetchingTxRef = useRef(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     if (isRefresh) setRefreshing(true);
     try {
       const [balanceResponse, transactionsResponse, withdrawalResponse] = await Promise.all([
-        getWalletBalance(),
-        getWalletTransactions(),
-        getWithdrawalRequests(),
+        getWalletBalance({ signal: controller.signal }),
+        getWalletTransactions({ page: 1 }, { signal: controller.signal }),
+        getWithdrawalRequests({}, { signal: controller.signal }),
       ]);
+      if (controller.signal.aborted) return;
       setBalance(getPayload(balanceResponse));
-      setTransactions(getItems(transactionsResponse));
+      const txPayload = getPayload(transactionsResponse);
+      const txItems = getItems(transactionsResponse);
+      setTransactions(txItems);
+      setTxPage(1);
+      setTxHasMore(Boolean(txPayload?.next_page_url || (txPayload?.current_page < txPayload?.last_page)));
       setWithdrawalRequests(getItems(withdrawalResponse));
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       Toast.show({
         type: "error",
         text1: t("wallet.loadErrorTitle"),
         text2: error?.response?.data?.message || t("wallet.loadErrorDefault"),
       });
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [t]);
 
+  const loadMoreTransactions = useCallback(async () => {
+    if (isFetchingTxRef.current || !txHasMore) return;
+    if (txAbortRef.current) {
+      txAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    txAbortRef.current = controller;
+    isFetchingTxRef.current = true;
+    setLoadingMoreTx(true);
+
+    try {
+      const nextPage = txPage + 1;
+      const response = await getWalletTransactions({ page: nextPage }, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const txPayload = getPayload(response);
+      const txItems = getItems(response);
+      setTransactions((prev) => {
+        const existingIds = new Set(prev.map((item) => item.id).filter(Boolean));
+        return [...prev, ...txItems.filter((item) => !item.id || !existingIds.has(item.id))];
+      });
+      setTxPage(nextPage);
+      setTxHasMore(Boolean(txPayload?.next_page_url || (txPayload?.current_page < txPayload?.last_page)));
+    } catch (error) {
+      if (!isRequestCanceled(error) && !controller.signal.aborted) {
+        console.warn("Unable to load more wallet transactions:", error);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        isFetchingTxRef.current = false;
+        setLoadingMoreTx(false);
+      }
+    }
+  }, [txHasMore, txPage]);
+
   useEffect(() => {
     loadData();
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (txAbortRef.current) txAbortRef.current.abort();
+    };
   }, [loadData]);
 
   const handleCancel = (request) => {
@@ -212,6 +272,21 @@ export default function PointWalletScreen({ navigation }) {
                 <Text style={[styles.amountText, { color: transaction.amount > 0 ? "#168348" : "#DC2626" }]}>{transaction.amount > 0 ? "+" : ""}{formatNumber(transaction.amount, lang)}</Text>
               </View>
             ))
+          )}
+          {txHasMore && (
+            <TouchableOpacity
+              onPress={loadMoreTransactions}
+              disabled={loadingMoreTx}
+              style={{ paddingVertical: 12, alignItems: "center" }}
+            >
+              {loadingMoreTx ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Text style={{ color: theme.primary, fontWeight: "700", fontSize: 13 }}>
+                  {t("profile.loadMorePosts", "Tải thêm")}
+                </Text>
+              )}
+            </TouchableOpacity>
           )}
         </View>
 

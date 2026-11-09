@@ -17,6 +17,7 @@ import {
   blockUser as blockUserApi,
   unblockUser as unblockUserApi,
   reportUser,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import { apiErrorMessage } from "../../../utils/apiMessage";
@@ -71,23 +72,19 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     extrapolate: "clamp",
   });
 
-  useFocusEffect(
-    React.useCallback(() => {
-      // Fetch updated data for the profile when the screen comes into focus
-      fetchProfileData();
-    }, [username])
-  );
+  const abortControllerRef = React.useRef(null);
 
-  useEffect(() => {
-    fetchProfileData();
-  }, [username]);
-
-  const fetchProfileData = async () => {
+  const fetchProfileData = React.useCallback(async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
-      const response = await getProfile(username);
+      const response = await getProfile(username, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       setProfileData(response.data.profile);
       if (response.data?.id) setProfileUserId(response.data.id);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("Error fetching profile:", error);
       Toast.show({
         type: "error",
@@ -95,9 +92,21 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         text2: t('profile.errorLoading'),
       });
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [username, t]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Fetch updated data for the profile when the screen comes into focus
+      fetchProfileData();
+      return () => {
+        abortControllerRef.current?.abort();
+      };
+    }, [fetchProfileData])
+  );
 
   if (loading) {
     return (

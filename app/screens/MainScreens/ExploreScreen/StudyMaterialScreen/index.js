@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -24,6 +25,7 @@ import { AvatarFrameWrap } from "../../../../components/profile/AvatarFrame";
 import {
   getStudyMaterialCategories,
   getStudyMaterials,
+  isRequestCanceled,
 } from "../../../../services/api/Api";
 import FastImage from "../../../../components/FastImage";
 import formatTime from "../../../../utils/formatTime";
@@ -248,11 +250,18 @@ const StudyMaterialScreen = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedSort, setSelectedSort] = useState("newest");
   const scrollY = useRef(new Animated.Value(0)).current;
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const materialsAbortRef = useRef(null);
+  const categoriesAbortRef = useRef(null);
 
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
@@ -261,59 +270,114 @@ const StudyMaterialScreen = ({ navigation }) => {
   });
 
   const loadCategories = useCallback(async () => {
+    if (categoriesAbortRef.current) {
+      categoriesAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    categoriesAbortRef.current = controller;
+
     try {
-      const response = await getStudyMaterialCategories();
+      const response = await getStudyMaterialCategories({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       setCategories(response?.data || []);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.warn("Failed to load categories", error);
     }
   }, []);
 
-  const loadMaterials = useCallback(async ({ refresh = false } = {}) => {
-    try {
-      if (refresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+  const loadMaterials = useCallback(
+    async ({ refresh = false, pageToLoad = 1 } = {}) => {
+      const isFirstPage = pageToLoad === 1;
+      if (!isFirstPage && (isFetchingRef.current || !hasMoreRef.current)) return;
+
+      if (materialsAbortRef.current) {
+        materialsAbortRef.current.abort();
       }
+      const controller = new AbortController();
+      materialsAbortRef.current = controller;
+      isFetchingRef.current = true;
+      setLoadMoreError(false);
 
-      const params = {};
-      if (search.trim()) params.search = search.trim();
-      if (selectedCategory) params.category_id = selectedCategory;
-      if (selectedFilter === "free") params.is_free = "true";
-      if (selectedFilter === "paid") params.is_free = "false";
+      try {
+        if (isFirstPage) {
+          if (refresh) {
+            setRefreshing(true);
+          } else {
+            setLoading(true);
+          }
+        } else {
+          setLoadingMore(true);
+        }
 
-      if (selectedSort === "rating") {
-        params.sort_by = "average_rating";
-        params.sort_order = "desc";
-      } else if (selectedSort === "downloads") {
-        params.sort_by = "download_count";
-        params.sort_order = "desc";
-      } else if (selectedSort === "views") {
-        params.sort_by = "view_count";
-        params.sort_order = "desc";
-      } else {
-        params.sort_by = "created_at";
-        params.sort_order = "desc";
+        const params = { page: pageToLoad };
+        if (search.trim()) params.search = search.trim();
+        if (selectedCategory) params.category_id = selectedCategory;
+        if (selectedFilter === "free") params.is_free = "true";
+        if (selectedFilter === "paid") params.is_free = "false";
+
+        if (selectedSort === "rating") {
+          params.sort_by = "average_rating";
+          params.sort_order = "desc";
+        } else if (selectedSort === "downloads") {
+          params.sort_by = "download_count";
+          params.sort_order = "desc";
+        } else if (selectedSort === "views") {
+          params.sort_by = "view_count";
+          params.sort_order = "desc";
+        } else {
+          params.sort_by = "created_at";
+          params.sort_order = "desc";
+        }
+
+        const response = await getStudyMaterials(params, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        const payload = Array.isArray(response?.data?.data) ? response.data.data : [];
+        const currentPage = Number(response?.data?.current_page) || pageToLoad;
+        const lastPage = Number(response?.data?.last_page) || 1;
+        const more = Boolean(response?.data?.next_page_url || currentPage < lastPage);
+
+        setMaterials((prev) => {
+          if (isFirstPage) return payload;
+          const existingIds = new Set(prev.map((m) => m.id));
+          return [...prev, ...payload.filter((m) => !existingIds.has(m.id))];
+        });
+        pageRef.current = currentPage;
+        hasMoreRef.current = more;
+      } catch (error) {
+        if (isRequestCanceled(error) || controller.signal.aborted) return;
+        if (!isFirstPage) {
+          setLoadMoreError(true);
+        } else {
+          Toast.show({
+            type: "error",
+            text1: t("studyMaterial.loadError"),
+            text2: error?.message || t("studyMaterial.tryAgain"),
+          });
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          isFetchingRef.current = false;
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
+    },
+    [search, selectedCategory, selectedFilter, selectedSort, t]
+  );
 
-      const response = await getStudyMaterials(params);
-      const payload = response?.data?.data || [];
-      setMaterials(payload);
-    } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: t("studyMaterial.loadError"),
-        text2: error?.message || t("studyMaterial.tryAgain"),
-      });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [search, selectedCategory, selectedFilter, selectedSort, t]);
+  const handleLoadMore = useCallback(() => {
+    if (isFetchingRef.current || !hasMoreRef.current || loadMoreError) return;
+    loadMaterials({ pageToLoad: pageRef.current + 1 });
+  }, [loadMaterials, loadMoreError]);
 
   useEffect(() => {
     loadCategories();
+    return () => {
+      if (categoriesAbortRef.current) categoriesAbortRef.current.abort();
+      if (materialsAbortRef.current) materialsAbortRef.current.abort();
+    };
   }, [loadCategories]);
 
   const getCategoryLabel = (category) => {
@@ -475,7 +539,19 @@ const StudyMaterialScreen = ({ navigation }) => {
       />
 
       <AndroidGlassBackdrop style={{ flex: 1 }}>
-        <Animated.ScrollView
+        <Animated.FlatList
+          data={loading ? [] : materials}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <MaterialCardItem
+              item={item}
+              navigation={navigation}
+              theme={theme}
+              isDarkMode={isDarkMode}
+              t={t}
+              getCategoryLabel={getCategoryLabel}
+            />
+          )}
           contentContainerStyle={{
             padding: 16,
             paddingTop: 64 + insets.top,
@@ -486,200 +562,212 @@ const StudyMaterialScreen = ({ navigation }) => {
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
             useNativeDriver: false,
           })}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => loadMaterials({ refresh: true })}
+              onRefresh={() => loadMaterials({ refresh: true, pageToLoad: 1 })}
               colors={[theme.primary]}
               tintColor={theme.primary}
             />
           }
-        >
-          {/* Hero description */}
-          <Text style={[styles.description, { color: theme.subText }]}>
-            {t("studyMaterial.heroText", "Khám phá, chia sẻ tài liệu học tập chất lượng từ cộng đồng.")}
-          </Text>
+          ListHeaderComponent={
+            <>
+              {/* Hero description */}
+              <Text style={[styles.description, { color: theme.subText }]}>
+                {t("studyMaterial.heroText", "Khám phá, chia sẻ tài liệu học tập chất lượng từ cộng đồng.")}
+              </Text>
 
-          {/* Search box */}
-          <View
-            style={[
-              styles.searchBox,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Ionicons name="search-outline" size={18} color={theme.subText} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder={t("studyMaterial.searchPlaceholder", "Tìm kiếm tài liệu...")}
-              placeholderTextColor={theme.subText}
-              style={[styles.searchInput, { color: theme.text }]}
-            />
-            {Boolean(search) && (
-              <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={18} color={theme.subText} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Price / Type Filters */}
-          <View style={styles.sectionWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
-            >
-              {filterOptions.map((filter) => {
-                const active = selectedFilter === filter.key;
-                return (
-                  <TouchableOpacity
-                    key={filter.key}
-                    onPress={() => setSelectedFilter(filter.key)}
-                    activeOpacity={0.8}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active ? theme.primary : theme.iconBackground,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: active ? "#fff" : theme.text,
-                        fontWeight: "600",
-                        fontSize: 12,
-                        lineHeight: 16,
-                      }}
-                    >
-                      {t(`studyMaterial.filters.${filter.labelKey}`)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* Categories Row */}
-          <View style={styles.sectionWrap}>
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-              {t("studyMaterial.categories", "Danh mục")}
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
-            >
-              <TouchableOpacity
-                onPress={() => setSelectedCategory(null)}
-                activeOpacity={0.8}
+              {/* Search box */}
+              <View
                 style={[
-                  styles.chip,
+                  styles.searchBox,
                   {
-                    backgroundColor: !selectedCategory ? theme.primary : theme.iconBackground,
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
                   },
                 ]}
               >
-                <Text
-                  style={{
-                    color: !selectedCategory ? "#fff" : theme.text,
-                    fontWeight: "600",
-                    fontSize: 12,
-                    lineHeight: 16,
-                  }}
+                <Ionicons name="search-outline" size={18} color={theme.subText} />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder={t("studyMaterial.searchPlaceholder", "Tìm kiếm tài liệu...")}
+                  placeholderTextColor={theme.subText}
+                  style={[styles.searchInput, { color: theme.text }]}
+                />
+                {Boolean(search) && (
+                  <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={18} color={theme.subText} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Price / Type Filters */}
+              <View style={styles.sectionWrap}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
                 >
-                  {t("studyMaterial.filters.all", "Tất cả")}
+                  {filterOptions.map((filter) => {
+                    const active = selectedFilter === filter.key;
+                    return (
+                      <TouchableOpacity
+                        key={filter.key}
+                        onPress={() => setSelectedFilter(filter.key)}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: active ? theme.primary : theme.iconBackground,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: active ? "#fff" : theme.text,
+                            fontWeight: "600",
+                            fontSize: 12,
+                            lineHeight: 16,
+                          }}
+                        >
+                          {t(`studyMaterial.filters.${filter.labelKey}`)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Categories Row */}
+              <View style={styles.sectionWrap}>
+                <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+                  {t("studyMaterial.categories", "Danh mục")}
                 </Text>
-              </TouchableOpacity>
-              {categories.map((category) => {
-                const active = selectedCategory === category.id;
-                return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+                >
                   <TouchableOpacity
-                    key={category.id}
-                    onPress={() => setSelectedCategory(category.id)}
+                    onPress={() => setSelectedCategory(null)}
                     activeOpacity={0.8}
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: active ? theme.primary : theme.iconBackground,
+                        backgroundColor: !selectedCategory ? theme.primary : theme.iconBackground,
                       },
                     ]}
                   >
                     <Text
                       style={{
-                        color: active ? "#fff" : theme.text,
+                        color: !selectedCategory ? "#fff" : theme.text,
                         fontWeight: "600",
                         fontSize: 12,
                         lineHeight: 16,
                       }}
                     >
-                      {getCategoryLabel(category)}
+                      {t("studyMaterial.filters.all", "Tất cả")}
                     </Text>
                   </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+                  {categories.map((category) => {
+                    const active = selectedCategory === category.id;
+                    return (
+                      <TouchableOpacity
+                        key={category.id}
+                        onPress={() => setSelectedCategory(category.id)}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: active ? theme.primary : theme.iconBackground,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: active ? "#fff" : theme.text,
+                            fontWeight: "600",
+                            fontSize: 12,
+                            lineHeight: 16,
+                          }}
+                        >
+                          {getCategoryLabel(category)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
 
-          {/* Sort pills */}
-          <View style={styles.sortRow}>
-            {sortOptions.map((sort) => {
-              const active = selectedSort === sort.key;
-              return (
-                <TouchableOpacity
-                  key={sort.key}
-                  onPress={() => setSelectedSort(sort.key)}
-                  activeOpacity={0.8}
-                  style={[
-                    styles.sortChip,
-                    active
-                      ? { backgroundColor: `${theme.primary}1A` }
-                      : { backgroundColor: "transparent" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.sortChipText,
-                      active ? { color: theme.primary, fontWeight: "700" } : { color: theme.subText },
-                    ]}
-                  >
-                    {t(`studyMaterial.sort.${sort.labelKey}`)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* List or Loading / Empty */}
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.primary} />
-              <Text style={[styles.loadingText, { color: theme.subText }]}>{t("studyMaterial.loading")}</Text>
-            </View>
-          ) : materials.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="library-outline" size={48} color={theme.placeholder} />
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("studyMaterial.emptyTitle")}</Text>
-              <Text style={[styles.emptyText, { color: theme.subText }]}>{t("studyMaterial.emptyText")}</Text>
-            </View>
-          ) : (
-            <View style={styles.listWrapper}>
-              {materials.map((item) => (
-                <MaterialCardItem
-                  key={item.id}
-                  item={item}
-                  navigation={navigation}
-                  theme={theme}
-                  isDarkMode={isDarkMode}
-                  t={t}
-                  getCategoryLabel={getCategoryLabel}
-                />
-              ))}
-            </View>
-          )}
-        </Animated.ScrollView>
+              {/* Sort pills */}
+              <View style={styles.sortRow}>
+                {sortOptions.map((sort) => {
+                  const active = selectedSort === sort.key;
+                  return (
+                    <TouchableOpacity
+                      key={sort.key}
+                      onPress={() => setSelectedSort(sort.key)}
+                      activeOpacity={0.8}
+                      style={[
+                        styles.sortChip,
+                        active
+                          ? { backgroundColor: `${theme.primary}1A` }
+                          : { backgroundColor: "transparent" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.sortChipText,
+                          active ? { color: theme.primary, fontWeight: "700" } : { color: theme.subText },
+                        ]}
+                      >
+                        {t(`studyMaterial.sort.${sort.labelKey}`)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          }
+          ListEmptyComponent={
+            loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={[styles.loadingText, { color: theme.subText }]}>{t("studyMaterial.loading")}</Text>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="library-outline" size={48} color={theme.placeholder} />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("studyMaterial.emptyTitle")}</Text>
+                <Text style={[styles.emptyText, { color: theme.subText }]}>{t("studyMaterial.emptyText")}</Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+              </View>
+            ) : loadMoreError ? (
+              <TouchableOpacity
+                onPress={() => loadMaterials({ pageToLoad: pageRef.current + 1 })}
+                style={{ paddingVertical: 16, alignItems: "center" }}
+              >
+                <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 13 }}>
+                  {t("common.retry", "Thử lại")}
+                </Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
       </AndroidGlassBackdrop>
     </View>
   );

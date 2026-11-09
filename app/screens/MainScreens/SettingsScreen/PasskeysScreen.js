@@ -23,6 +23,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { apiErrorMessage } from "../../../utils/apiMessage";
+import { isRequestCanceled } from "../../../services/api/Api";
 import {
   createPasskey,
   deletePasskey,
@@ -67,17 +68,28 @@ export default function PasskeysScreen({ navigation }) {
     setPasswordRequired(data.password_required !== false);
   };
 
+  const abortControllerRef = useRef(null);
+
   const load = useCallback(async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
-      apply(await getPasskeys());
+      const data = await getPasskeys({ signal: controller.signal });
+      if (controller.signal.aborted) return;
+      apply(data);
       setLoadError(false);
-    } catch {
+    } catch (err) {
+      if (isRequestCanceled(err) || controller.signal.aborted) return;
       setLoadError(true);
     }
   }, []);
 
   useEffect(() => {
     load();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [load]);
 
   const onRefresh = async () => {

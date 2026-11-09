@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import FastImage from "../../../components/FastImage";
 import {
@@ -23,6 +24,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -341,9 +343,15 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const isFetchingRef = useRef(false);
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
+  const abortControllerRef = useRef(null);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
@@ -352,6 +360,17 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 
   const fetchNotifications = useCallback(
     async (pageNum = 1, append = false) => {
+      if (isFetchingRef.current && append) return;
+      isFetchingRef.current = true;
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      if (append) {
+        setLoadingMore(true);
+        setLoadMoreError(false);
+      }
+
       try {
         if (pageNum === 1 && !append) {
           const cachedStr = storage.getString("cached_notifications");
@@ -365,9 +384,14 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             } catch (e) {}
           }
           setRefreshing(true);
+          setLoadMoreError(false);
         }
 
-        const response = await getNotifications(pageNum, 20);
+        const response = await getNotifications(pageNum, 20, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+
         const notificationsData =
           response.data?.notifications || response.notifications || [];
         const fetchedNotifications = Array.isArray(notificationsData)
@@ -406,7 +430,11 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         });
 
         if (append) {
-          setNotifications((prev) => [...prev, ...formattedNotifications]);
+          setNotifications((prev) => {
+            const existingIds = new Set(prev.map((n) => n.id));
+            const deduped = formattedNotifications.filter((n) => !existingIds.has(n.id));
+            return [...prev, ...deduped];
+          });
         } else {
           setNotifications(formattedNotifications);
           if (formattedNotifications.length > 0) {
@@ -417,16 +445,27 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           setNotificationUnreadCount(0);
         }
 
+        pageRef.current = pageNum;
+        setPage(pageNum);
+
         const paginationData = response.data?.pagination || response.pagination;
-        if (paginationData) {
-          setHasMore(paginationData.current_page < paginationData.last_page);
-        } else {
-          setHasMore(fetchedNotifications.length === 20);
-        }
+        const nextHasMore = paginationData
+          ? paginationData.current_page < paginationData.last_page
+          : fetchedNotifications.length === 20;
+        hasMoreRef.current = nextHasMore;
+        setHasMore(nextHasMore);
       } catch (error) {
+        if (isRequestCanceled(error) || controller.signal.aborted) return;
+        if (append) {
+          setLoadMoreError(true);
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (abortControllerRef.current === controller) {
+          isFetchingRef.current = false;
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
     [t, setNotificationUnreadCount]
@@ -434,6 +473,10 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 
   useEffect(() => {
     fetchNotifications(1, false);
+    return () => {
+      abortControllerRef.current?.abort();
+      isFetchingRef.current = false;
+    };
   }, [fetchNotifications]);
 
   // When user focuses or switches to the Notification screen:
@@ -456,7 +499,10 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const scrollToTopOrReload = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     setRefreshing(true);
+    pageRef.current = 1;
+    hasMoreRef.current = true;
     setPage(1);
+    setHasMore(true);
     fetchNotifications(1, false);
   }, [fetchNotifications]);
 
@@ -468,17 +514,19 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    pageRef.current = 1;
+    hasMoreRef.current = true;
     setPage(1);
+    setHasMore(true);
     fetchNotifications(1, false);
   }, [fetchNotifications]);
 
   const loadMore = useCallback(() => {
-    if (!loading && hasMore && !refreshing) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchNotifications(nextPage, true);
+    if (isFetchingRef.current || loading || refreshing || !hasMoreRef.current || loadMoreError) {
+      return;
     }
-  }, [loading, hasMore, refreshing, page, fetchNotifications]);
+    fetchNotifications(pageRef.current + 1, true);
+  }, [loading, refreshing, loadMoreError, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -876,8 +924,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             extraData={listExtraData}
             keyExtractor={(item) => item.id.toString()}
             initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={5}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            updateCellsBatchingPeriod={50}
             removeClippedSubviews={Platform.OS === 'android'}
             renderItem={renderItem}
             contentContainerStyle={[
@@ -897,6 +946,25 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             }
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                </View>
+              ) : loadMoreError && hasMore ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    setLoadMoreError(false);
+                    fetchNotifications(pageRef.current + 1, true);
+                  }}
+                  style={{ paddingVertical: 14, alignItems: "center" }}
+                >
+                  <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 14 }}>
+                    {t("common.retry", "Chạm để thử lại")}
+                  </Text>
+                </TouchableOpacity>
+              ) : null
+            }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <FastImage

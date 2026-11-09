@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getLikedPosts } from "../../../services/api/Api";
+import { getLikedPosts, isRequestCanceled } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -76,6 +76,8 @@ const LikedPostsScreen = ({ navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const isFetchingRef = useRef(false);
   const headerHeight = 58 + insets.top;
 
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -93,8 +95,16 @@ const LikedPostsScreen = ({ navigation }) => {
   };
 
   const fetchLikedPosts = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isFetchingRef.current = true;
+
     try {
-      const response = await getLikedPosts();
+      const response = await getLikedPosts({ signal: controller.signal });
+      if (controller.signal.aborted) return;
 
       if (!response?.data) {
         Toast.show({
@@ -114,6 +124,7 @@ const LikedPostsScreen = ({ navigation }) => {
 
       setPosts(sortedPosts);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       Toast.show({
         type: "error",
         text1: t('common.error'),
@@ -123,7 +134,10 @@ const LikedPostsScreen = ({ navigation }) => {
         topOffset: 60,
       });
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        isFetchingRef.current = false;
+        setIsLoading(false);
+      }
     }
   };
 
@@ -135,6 +149,11 @@ const LikedPostsScreen = ({ navigation }) => {
       setPosts(null);
       setIsLoading(false);
     }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [isLoggedIn]);
 
   const handleRefresh = async () => {
@@ -230,7 +249,13 @@ const LikedPostsScreen = ({ navigation }) => {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === 'android'}
+          getItemLayout={(_data, index) => ({
+            length: 113,
+            offset: 113 * index,
+            index,
+          })}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           renderItem={({ item }) => (

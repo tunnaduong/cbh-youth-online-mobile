@@ -1,8 +1,15 @@
+import axios from "axios";
 import axiosInstance from "./axiosInstance";
 
+export const isRequestCanceled = (error) =>
+  axios.isCancel(error) ||
+  error?.code === "ERR_CANCELED" ||
+  error?.name === "CanceledError" ||
+  error?.name === "AbortError";
+
 // Get data
-export const getRequest = (endpoint, params = {}) => {
-  return axiosInstance.get(endpoint, params);
+export const getRequest = (endpoint, config = {}) => {
+  return axiosInstance.get(endpoint, config);
 };
 
 // Post Data with optional data. `config` lets a caller override axios

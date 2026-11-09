@@ -199,6 +199,10 @@
           "ios": {
             "deploymentTarget": "15.1",
             "buildReactNativeFromSource": true
+          },
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],

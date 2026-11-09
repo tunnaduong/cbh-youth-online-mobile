@@ -41,6 +41,7 @@ import {
   removeGroupDeputy,
   transferGroupOwnership,
   getGroupInviteLink,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
 
@@ -98,23 +99,41 @@ const GroupInfoScreen = ({ navigation, route }) => {
     scrollY.setValue(Math.max(0, e.nativeEvent.contentOffset.y));
   };
 
+  const isFetchingRef = useRef(false);
+  const abortControllerRef = useRef(null);
+
   const fetchGroup = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const res = await getGroupDetails(conversationId);
+      const res = await getGroupDetails(conversationId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       setGroup(res.data);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       Toast.show({
         type: "error",
         text1: t("chatConversation.loadGroupError", "Không thể tải thông tin nhóm."),
       });
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        isFetchingRef.current = false;
+        setLoading(false);
+      }
     }
   }, [conversationId, t]);
 
   useFocusEffect(
     useCallback(() => {
       fetchGroup();
+      return () => {
+        abortControllerRef.current?.abort();
+        isFetchingRef.current = false;
+      };
     }, [fetchGroup])
   );
 
@@ -543,6 +562,15 @@ const GroupInfoScreen = ({ navigation, route }) => {
       <FlatList
         data={group.participants}
         keyExtractor={(item) => String(item.id)}
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === "android"}
+        getItemLayout={(_, index) => ({
+          length: 65,
+          offset: 65 * index,
+          index,
+        })}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         ListHeaderComponent={

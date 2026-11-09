@@ -17,7 +17,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import MediaShimmer from "../MediaShimmer";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getUserVideos } from "../../services/api/Api";
+import { getUserVideos, isRequestCanceled } from "../../services/api/Api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PAGE_SIZE = 30;
@@ -36,33 +36,63 @@ export function useProfileVideos(username, active) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const requestId = useRef(0);
+  const isFetchingRef = useRef(false);
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(false);
+  const abortControllerRef = useRef(null);
 
   const fetchPage = useCallback(
     async (nextPage) => {
       if (!username) return;
-      const id = ++requestId.current;
       const first = nextPage === 1;
-      if (first) setLoading(true);
-      else setLoadingMore(true);
-      setError(false);
+      if (!first && isFetchingRef.current) return;
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      const id = ++requestId.current;
+      isFetchingRef.current = true;
+      if (first) {
+        setLoading(true);
+        setError(false);
+      } else {
+        setLoadingMore(true);
+      }
+      setLoadMoreError(false);
 
       try {
-        const response = await getUserVideos(username, nextPage, PAGE_SIZE);
-        if (id !== requestId.current) return;
+        const response = await getUserVideos(username, nextPage, PAGE_SIZE, {
+          signal: controller.signal,
+        });
+        if (id !== requestId.current || controller.signal.aborted) return;
         const items = Array.isArray(response.data?.data) ? response.data.data : [];
-        setVideos((previous) => (first ? items : [...previous, ...items]));
+        const more = Boolean(response.data?.has_more);
+        setVideos((previous) => {
+          if (first) return items;
+          const existingKeys = new Set(previous.map((v) => `${v.post_id}-${v.id}`));
+          return [...previous, ...items.filter((v) => !existingKeys.has(`${v.post_id}-${v.id}`))];
+        });
         setTotal(Number(response.data?.total) || 0);
+        pageRef.current = nextPage;
+        hasMoreRef.current = more;
         setPage(nextPage);
-        setHasMore(Boolean(response.data?.has_more));
+        setHasMore(more);
       } catch (e) {
-        if (id !== requestId.current) return;
+        if (isRequestCanceled(e) || controller.signal.aborted || id !== requestId.current) return;
         if (first) {
           setVideos([]);
           setError(true);
+        } else {
+          setLoadMoreError(true);
         }
       } finally {
-        if (id === requestId.current) {
+        if (id === requestId.current && !controller.signal.aborted) {
+          isFetchingRef.current = false;
           setLoading(false);
           setLoadingMore(false);
         }
@@ -72,13 +102,24 @@ export function useProfileVideos(username, active) {
   );
 
   useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      isFetchingRef.current = false;
+    };
+  }, [username]);
+
+  useEffect(() => {
     if (active && username && page === 0 && !loading && !error) fetchPage(1);
   }, [active, username, page, loading, error, fetchPage]);
 
   const reload = useCallback(() => fetchPage(1), [fetchPage]);
   const loadMore = useCallback(() => {
-    if (!loading && !loadingMore && hasMore) fetchPage(page + 1);
-  }, [loading, loadingMore, hasMore, page, fetchPage]);
+    if (!isFetchingRef.current && hasMoreRef.current) {
+      fetchPage(pageRef.current + 1);
+    }
+  }, [fetchPage]);
 
   return {
     videos,
@@ -87,6 +128,7 @@ export function useProfileVideos(username, active) {
     loading,
     loadingMore,
     error,
+    loadMoreError,
     loaded: page > 0,
     reload,
     loadMore,

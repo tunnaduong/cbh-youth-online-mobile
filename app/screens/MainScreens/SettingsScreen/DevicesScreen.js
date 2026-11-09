@@ -27,6 +27,7 @@ import {
   getDeviceSessions,
   logoutDeviceSession,
   logoutOtherDeviceSessions,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 
 // In the app's language (the API only answers in Vietnamese).
@@ -91,19 +92,29 @@ export default function DevicesScreen({ navigation }) {
   const [loggingOutAll, setLoggingOutAll] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
+  const abortControllerRef = useRef(null);
+
   const load = useCallback(async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
-      const res = await getDeviceSessions();
+      const res = await getDeviceSessions({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       setSessions(res.data.sessions || []);
       setTotal(res.data.total || 0);
       setLoadError(false);
-    } catch {
+    } catch (err) {
+      if (isRequestCanceled(err) || controller.signal.aborted) return;
       setLoadError(true);
     }
   }, []);
 
   useEffect(() => {
     load();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [load]);
 
   const onRefresh = async () => {

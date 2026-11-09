@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   RefreshControl,
   Animated,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getMemberRanking } from "../../../services/api/Api";
+import { getMemberRanking, isRequestCanceled } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "../../../components/FastImage";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -30,6 +31,8 @@ export default function MemberRankingScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const abortControllerRef = useRef(null);
+  const isFetchingRef = useRef(false);
   const headerHeight = 64 + insets.top;
 
   const headerTitleOpacity = scrollY.interpolate({
@@ -43,23 +46,40 @@ export default function MemberRankingScreen({ navigation }) {
   };
 
   const fetchData = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isFetchingRef.current = true;
+
     try {
-      const response = await getMemberRanking(50); // Get top 50
+      const response = await getMemberRanking(50, { signal: controller.signal }); // Get top 50
+      if (controller.signal.aborted) return;
       if (response && response.data) {
         setRankingData(response.data);
       } else if (Array.isArray(response)) {
         setRankingData(response);
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.log("Error fetching rankings:", error);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        isFetchingRef.current = false;
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const onRefresh = () => {
@@ -167,8 +187,6 @@ export default function MemberRankingScreen({ navigation }) {
   };
 
   const renderItem = ({ item, index }) => {
-    if (index < 3) return null; // Skip top 3, handled separately
-
     return (
       <TouchableOpacity
         style={[styles.rankItem, { borderBottomColor: theme.border, backgroundColor: theme.cardBackground }]}
@@ -176,7 +194,7 @@ export default function MemberRankingScreen({ navigation }) {
           navigation.navigate("ProfileScreen", { username: item.username })
         }
       >
-        <Text style={[styles.rankNumber, { color: theme.subText }]}>#{index + 1}</Text>
+        <Text style={[styles.rankNumber, { color: theme.subText }]}>#{index + 4}</Text>
         <AvatarFrameWrap theme={item.profile_theme} size={44} style={styles.itemAvatarWrap}>
           <FastImage
             source={{
@@ -254,11 +272,21 @@ export default function MemberRankingScreen({ navigation }) {
 
       <AndroidGlassBackdrop providerId="MemberRankingScreen" style={{ flex: 1 }}>
       <FlatList
-        data={rankingData}
+        data={rankingData.length >= 3 ? rankingData.slice(3) : rankingData}
         keyExtractor={(item) => item.username}
         renderItem={renderItem}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={Platform.OS === "android"}
+        getItemLayout={(_data, index) => ({
+          length: 69,
+          offset: 69 * index,
+          index,
+        })}
         ListHeaderComponent={renderTop3()}
         contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: 20 + (insets?.bottom || 0) }]}
         refreshControl={

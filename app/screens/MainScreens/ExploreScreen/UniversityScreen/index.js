@@ -25,6 +25,7 @@ import {
   getUniversityOptions,
   getUniversities,
   searchUniversities,
+  isRequestCanceled,
 } from "../../../../services/api/Api";
 
 const SCORE_OPTIONS = [
@@ -119,6 +120,14 @@ const PickerModal = ({
             keyExtractor={(item) => String(item.index)}
             style={{ maxHeight: 320 }}
             keyboardShouldPersistTaps="handled"
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            getItemLayout={(_data, index) => ({
+              length: 45,
+              offset: 45 * index,
+              index,
+            })}
             ListEmptyComponent={
               <Text style={[styles.pickerEmpty, { color: theme.subText }]}>
                 {t("universities.pickerNoResults", "Không tìm thấy kết quả")}
@@ -435,6 +444,10 @@ const UniversityScreen = ({ navigation }) => {
   const [nameLoading, setNameLoading] = useState(false);
   const [nameSearched, setNameSearched] = useState(false);
   const suggestTimer = useRef(null);
+  const optionsAbortRef = useRef(null);
+  const filterAbortRef = useRef(null);
+  const suggestAbortRef = useRef(null);
+  const nameSearchAbortRef = useRef(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerTitleOpacity = scrollY.interpolate({
@@ -444,18 +457,36 @@ const UniversityScreen = ({ navigation }) => {
   });
 
   useEffect(() => {
-    getUniversityOptions()
+    const controller = new AbortController();
+    optionsAbortRef.current = controller;
+    getUniversityOptions({ signal: controller.signal })
       .then((res) => {
+        if (controller.signal.aborted) return;
         const d = res?.data || res;
         if (d?.city?.length > 0) setOptions(d);
         if (d?.generalInfo?.length > 0) setGeneralInfo(d.generalInfo);
       })
       .catch(() => {})
-      .finally(() => setOptionsLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) setOptionsLoading(false);
+      });
+    return () => {
+      controller.abort();
+      clearTimeout(suggestTimer.current);
+      if (filterAbortRef.current) filterAbortRef.current.abort();
+      if (suggestAbortRef.current) suggestAbortRef.current.abort();
+      if (nameSearchAbortRef.current) nameSearchAbortRef.current.abort();
+    };
   }, []);
 
   const fetchUniversities = useCallback(
     async (page = 1) => {
+      if (filterAbortRef.current) {
+        filterAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      filterAbortRef.current = controller;
+
       const params = { offset: String(page) };
       if (cityIdx !== null) params.city = String(cityIdx);
       if (typeIdx !== null) params.type = String(typeIdx);
@@ -466,15 +497,19 @@ const UniversityScreen = ({ navigation }) => {
       setLoading(true);
       setSearched(true);
       try {
-        const res = await getUniversities(params);
+        const res = await getUniversities(params, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         const data = res?.data || res;
         setUniversities(data?.universities ?? []);
         setCurrentPage(data?.currentPage ?? page);
         setMaxPage(data?.maxPage ?? 1);
-      } catch {
+      } catch (err) {
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
         setUniversities([]);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     },
     [cityIdx, typeIdx, majorIdx, subjectIdx, scoreValue]
@@ -494,37 +529,55 @@ const UniversityScreen = ({ navigation }) => {
   const handleNameInput = (q) => {
     setNameQuery(q);
     if (!q.trim()) {
+      if (suggestAbortRef.current) suggestAbortRef.current.abort();
       setSuggestions([]);
+      setSuggestLoading(false);
       return;
     }
     clearTimeout(suggestTimer.current);
     suggestTimer.current = setTimeout(async () => {
+      if (suggestAbortRef.current) suggestAbortRef.current.abort();
+      const controller = new AbortController();
+      suggestAbortRef.current = controller;
       setSuggestLoading(true);
       try {
-        const res = await searchUniversities(q, true);
+        const res = await searchUniversities(q, true, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         const data = res?.data || res;
         setSuggestions(Array.isArray(data) ? data.slice(0, 8) : []);
-      } catch {
+      } catch (err) {
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
         setSuggestions([]);
       } finally {
-        setSuggestLoading(false);
+        if (!controller.signal.aborted) {
+          setSuggestLoading(false);
+        }
       }
     }, 300);
   };
 
   const handleNameSearch = async (q = nameQuery) => {
     if (!q.trim()) return;
+    if (suggestAbortRef.current) suggestAbortRef.current.abort();
+    if (nameSearchAbortRef.current) nameSearchAbortRef.current.abort();
+    const controller = new AbortController();
+    nameSearchAbortRef.current = controller;
+
     setSuggestions([]);
     setNameLoading(true);
     setNameSearched(true);
     try {
-      const res = await searchUniversities(q);
+      const res = await searchUniversities(q, false, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       const data = res?.data || res;
       setNameResults(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      if (isRequestCanceled(err) || controller.signal.aborted) return;
       setNameResults([]);
     } finally {
-      setNameLoading(false);
+      if (!controller.signal.aborted) {
+        setNameLoading(false);
+      }
     }
   };
 

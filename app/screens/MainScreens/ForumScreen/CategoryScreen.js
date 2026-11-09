@@ -22,7 +22,7 @@ import CustomLoading from "../../../components/CustomLoading";
 import CustomRefreshControl from "../../../components/CustomRefreshControl";
 import axios from "axios";
 import Toast from "react-native-toast-message";
-import { getSubforumPosts } from "../../../services/api/Api";
+import { getSubforumPosts, isRequestCanceled } from "../../../services/api/Api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -72,6 +72,8 @@ const CategoryScreen = ({ navigation, route }) => {
   const { categoryId } = route.params || {};
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = 64 + insets.top;
+  const isFetchingRef = useRef(false);
+  const abortControllerRef = useRef(null);
 
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
@@ -95,6 +97,12 @@ const CategoryScreen = ({ navigation, route }) => {
       });
       setLoading(false);
     }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      isFetchingRef.current = false;
+    };
   }, [categoryId]);
 
   const fetchForumData = async () => {
@@ -104,13 +112,16 @@ const CategoryScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isFetchingRef.current = true;
+
     try {
-      console.log(
-        "CategoryScreen: Fetching forum data for categoryId:",
-        categoryId
-      );
-      const response = await getSubforumPosts(categoryId);
-      console.log("CategoryScreen: Response received:", response);
+      const response = await getSubforumPosts(categoryId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
 
       if (response && response.data) {
         setForumData(response.data);
@@ -119,6 +130,7 @@ const CategoryScreen = ({ navigation, route }) => {
       }
       setLoading(false);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("CategoryScreen: Error fetching forum data:", {
         error,
         message: error.message,
@@ -169,6 +181,10 @@ const CategoryScreen = ({ navigation, route }) => {
       }
 
       setLoading(false);
+    } finally {
+      if (!controller.signal.aborted) {
+        isFetchingRef.current = false;
+      }
     }
   };
 
@@ -388,6 +404,7 @@ const CategoryScreen = ({ navigation, route }) => {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />

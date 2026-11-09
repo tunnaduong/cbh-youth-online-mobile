@@ -3,6 +3,8 @@ import axiosInstance from "./axiosInstance";
 import i18n from "../../i18n";
 import { getTwoFactorDeviceToken } from "../../utils/deviceInfo";
 
+export const isRequestCanceled = Api.isRequestCanceled;
+
 // Lets a device the user chose to remember skip the two-factor step
 const withDeviceToken = async (params) => {
   const deviceToken = await getTwoFactorDeviceToken();
@@ -103,29 +105,29 @@ export const exchangeOAuthCode = async (params) => {
   }
 };
 
-export const getHomePosts = (page = 1) => {
-  return Api.getRequest("/v1.0/topics?page=" + page);
+export const getHomePosts = (page = 1, config = {}) => {
+  return Api.getRequest("/v1.0/topics?page=" + page, config);
 };
 
-export const getPersonalizedFeed = (page = 1) => {
-  return Api.getRequest("/v1.0/topics/feed?page=" + page);
+export const getPersonalizedFeed = (page = 1, config = {}) => {
+  return Api.getRequest("/v1.0/topics/feed?page=" + page, config);
 };
 
-export const getFeedRefreshCheck = () => {
-  return Api.getRequest("/v1.0/topics/feed/refresh-check");
+export const getFeedRefreshCheck = (config = {}) => {
+  return Api.getRequest("/v1.0/topics/feed/refresh-check", config);
 };
 
-export const getLatestFeed = (page = 1) => {
-  return Api.getRequest("/v1.0/topics/feed?mode=latest&page=" + page);
+export const getLatestFeed = (page = 1, config = {}) => {
+  return Api.getRequest("/v1.0/topics/feed?mode=latest&page=" + page, config);
 };
 
 // The "Tin tức Đoàn" tab: the youth union news subforum, in the feed's post shape.
-export const getNewsFeed = (page = 1) => {
-  return Api.getRequest("/v1.0/topics/feed?mode=youth-news&page=" + page);
+export const getNewsFeed = (page = 1, config = {}) => {
+  return Api.getRequest("/v1.0/topics/feed?mode=youth-news&page=" + page, config);
 };
 
-export const getFollowingFeed = (page = 1) => {
-  return Api.getRequest("/v1.0/topics/feed?mode=following&page=" + page);
+export const getFollowingFeed = (page = 1, config = {}) => {
+  return Api.getRequest("/v1.0/topics/feed?mode=following&page=" + page, config);
 };
 
 export const incrementPostView = (id) => {
@@ -136,12 +138,12 @@ export const votePost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/votes", params);
 };
 
-export const getPostVotes = (id) => {
-  return Api.getRequest("/v1.0/topics/" + id + "/votes");
+export const getPostVotes = (id, config = {}) => {
+  return Api.getRequest("/v1.0/topics/" + id + "/votes", config);
 };
 
-export const getCommentVotes = (id) => {
-  return Api.getRequest("/v1.0/comments/" + id + "/votes");
+export const getCommentVotes = (id, config = {}) => {
+  return Api.getRequest("/v1.0/comments/" + id + "/votes", config);
 };
 
 export const savePost = (id) => {
@@ -173,8 +175,8 @@ export const unarchivePost = (id) => {
   return Api.deleteRequest("/v1.0/topics/" + id + "/archive");
 };
 
-export const getArchivedPosts = (page = 1) => {
-  return Api.getRequest("/v1.0/user/archived-topics?page=" + page);
+export const getArchivedPosts = (page = 1, config = {}) => {
+  return Api.getRequest("/v1.0/user/archived-topics?page=" + page, config);
 };
 
 export const createPost = (params) => {
@@ -305,17 +307,17 @@ export const previewPostMarkdown = (markdown, config = {}) => {
 };
 
 // Study materials / marketplace
-export const getStudyMaterials = (params = {}) => {
+export const getStudyMaterials = (params = {}, config = {}) => {
   const query = new URLSearchParams(params).toString();
-  return Api.getRequest(`/v1.0/study-materials${query ? `?${query}` : ""}`);
+  return Api.getRequest(`/v1.0/study-materials${query ? `?${query}` : ""}`, config);
 };
 
-export const getStudyMaterial = (id) => {
-  return Api.getRequest(`/v1.0/study-materials/${id}`);
+export const getStudyMaterial = (id, config = {}) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}`, config);
 };
 
-export const getStudyMaterialCategories = () => {
-  return Api.getRequest("/v1.0/study-material-categories");
+export const getStudyMaterialCategories = (config = {}) => {
+  return Api.getRequest("/v1.0/study-material-categories", config);
 };
 
 export const createStudyMaterial = (params) => {
@@ -326,8 +328,8 @@ export const purchaseMaterial = (id) => {
   return Api.postRequest(`/v1.0/study-materials/${id}/purchase`);
 };
 
-export const getMaterialRatings = (id) => {
-  return Api.getRequest(`/v1.0/study-materials/${id}/ratings`);
+export const getMaterialRatings = (id, page = 1, config = {}) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}/ratings?page=${page}`, config);
 };
 
 export const rateMaterial = (id, params) => {
@@ -354,16 +356,32 @@ export const giftPoints = (params) => {
 };
 
 // Points wallet
-export const getWalletBalance = () => {
-  return Api.getRequest("/v1.0/wallet/balance");
+export const getWalletBalance = (config = {}) => {
+  return Api.getRequest("/v1.0/wallet/balance", config);
 };
 
-export const getWalletTransactions = (params = {}) => {
-  return Api.getRequest("/v1.0/wallet/transactions", params);
+export const getWalletTransactions = (params = {}, config = {}) => {
+  const isSignalOnly =
+    params && typeof params === "object" && ("signal" in params || "headers" in params);
+  if (isSignalOnly) {
+    return Api.getRequest("/v1.0/wallet/transactions", params);
+  }
+  const cleanParams = {};
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && k !== "signal") {
+      cleanParams[k] = String(v);
+    }
+  });
+  const query = new URLSearchParams(cleanParams).toString();
+  const mergedConfig = params?.signal ? { ...config, signal: params.signal } : config;
+  return Api.getRequest(
+    `/v1.0/wallet/transactions${query ? `?${query}` : ""}`,
+    mergedConfig
+  );
 };
 
-export const getWithdrawalRequests = () => {
-  return Api.getRequest("/v1.0/wallet/withdrawal-requests");
+export const getWithdrawalRequests = (config = {}) => {
+  return Api.getRequest("/v1.0/wallet/withdrawal-requests", config);
 };
 
 export const createDepositRequest = (params) => {
@@ -408,8 +426,8 @@ export const forgotPasswordVerify = async (params) => {
   }
 };
 
-export const getPostDetail = (id) => {
-  return Api.getRequest("/v1.0/topics/" + id);
+export const getPostDetail = (id, config = {}) => {
+  return Api.getRequest("/v1.0/topics/" + id, config);
 };
 
 export const commentPost = (id, params) => {
@@ -442,16 +460,16 @@ export const deleteComment = (id) => {
   return Api.deleteRequest("/v1.0/comments/" + id);
 };
 
-export const getForumCategories = () => {
-  return Api.getRequest("/v1.0/forum/categories");
+export const getForumCategories = (config = {}) => {
+  return Api.getRequest("/v1.0/forum/categories", config);
 };
 
-export const getCurrentUser = () => {
-  return Api.getRequest("/v1.0/user");
+export const getCurrentUser = (config = {}) => {
+  return Api.getRequest("/v1.0/user", config);
 };
 
-export const getCurrentPoints = () => {
-  return Api.getRequest("/v1.0/user/current-points");
+export const getCurrentPoints = (config = {}) => {
+  return Api.getRequest("/v1.0/user/current-points", config);
 };
 
 export const deleteAccount = async (password) => {
@@ -478,39 +496,43 @@ export const deleteAccount = async (password) => {
   }
 };
 
-export const getProfile = (username) => {
-  return Api.getRequest("/v1.0/users/" + username + "/profile");
+export const getProfile = (username, config = {}) => {
+  return Api.getRequest("/v1.0/users/" + username + "/profile", config);
 };
 
-export const getUserPosts = (username, page = 1, perPage = 10) => {
+export const getUserPosts = (username, page = 1, perPage = 10, config = {}) => {
   return Api.getRequest(
-    "/v1.0/users/" + username + "/posts?page=" + page + "&per_page=" + perPage
+    "/v1.0/users/" + username + "/posts?page=" + page + "&per_page=" + perPage,
+    config
   );
 };
 
 // Posts that make up a profile's "likes" total, sortable:
 // newest | oldest | most_liked | least_liked
-export const getUserLikedPosts = (username, page = 1, perPage = 10, sort = "newest") => {
+export const getUserLikedPosts = (username, page = 1, perPage = 10, sort = "newest", config = {}) => {
   return Api.getRequest(
-    "/v1.0/users/" + username + "/likes?page=" + page + "&per_page=" + perPage + "&sort=" + sort
+    "/v1.0/users/" + username + "/likes?page=" + page + "&per_page=" + perPage + "&sort=" + sort,
+    config
   );
 };
 
 // Flat photo gallery of a profile (every image of the user's posts), paged:
 // { data: [{ id, url, post_id, post_title, post_anonymous, created_at }],
 //   total, current_page, per_page, has_more }
-export const getUserPhotos = (username, page = 1, perPage = 30) => {
+export const getUserPhotos = (username, page = 1, perPage = 30, config = {}) => {
   return Api.getRequest(
-    "/v1.0/users/" + username + "/photos?page=" + page + "&per_page=" + perPage
+    "/v1.0/users/" + username + "/photos?page=" + page + "&per_page=" + perPage,
+    config
   );
 };
 
 // Flat video gallery of a profile (every video of the user's posts), paged:
 // { data: [{ id, url, post_id, post_title, post_anonymous, created_at }],
 //   total, current_page, per_page, has_more }
-export const getUserVideos = (username, page = 1, perPage = 30) => {
+export const getUserVideos = (username, page = 1, perPage = 30, config = {}) => {
   return Api.getRequest(
-    "/v1.0/users/" + username + "/videos?page=" + page + "&per_page=" + perPage
+    "/v1.0/users/" + username + "/videos?page=" + page + "&per_page=" + perPage,
+    config
   );
 };
 
@@ -522,8 +544,8 @@ export const unfollowUser = (username) => {
   return Api.deleteRequest("/v1.0/users/" + username + "/unfollow");
 };
 
-export const getSubforums = () => {
-  return Api.getRequest("/v1.0/forum/subforums");
+export const getSubforums = (config = {}) => {
+  return Api.getRequest("/v1.0/forum/subforums", config);
 };
 
 // Role-aware subforum list — recommended for Create/Edit post screens
@@ -536,16 +558,16 @@ export const deletePost = (id) => {
   return Api.deleteRequest("/v1.0/topics/" + id);
 };
 
-export const getPost = (id) => {
-  return Api.getRequest("/v1.0/topics/" + id);
+export const getPost = (id, config = {}) => {
+  return Api.getRequest("/v1.0/topics/" + id, config);
 };
 
 export const updatePost = (id, params) => {
   return Api.putRequest("/v1.0/topics/" + id, params);
 };
 
-export const getOnlineStatus = (username) => {
-  return Api.getRequest("/v1.0/users/" + username + "/online-status");
+export const getOnlineStatus = (username, config = {}) => {
+  return Api.getRequest("/v1.0/users/" + username + "/online-status", config);
 };
 
 export const updateProfile = (username, params) => {
@@ -608,30 +630,30 @@ export const setTwoFactorSocialLogin = (skip) =>
   Api.putRequest("/v1.0/two-factor/social-login", { skip });
 
 // Logged-in devices
-export const getDeviceSessions = () => Api.getRequest("/v1.0/sessions");
+export const getDeviceSessions = (config = {}) => Api.getRequest("/v1.0/sessions", config);
 export const logoutDeviceSession = (id) => Api.deleteRequest(`/v1.0/sessions/${id}`);
 // Logs out every device except this one
 export const logoutOtherDeviceSessions = () => Api.deleteRequest("/v1.0/sessions");
 
 
-export const getSavedPosts = () => {
-  return Api.getRequest("/v1.0/user/saved-topics");
+export const getSavedPosts = (config = {}) => {
+  return Api.getRequest("/v1.0/user/saved-topics", config);
 };
 
-export const getActivities = () => {
-  return Api.getRequest("/v1.0/activities");
+export const getActivities = (config = {}) => {
+  return Api.getRequest("/v1.0/activities", config);
 };
 
-export const getMemberRanking = (limit = 8) => {
-  return Api.getRequest("/v1.0/users/ranking?limit=" + limit);
+export const getMemberRanking = (limit = 8, config = {}) => {
+  return Api.getRequest("/v1.0/users/ranking?limit=" + limit, config);
 };
 
-export const getLikedPosts = () => {
-  return Api.getRequest("/v1.0/activities/liked");
+export const getLikedPosts = (config = {}) => {
+  return Api.getRequest("/v1.0/activities/liked", config);
 };
 
-export const getStories = () => {
-  return Api.getRequest("/v1.0/stories");
+export const getStories = (config = {}) => {
+  return Api.getRequest("/v1.0/stories", config);
 };
 
 export const createStory = (formData, config = {}) => {
@@ -658,37 +680,38 @@ export const replyToStory = (storyId, content) => {
   });
 };
 
-export const getStoryViewers = (storyId) => {
-  return Api.getRequest("/v1.0/stories/" + storyId + "/viewers");
+export const getStoryViewers = (storyId, config = {}) => {
+  return Api.getRequest("/v1.0/stories/" + storyId + "/viewers", config);
 };
 
-export const getStoryArchive = () => {
-  return Api.getRequest("/v1.0/stories/archive");
+export const getStoryArchive = (config = {}) => {
+  return Api.getRequest("/v1.0/stories/archive", config);
 };
 
 export const markStoryAsViewed = (storyId) => {
   return Api.postRequest("/v1.0/stories/" + storyId + "/view", {});
 };
 
-export const searchQuery = (query, type = "") => {
-  return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type);
+export const searchQuery = (query, type = "", config = {}) => {
+  return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type, config);
 };
 
-export const getSearchSuggestions = () => {
-  return Api.getRequest("/v1.0/search/suggestions");
+export const getSearchSuggestions = (config = {}) => {
+  return Api.getRequest("/v1.0/search/suggestions", config);
 };
 
-export const getSubforumPosts = (id) => {
-  return Api.getRequest("/v1.0/forum/subforums/" + id + "/topics");
+export const getSubforumPosts = (id, config = {}) => {
+  return Api.getRequest("/v1.0/forum/subforums/" + id + "/topics", config);
 };
 
-export const getConversations = () => {
-  return Api.getRequest("/v1.0/chat/conversations");
+export const getConversations = (config = {}) => {
+  return Api.getRequest("/v1.0/chat/conversations", config);
 };
 
-export const getConversationMessages = (id, page = 1) => {
+export const getConversationMessages = (id, page = 1, config = {}) => {
   return Api.getRequest(
-    "/v1.0/chat/conversations/" + id + "/messages?page=" + page
+    "/v1.0/chat/conversations/" + id + "/messages?page=" + page,
+    config
   );
 };
 
@@ -699,14 +722,15 @@ export const sendMessage = (id, params) => {
   );
 };
 
-export const getConversationMedia = (id, type, page = 1) => {
+export const getConversationMedia = (id, type, page = 1, config = {}) => {
   return Api.getRequest(
-    `/v1.0/chat/conversations/${id}/media?type=${type}&page=${page}`
+    `/v1.0/chat/conversations/${id}/media?type=${type}&page=${page}`,
+    config
   );
 };
 
-export const searchChatUsername = (query) => {
-  return Api.getRequest("/v1.0/chat/search/users?username=" + query);
+export const searchChatUsername = (query, config = {}) => {
+  return Api.getRequest("/v1.0/chat/search/users?username=" + query, config);
 };
 
 export const createConversation = (id) => {
@@ -763,12 +787,12 @@ export const createGroupConversation = (name, participantIds) => {
   });
 };
 
-export const getGroupDetails = (conversationId) => {
-  return Api.getRequest(`/v1.0/chat/groups/${conversationId}`);
+export const getGroupDetails = (conversationId, config = {}) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}`, config);
 };
 
-export const getGroupSeenReceipts = (conversationId) => {
-  return Api.getRequest(`/v1.0/chat/groups/${conversationId}/seen`);
+export const getGroupSeenReceipts = (conversationId, config = {}) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}/seen`, config);
 };
 
 export const renameGroupConversation = (conversationId, name) => {
@@ -837,8 +861,8 @@ export const joinGroupViaInvite = (token) => {
 };
 
 // Chat background (private + group conversations, not the public chat)
-export const getConversationBackground = (conversationId) => {
-  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/background`);
+export const getConversationBackground = (conversationId, config = {}) => {
+  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/background`, config);
 };
 
 // imageUri: local file uri from expo-image-picker
@@ -863,19 +887,19 @@ export const resetConversationBackground = (conversationId) => {
 };
 
 // Search users by partial username/display name (e.g. for "create group" / "add members" pickers)
-export const searchUserSuggestions = (query, excludeConversationId) => {
+export const searchUserSuggestions = (query, excludeConversationId, config = {}) => {
   const params = new URLSearchParams({ q: query });
   if (excludeConversationId) params.set("exclude_conversation_id", excludeConversationId);
-  return Api.getRequest(`/v1.0/chat/search/user-suggestions?${params.toString()}`);
+  return Api.getRequest(`/v1.0/chat/search/user-suggestions?${params.toString()}`, config);
 };
 
 // Notifications
-export const getNotifications = (page = 1, perPage = 20) => {
-  return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);
+export const getNotifications = (page = 1, perPage = 20, config = {}) => {
+  return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`, config);
 };
 
-export const getUnreadNotificationCount = () => {
-  return Api.getRequest("/v1.0/notifications/unread-count");
+export const getUnreadNotificationCount = (config = {}) => {
+  return Api.getRequest("/v1.0/notifications/unread-count", config);
 };
 
 export const markNotificationAsRead = (id) => {
@@ -936,58 +960,58 @@ export const unblockUser = (userId) => {
   return Api.postRequest("/v1.0/users/unblock", { blocked_user_id: userId });
 };
 
-export const getBlockedUsers = () => {
-  return Api.getRequest("/v1.0/users/blocked");
+export const getBlockedUsers = (config = {}) => {
+  return Api.getRequest("/v1.0/users/blocked", config);
 };
 
-export const getMentionSuggestions = (q) => {
-  return Api.getRequest(`/v1.0/mention-suggestions?q=${encodeURIComponent(q)}`);
+export const getMentionSuggestions = (q, config = {}) => {
+  return Api.getRequest(`/v1.0/mention-suggestions?q=${encodeURIComponent(q)}`, config);
 };
 
-export const getConversationMentionSuggestions = (conversationId, q) => {
-  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/mention-suggestions?q=${encodeURIComponent(q)}`);
+export const getConversationMentionSuggestions = (conversationId, q, config = {}) => {
+  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/mention-suggestions?q=${encodeURIComponent(q)}`, config);
 };
 
 // Games
-export const getGames = (params = {}) => {
+export const getGames = (params = {}, config = {}) => {
   const query = new URLSearchParams(params).toString();
-  return Api.getRequest(`/v1.0/games${query ? `?${query}` : ""}`);
+  return Api.getRequest(`/v1.0/games${query ? `?${query}` : ""}`, config);
 };
 
-export const getGame = (slug) => {
-  return Api.getRequest(`/v1.0/games/${slug}`);
+export const getGame = (slug, config = {}) => {
+  return Api.getRequest(`/v1.0/games/${slug}`, config);
 };
 
-export const getRandomGame = (platform) => {
-  return Api.getRequest(`/v1.0/games/random${platform ? `?platform=${platform}` : ""}`);
+export const getRandomGame = (platform, config = {}) => {
+  return Api.getRequest(`/v1.0/games/random${platform ? `?platform=${platform}` : ""}`, config);
 };
 
-export const getGameLeaderboard = (period = "week") => {
-  return Api.getRequest(`/v1.0/games/leaderboard?period=${period}`);
+export const getGameLeaderboard = (period = "week", config = {}) => {
+  return Api.getRequest(`/v1.0/games/leaderboard?period=${period}`, config);
 };
 
-export const getGameNowPlaying = () => {
-  return Api.getRequest("/v1.0/games/now-playing");
+export const getGameNowPlaying = (config = {}) => {
+  return Api.getRequest("/v1.0/games/now-playing", config);
 };
 
 // Universities
-export const getUniversityOptions = () => {
-  return Api.getRequest("/v1.0/universities/options");
+export const getUniversityOptions = (config = {}) => {
+  return Api.getRequest("/v1.0/universities/options", config);
 };
 
-export const getUniversities = (params = {}) => {
+export const getUniversities = (params = {}, config = {}) => {
   const query = new URLSearchParams(params).toString();
-  return Api.getRequest(`/v1.0/universities${query ? `?${query}` : ""}`);
+  return Api.getRequest(`/v1.0/universities${query ? `?${query}` : ""}`, config);
 };
 
-export const searchUniversities = (q, autocomplete = false) => {
+export const searchUniversities = (q, autocomplete = false, config = {}) => {
   const query = new URLSearchParams({ q, ...(autocomplete ? { autocomplete: "1" } : {}) }).toString();
-  return Api.getRequest(`/v1.0/universities/search?${query}`);
+  return Api.getRequest(`/v1.0/universities/search?${query}`, config);
 };
 
 // Quiz
-export const getQuizTopics = () => {
-  return Api.getRequest("/v1.0/quiz/topics");
+export const getQuizTopics = (config = {}) => {
+  return Api.getRequest("/v1.0/quiz/topics", config);
 };
 
 export const startQuiz = (count, difficulty, topic, grade, customTopic) => {
@@ -1015,12 +1039,12 @@ export const answerQuizQuestion = (quizSetId, id, answer) => {
   return Api.postRequest(`/v1.0/quiz/${quizSetId}/answer`, { id, answer });
 };
 
-export const getQuizLeaderboard = (period = "week") => {
-  return Api.getRequest(`/v1.0/quiz/leaderboard?period=${period}`);
+export const getQuizLeaderboard = (period = "week", config = {}) => {
+  return Api.getRequest(`/v1.0/quiz/leaderboard?period=${period}`, config);
 };
 
-export const joinQuiz = (quizSetId) => {
-  return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {});
+export const joinQuiz = (quizSetId, config = {}) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {}, config);
 };
 
 export const restartQuiz = (quizSetId) => {

@@ -7,7 +7,8 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
-  ScrollView,
+  FlatList,
+  Platform,
 } from "react-native";
 import FastImage from "./FastImage";
 import UserNameRow from "./profile/UserNameRow";
@@ -17,7 +18,7 @@ import ActionSheet from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getCommentVotes } from "../services/api/Api";
+import { getCommentVotes, isRequestCanceled } from "../services/api/Api";
 
 const getAvatarUri = (vote) => {
   if (vote.avatar_url) return vote.avatar_url;
@@ -60,21 +61,22 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
 
   useEffect(() => {
     if (!visible || !commentId) return;
-    let active = true;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     setVotes([]);
-    getCommentVotes(commentId)
+    getCommentVotes(commentId, { signal: controller.signal })
       .then((res) => {
-        if (active) setVotes(extractVotes(res));
+        if (!controller.signal.aborted) setVotes(extractVotes(res));
       })
       .catch((err) => {
-        if (active) setError(err?.response?.data?.message || err?.message || t("commentVoteModal.loadError"));
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
+        setError(err?.response?.data?.message || err?.message || t("commentVoteModal.loadError"));
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
-    return () => { active = false; };
+    return () => { controller.abort(); };
   }, [visible, commentId]);
 
   const renderItem = ({ item }) => {
@@ -171,7 +173,10 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
             <Text style={[styles.emptyText, { color: theme.subText }]}>{t("commentVoteModal.empty")}</Text>
           </View>
         ) : (
-          <ScrollView
+          <FlatList
+            data={votes}
+            keyExtractor={(item, i) => item.user_id?.toString() || item.username || String(i)}
+            renderItem={renderItem}
             style={[
               styles.list,
               { maxHeight: windowHeight * 0.85 - (headerHeight || 160) - Math.max(insets.bottom, 16) },
@@ -179,13 +184,17 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
-          >
-            {votes.map((item, i) => (
-              <React.Fragment key={item.user_id?.toString() || item.username || String(i)}>
-                {renderItem({ item })}
-              </React.Fragment>
-            ))}
-          </ScrollView>
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={Platform.OS === "android"}
+            getItemLayout={(_, index) => ({
+              length: 80,
+              offset: 80 * index,
+              index,
+            })}
+          />
         )}
       </View>
     </ActionSheet>

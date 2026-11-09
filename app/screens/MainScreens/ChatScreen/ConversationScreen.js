@@ -38,6 +38,7 @@ import {
   addGroupDeputy,
   removeGroupDeputy,
   removeGroupParticipant,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
@@ -152,19 +153,26 @@ const ConversationScreen = ({ navigation, route }) => {
   }, []);
 
   const activeConversationId = React.useRef(null);
-  const fetchMessageMentionSuggestions = React.useCallback(async (q) => {
+  const messagesAbortRef = React.useRef(null);
+  const detailsAbortRef = React.useRef(null);
+  const onlineStatusAbortRef = React.useRef(null);
+  const seenReceiptsAbortRef = React.useRef(null);
+  const settingsAbortRef = React.useRef(null);
+
+  const fetchMessageMentionSuggestions = React.useCallback(async (q, config = {}) => {
     const cid = activeConversationId.current;
     if (cid) {
       try {
-        return await getConversationMentionSuggestions(cid, q);
+        return await getConversationMentionSuggestions(cid, q, config);
       } catch (e) {
+        if (isRequestCanceled(e)) throw e;
         if (e?.response?.status === 404) {
-          return getMentionSuggestions(q);
+          return getMentionSuggestions(q, config);
         }
         throw e;
       }
     }
-    return getMentionSuggestions(q);
+    return getMentionSuggestions(q, config);
   }, []);
 
   // Android: the message bar is a KeyboardStickyView, moved by
@@ -391,13 +399,23 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const refreshOtherUserOnlineStatus = React.useCallback(() => {
     if (!otherUsername) return;
-    getOnlineStatus(otherUsername)
-      .then((res) => setIsOtherUserOnline(!!res.data?.is_online))
+    onlineStatusAbortRef.current?.abort();
+    const controller = new AbortController();
+    onlineStatusAbortRef.current = controller;
+    getOnlineStatus(otherUsername, { signal: controller.signal })
+      .then((res) => {
+        if (!controller.signal.aborted) {
+          setIsOtherUserOnline(!!res.data?.is_online);
+        }
+      })
       .catch(() => {});
   }, [otherUsername]);
 
   useEffect(() => {
     refreshOtherUserOnlineStatus();
+    return () => {
+      onlineStatusAbortRef.current?.abort();
+    };
   }, [refreshOtherUserOnlineStatus]);
 
   // `afterBlock` defaults to the original behavior (this screen only ever
@@ -823,20 +841,27 @@ const ConversationScreen = ({ navigation, route }) => {
   // derived. Fetch the conversation details in that case.
   useEffect(() => {
     if (!isNewConversation && !currentConversation && conversationId) {
-      getConversations()
+      detailsAbortRef.current?.abort();
+      const controller = new AbortController();
+      detailsAbortRef.current = controller;
+      getConversations({ signal: controller.signal })
         .then((response) => {
+          if (controller.signal.aborted) return;
           const found = response?.data?.find(
             (c) => String(c.id) === String(conversationId),
           );
           if (found) setCurrentConversation(found);
         })
         .catch((error) => {
+          if (isRequestCanceled(error) || controller.signal.aborted) return;
           console.log(
             "[ConversationScreen] Error fetching conversation details:",
             error?.response?.data || error?.message,
           );
         });
+      return () => controller.abort();
     }
+    return undefined;
   }, []);
 
   // Group metadata (name/avatar/participants) can change from GroupInfoScreen
@@ -847,20 +872,28 @@ const ConversationScreen = ({ navigation, route }) => {
     React.useCallback(() => {
       const activeId = currentConversationId || conversationId;
       if (isNewConversation || !activeId || currentConversation?.type !== "group") {
-        return;
+        return undefined;
       }
 
-      getConversations()
+      const controller = new AbortController();
+      getConversations({ signal: controller.signal })
         .then((response) => {
+          if (controller.signal.aborted) return;
           const found = response?.data?.find((c) => String(c.id) === String(activeId));
           if (found) setCurrentConversation(found);
         })
         .catch((error) => {
+          if (isRequestCanceled(error) || controller.signal.aborted) return;
           console.log(
             "[ConversationScreen] Error refreshing group conversation on focus:",
             error?.response?.data || error?.message,
           );
         });
+      return () => {
+        controller.abort();
+        seenReceiptsAbortRef.current?.abort();
+        onlineStatusAbortRef.current?.abort();
+      };
       // Deliberately runs once per focus, not on every currentConversation change
       // (which this itself would cause) — id/type are enough to key off.
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -889,9 +922,12 @@ const ConversationScreen = ({ navigation, route }) => {
       // Not while another screen covers the chat or the app is in the
       // background; the next tick after returning catches up.
       if (!isFocusedRef.current || AppState.currentState !== "active") return;
-      getGroupSeenReceipts(activeId)
+      seenReceiptsAbortRef.current?.abort();
+      const controller = new AbortController();
+      seenReceiptsAbortRef.current = controller;
+      getGroupSeenReceipts(activeId, { signal: controller.signal })
         .then((res) => {
-          if (cancelled) return;
+          if (cancelled || controller.signal.aborted) return;
           const next = res.data?.participants || [];
           // The 15-second poll usually returns what is already shown; keep
           // the array we have then, so the message list is left alone.
@@ -907,6 +943,7 @@ const ConversationScreen = ({ navigation, route }) => {
     return () => {
       cancelled = true;
       clearInterval(interval);
+      seenReceiptsAbortRef.current?.abort();
     };
   }, [currentConversationId, conversationId, isNewConversation, isGroupConversation, messages.length]);
 
@@ -955,6 +992,13 @@ const ConversationScreen = ({ navigation, route }) => {
         });
       }
     }
+    return () => {
+      messagesAbortRef.current?.abort();
+      detailsAbortRef.current?.abort();
+      onlineStatusAbortRef.current?.abort();
+      seenReceiptsAbortRef.current?.abort();
+      settingsAbortRef.current?.abort();
+    };
   }, []);
 
   const getCacheKey = (id) => `${CONVERSATION_CACHE_KEY}_${username}_${id}`;
@@ -989,6 +1033,11 @@ const ConversationScreen = ({ navigation, route }) => {
   const fetchMessages = async (isRefresh = false, isBackground = false) => {
     // How many messages this call brought back (0 also when it failed).
     let loadedCount = 0;
+    const controller = new AbortController();
+    if (!isBackground) {
+      messagesAbortRef.current?.abort();
+      messagesAbortRef.current = controller;
+    }
     try {
       if (isRefresh && !isBackground) {
         pageRef.current = 1;
@@ -999,10 +1048,13 @@ const ConversationScreen = ({ navigation, route }) => {
 
       if (!hasMoreRef.current && !isRefresh) return;
 
+      const targetPage = isRefresh ? 1 : pageRef.current;
       const response = await getConversationMessages(
         currentConversationId || conversationId,
-        isRefresh ? 1 : pageRef.current,
+        targetPage,
+        { signal: controller.signal },
       );
+      if (controller.signal.aborted) return;
       loadedCount = Array.isArray(response.data?.data) ? response.data.data.length : 0;
 
       const newMessages = Array.isArray(response.data?.data)
@@ -1040,7 +1092,7 @@ const ConversationScreen = ({ navigation, route }) => {
           return injectTimeHeaders([...dedupedOlder, ...existingMessages], t);
         });
         hasMoreRef.current = response.data.current_page < response.data.last_page;
-        pageRef.current = isRefresh ? 2 : pageRef.current + 1;
+        pageRef.current = isRefresh ? 2 : targetPage + 1;
         setHasMore(hasMoreRef.current);
         setPage(pageRef.current);
       } else if (JSON.stringify(newMessages) !== previousCache) {
@@ -1067,7 +1119,8 @@ const ConversationScreen = ({ navigation, route }) => {
         // newest page only, not a pagination action.
       }
     } catch (error) {
-      console.log("Error fetching messages:", error.response?.data);
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
+      console.log("Error fetching messages:", error.response?.data || error?.message);
     } finally {
       if (!isBackground) {
         setRefreshing(false);

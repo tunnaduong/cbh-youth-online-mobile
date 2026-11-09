@@ -11,6 +11,7 @@ import {
   Share,
   Clipboard,
   StyleSheet,
+  Platform,
 } from "react-native";
 import {
   SafeAreaProvider,
@@ -23,7 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 import FastImage from "./FastImage";
 import UserMultiSelectPicker from "./UserMultiSelectPicker";
-import { getConversations, sharePostToChat } from "../services/api/Api";
+import { getConversations, sharePostToChat, isRequestCanceled } from "../services/api/Api";
 import { generatePostSlug } from "../utils/slugify";
 
 const GROUP_AVATAR = require("../assets/chat.jpg");
@@ -68,13 +69,17 @@ const SharePostModal = ({ visible, post, onClose }) => {
 
   useEffect(() => {
     if (!visible) return;
+    const controller = new AbortController();
     setSelectedIds([]);
     setSelectedUsers([]);
     setNote("");
     setLoading(true);
-    getConversations()
-      .then((res) => setConversations(res.data || []))
-      .catch(() => {
+    getConversations({ signal: controller.signal })
+      .then((res) => {
+        if (!controller.signal.aborted) setConversations(res.data || []);
+      })
+      .catch((err) => {
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
         Toast.show({
           type: "error",
           text1: t(
@@ -83,7 +88,12 @@ const SharePostModal = ({ visible, post, onClose }) => {
           ),
         });
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => {
+      controller.abort();
+    };
   }, [visible]);
 
   const toggleSelect = (id) => {
@@ -245,6 +255,16 @@ const SharePostModal = ({ visible, post, onClose }) => {
               keyExtractor={(item) => String(item.id)}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 16 }}
+              initialNumToRender={12}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={Platform.OS === "android"}
+              getItemLayout={(_, index) => ({
+                length: 64,
+                offset: 64 * index,
+                index,
+              })}
               renderItem={({ item }) => {
                 const { name, avatarUrl, isGroup } = getConversationDisplay(item);
                 const selected = selectedIds.includes(item.id);

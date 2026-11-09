@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { searchUserSuggestions } from "../services/api/Api";
+import { searchUserSuggestions, isRequestCanceled } from "../services/api/Api";
 import FastImage from "./FastImage";
 
 // Controlled multi-select user picker with debounced name/username search,
@@ -43,24 +43,35 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
     const cacheKey = `${excludeConversationId || ""}:${trimmed}`;
     if (cacheRef.current.has(cacheKey)) {
       setSuggestions(cacheRef.current.get(cacheKey));
+      setLoading(false);
       return;
     }
 
+    const controller = new AbortController();
     setLoading(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await searchUserSuggestions(trimmed, excludeConversationId);
+        const res = await searchUserSuggestions(trimmed, excludeConversationId, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
         const results = res?.data?.suggestions ?? [];
         cacheRef.current.set(cacheKey, results);
         setSuggestions(results);
-      } catch {
+      } catch (err) {
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
         setSuggestions([]);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }, 250);
-    return () => clearTimeout(debounceRef.current);
+    return () => {
+      clearTimeout(debounceRef.current);
+      controller.abort();
+    };
   }, [query, excludeConversationId]);
 
   const isSelected = (id) => selected.some((u) => u.id === id);
@@ -132,6 +143,9 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
               keyExtractor={(item) => String(item.id)}
               keyboardShouldPersistTaps="always"
               scrollEnabled={false}
+              initialNumToRender={8}
+              maxToRenderPerBatch={8}
+              windowSize={5}
               renderItem={({ item }) => {
                 const picked = isSelected(item.id);
                 return (

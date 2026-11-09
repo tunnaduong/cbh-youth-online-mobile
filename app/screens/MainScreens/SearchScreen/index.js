@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { searchQuery, getSearchSuggestions } from "../../../services/api/Api";
+import { searchQuery, getSearchSuggestions, isRequestCanceled } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -65,16 +65,20 @@ export default function SearchScreen({ navigation, route }) {
 
   // Fetch suggested topics & hashtags from server API
   useEffect(() => {
-    getSearchSuggestions()
+    const controller = new AbortController();
+    getSearchSuggestions({ signal: controller.signal })
       .then((res) => {
+        if (controller.signal.aborted) return;
         const topics = res?.data?.data?.topics || res?.data?.topics;
         if (Array.isArray(topics) && topics.length > 0) {
           setSuggestedTopics(topics);
         }
       })
       .catch((err) => {
+        if (isRequestCanceled(err) || controller.signal.aborted) return;
         console.warn("[SearchScreen] Failed to load suggestions from server:", err?.message || err);
       });
+    return () => controller.abort();
   }, []);
 
   const saveRecentSearch = useCallback((searchTerm) => {
@@ -118,12 +122,13 @@ export default function SearchScreen({ navigation, route }) {
     );
   }, [t]);
 
-  // Execute Search query with debounce
+  // Execute Search query with debounce + AbortController
   useEffect(() => {
     const trimmed = query.trim();
     const isHashtagQuery = trimmed.startsWith("#") && trimmed.length > 1;
     const effectiveFilter = isHashtagQuery ? "hashtag" : activeFilter;
     const effectiveQuery = isHashtagQuery ? trimmed.slice(1) : trimmed;
+    const controller = new AbortController();
 
     const delayDebounceFn = setTimeout(() => {
       if (effectiveQuery) {
@@ -131,8 +136,9 @@ export default function SearchScreen({ navigation, route }) {
         setHasSearched(false);
         saveRecentSearch(trimmed);
 
-        searchQuery(effectiveQuery, effectiveFilter)
+        searchQuery(effectiveQuery, effectiveFilter, { signal: controller.signal })
           .then((res) => {
+            if (controller.signal.aborted) return;
             if (effectiveFilter === "hashtag") {
               setHashtagTag(res?.data?.data?.hashtag || effectiveQuery);
               setResults({
@@ -158,22 +164,29 @@ export default function SearchScreen({ navigation, route }) {
             setHasSearched(true);
           })
           .catch((error) => {
+            if (isRequestCanceled(error) || controller.signal.aborted) return;
             console.error("Search error:", error);
             setHashtagTag(null);
             setResults({ users: [], posts: [] });
             setHasSearched(true);
           })
           .finally(() => {
-            setLoading(false);
+            if (!controller.signal.aborted) {
+              setLoading(false);
+            }
           });
       } else {
         setHashtagTag(null);
         setResults({ users: [], posts: [] });
         setHasSearched(false);
+        setLoading(false);
       }
     }, 400);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      clearTimeout(delayDebounceFn);
+      controller.abort();
+    };
   }, [query, activeFilter, saveRecentSearch]);
 
   const selectFilter = (filterKey) => {

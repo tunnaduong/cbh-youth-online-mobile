@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import * as ImagePicker from "expo-image-picker";
-import { deleteCustomFrame, getProfile, updateProfile, uploadCustomFrame } from "../../../services/api/Api";
+import { deleteCustomFrame, getProfile, updateProfile, uploadCustomFrame, isRequestCanceled } from "../../../services/api/Api";
 import { setOwnProfileTheme } from "../../../utils/ownProfileTheme";
 import TierIcon from "../../../components/profile/TierIcon";
 import FastImage from "../../../components/FastImage";
@@ -158,8 +158,14 @@ export default function ProfileCustomizerScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
+  const loadAbortRef = useRef(null);
+
   const load = useCallback(async () => {
-    const response = await getProfile(username);
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    const response = await getProfile(username, { signal: controller.signal });
+    if (controller.signal.aborted) return null;
     const data = response.data;
     setProfile(data);
     setEditor(data?.profile?.theme_editor || null);
@@ -172,20 +178,22 @@ export default function ProfileCustomizerScreen({ navigation }) {
     setLoading(true);
     load()
       .then((state) => {
-        if (cancelled) return;
+        if (cancelled || !state) return;
         const current = state?.saved ? withoutLockedOptions(state.saved, state) : DEFAULT_THEME;
         setSaved(current);
         setDraft(current);
       })
       .catch((error) => {
+        if (cancelled || isRequestCanceled(error)) return;
         console.error("Error loading profile customization:", error);
-        if (!cancelled) Toast.show({ type: "error", text1: t("profileTheme.loadError", "Không thể tải dữ liệu. Vui lòng thử lại.") });
+        Toast.show({ type: "error", text1: t("profileTheme.loadError", "Không thể tải dữ liệu. Vui lòng thử lại.") });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      loadAbortRef.current?.abort();
     };
   }, [username, load, t]);
 

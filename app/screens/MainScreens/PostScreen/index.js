@@ -40,6 +40,7 @@ import {
   deleteComment,
   getMentionSuggestions,
   reportUser,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import Toast from "react-native-toast-message";
@@ -388,6 +389,11 @@ const PostScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     fetchData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -400,11 +406,19 @@ const PostScreen = ({ route, navigation }) => {
   // the feed, profile, archive and this page, so an option added or changed
   // there shows up everywhere.
   const postOptionsRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const fetchData = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoadingPost(true);
-      const response = await getPostDetail(postId); // Fetch post data from API
+      const response = await getPostDetail(postId, { signal: controller.signal }); // Fetch post data from API
+      if (controller.signal.aborted) return;
       const { post: topic, comments } = response.data;
 
       if (!item && !post) {
@@ -425,9 +439,12 @@ const PostScreen = ({ route, navigation }) => {
         }, 600);
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("Error fetching data:", error);
     } finally {
-      setLoadingPost(false);
+      if (!controller.signal.aborted) {
+        setLoadingPost(false);
+      }
     }
   };
   // Mirror for stable callbacks (see commentsRef above) that need to trigger
@@ -1383,6 +1400,7 @@ const PostScreen = ({ route, navigation }) => {
           initialNumToRender={15}
           maxToRenderPerBatch={10}
           windowSize={7}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === "android"}
           data={comments}
           keyExtractor={(comment) => String(comment.id)}
