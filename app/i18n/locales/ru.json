@@ -1316,7 +1316,7 @@
     "subtitle": "Настройте приложение под себя",
     "greeting": "Привет, {{name}}!",
     "aiTranslate": "Язык перевода Yoyo AI",
-    "aiTranslateAuto": "Авто (Язык приложения)"
+    "aiTranslateAuto": "Авто (система)"
   },
   "security": {
     "passkeys": "Passkey",

@@ -1303,7 +1303,7 @@
     "subtitle": "Customize the app your way",
     "greeting": "Hello, {{name}}!",
     "aiTranslate": "Yoyo AI translation language",
-    "aiTranslateAuto": "Auto (App language)"
+    "aiTranslateAuto": "Auto (system)"
   },
   "security": {
     "passkeys": "Passkeys",

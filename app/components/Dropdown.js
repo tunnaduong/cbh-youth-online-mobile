@@ -221,7 +221,9 @@ const Dropdown = ({
             flexDirection: "row",
             alignItems: "center",
             justifyContent: isRightAligned ? "flex-end" : "flex-start",
+            flex: 1,
             flexShrink: 1,
+            minWidth: 0,
             marginRight: 6,
           }}
         >
@@ -256,9 +258,10 @@ const Dropdown = ({
               styles.dropdownText,
               { color: selectedValue ? theme.text : theme.subText },
               textStyle,
-              { flex: isFitContent ? 0 : isRightAligned ? 0 : 1, flexShrink: 1 },
+              { flex: isFitContent ? 0 : 1, flexShrink: 1 },
             ]}
             numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {selectedValue
               ? selectedValue.label
@@ -269,6 +272,7 @@ const Dropdown = ({
           name="chevron-down-outline"
           size={arrowSize}
           color={theme.subText}
+          style={{ flexShrink: 0 }}
         />
       </TouchableOpacity>
 

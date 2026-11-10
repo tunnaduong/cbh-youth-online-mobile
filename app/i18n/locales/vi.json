@@ -1290,7 +1290,7 @@
     "subtitle": "Tuỳ chỉnh theo sở thích của bạn",
     "greeting": "Xin chào, {{name}}!",
     "aiTranslate": "Ngôn ngữ dịch Yoyo AI",
-    "aiTranslateAuto": "Tự động (Theo ngôn ngữ ứng dụng)"
+    "aiTranslateAuto": "Tự động (theo máy)"
   },
   "security": {
     "passkeys": "Passkey",

@@ -1303,11 +1303,18 @@ const PostItem = ({
                 marginTop: single ? 0 : 4,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
-                <Ionicons name="sparkles" size={14} color="#10B981" style={{ marginRight: 6 }} />
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, flexShrink: 1, marginRight: 8, minWidth: 0 }}>
+                <Ionicons name="sparkles" size={14} color="#10B981" style={{ marginRight: 6, flexShrink: 0 }} />
                 <Text
-                  style={{ fontSize: 12, fontWeight: "600", color: isDarkMode ? "#6EE7B7" : "#047857" }}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: isDarkMode ? "#6EE7B7" : "#047857",
+                    flex: 1,
+                    flexShrink: 1,
+                  }}
                   numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {t("post.translatedByAi", {
                     lang: getLanguageDisplayName(translatedData.target_lang, t),
@@ -1326,6 +1333,7 @@ const PostItem = ({
                   });
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ flexShrink: 0 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: "700", color: isDarkMode ? "#A7F3D0" : "#065F46" }}>
                   {t("post.viewOriginal", "Bản gốc")}
