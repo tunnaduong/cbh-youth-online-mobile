@@ -19,7 +19,6 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
-import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,6 +35,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import DrawingCanvas from "./DrawingCanvas";
 import MoveableItem from "./MoveableItem";
+import PinchableStoryImage from "./PinchableStoryImage";
 import TextEditorOverlay from "./TextEditorOverlay";
 import FilterCarousel from "./FilterCarousel";
 import StickerSheet from "./StickerSheet";
@@ -310,6 +310,7 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const drawingRef = useRef(null);
   const imageWithOverlaysRef = useRef(null);
+  const pinchableImageRef = useRef(null);
   const itemIdCounter = useRef(0);
 
   /**
@@ -594,6 +595,9 @@ const CreateStoryScreen = ({ navigation }) => {
     setDisplayImage(asset.uri);
     setFilterId("none");
     setIsMuted(false);
+
+    // Reset pinch-zoom transform whenever a new image is loaded.
+    pinchableImageRef.current?.reset();
   };
 
   /**
@@ -1287,10 +1291,13 @@ const CreateStoryScreen = ({ navigation }) => {
                     </View>
                   ) : (
                     <View style={[StyleSheet.absoluteFill, styles.mediaPreviewContainer]}>
-                      <FastImage
-                        source={{ uri: displayImage || originalImage }}
-                        style={mediaCoverStyle || StyleSheet.absoluteFill}
-                        resizeMode={FastImage.resizeMode.cover}
+                      <PinchableStoryImage
+                        ref={pinchableImageRef}
+                        uri={displayImage || originalImage}
+                        baseStyle={mediaCoverStyle || StyleSheet.absoluteFill}
+                        canvasWidth={captureDims.w}
+                        canvasHeight={captureDims.h}
+                        disabled={Boolean(isDrawing || editingText)}
                       />
                     </View>
                   )}
