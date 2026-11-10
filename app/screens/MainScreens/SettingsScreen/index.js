@@ -306,9 +306,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
                 <Ionicons name="color-palette-outline" size={20} color={theme.primary} />
               </View>
-              <Text style={[styles.settingItemText, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
-                {t("settings.theme")}
-              </Text>
+              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
             </View>
             <Dropdown
               options={themeOptions}
@@ -318,8 +316,8 @@ export default function SettingsScreen({ navigation }) {
                 icon: currentThemeIcon,
               }}
               onValueChange={(item) => setThemeMode(item.value)}
-              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent", maxWidth: "100%" }}
-              containerStyle={{ marginVertical: 0, alignItems: "flex-end", flexShrink: 1, maxWidth: "52%" }}
+              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
               modalTitle={t("settings.theme")}
             />
@@ -331,9 +329,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
                 <Ionicons name="language-outline" size={20} color={theme.primary} />
               </View>
-              <Text style={[styles.settingItemText, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
-                {t("settings.language")}
-              </Text>
+              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.language")}</Text>
             </View>
             <Dropdown
               options={[
@@ -351,15 +347,15 @@ export default function SettingsScreen({ navigation }) {
                 value: currentLanguage,
               }}
               onValueChange={(item) => changeLanguage(item.value)}
-              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent", maxWidth: "100%" }}
-              containerStyle={{ marginVertical: 0, alignItems: "flex-end", flexShrink: 1, maxWidth: "52%" }}
+              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
             />
           </View>
 
           {/* AI Translation Language dropdown */}
-          <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
-            <View style={styles.settingItemLeft}>
+          <View style={[styles.dropdownRow, { borderBottomColor: theme.border, justifyContent: "space-between" }]}>
+            <View style={[styles.settingItemLeft, { minWidth: 0, marginRight: 8 }]}>
               <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
                 <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
               </View>
@@ -620,8 +616,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    minWidth: 0,
-    marginRight: 10,
   },
   settingItemIcon: {
     width: 34,
@@ -647,7 +641,6 @@ const styles = StyleSheet.create({
   dropdownRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingVertical: 13,
     paddingLeft: 16,
     paddingRight: 16,
