@@ -444,7 +444,7 @@ const PostItem = ({
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const [activeCopyTarget, setActiveCopyTarget] = useState(null); // 'title' | 'caption' | null
   const { theme, isDarkMode } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const authorTheme = item?.anonymous ? null : item?.author?.profile_theme;
   const isCurrentUser = item?.is_owner === true || item?.topic?.is_owner === true || item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
 

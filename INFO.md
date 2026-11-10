@@ -361,6 +361,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Instagram & Facebook-Style Story Photo Pinch-to-Resize, Rotate & Pan + `PostItem` `i18n` Fix (`CreateStoryScreen/PinchableStoryImage.js`, `CreateStoryScreen/MoveableItem.js`, `CreateStoryScreen/index.js`, `components/PostItem.js`)**:
+  - Added `PinchableStoryImage` in `CreateStoryScreen` supporting 2-finger pinch-to-resize (both shrinking down to `0.25x` and zooming in up to `6x` with elastic rubber-banding), 2-finger twist rotation with magnetic snap at cardinal angles (`0°`, `90°`, `180°`, `270°`), 1-finger and 2-finger panning with magnetic center alignment snap + Instagram-style cyan guide lines (`#00D4FF`) and light haptic feedback, double-tap fit/fill toggle & reset, and an ambient blurred backdrop when the photo is scaled down, rotated, or non-9:16.
+  - Preserved original photo dimensions in `CreateStoryScreen` without destructive pre-cropping so full landscape/square/portrait photos can be freely resized and positioned inside the 9:16 canvas and baked via `captureRef`.
+  - Updated `MoveableItem` so 2-finger pinch on overlays also tracks midpoint translation and transitions from 2 fingers to 1 finger without position jumps.
+  - Fixed `ReferenceError: Property 'i18n' doesn't exist` in `PostItem.js` by destructuring `{ t, i18n } = useTranslation()`.
+
 - **Developer Options Countdown Toast & Remove Random Developer Message (`SettingsScreen/index.js`, `app/i18n/locales/*.json`)**:
   - Removed the random `"Lời nhắn từ nhà phát triển app"` toast messages when tapping the version row in `SettingsScreen`.
   - Replaced with an Android-style countdown toast (`devConsole.stepsRemaining` across `vi.json`, `en.json`, `ru.json`): taps before `DEV_MODE_TAPS - 2` (`n - 2`) increment silently without showing a toast; starting at `n - 2` taps, displays how many steps remain (`2`, `1`) until developer mode (`DEV_MODE_TAPS = 5`) unlocks.

@@ -328,14 +328,13 @@ const CreateStoryScreen = ({ navigation }) => {
   const isVideo = selectedMediaType === "video";
 
   /**
-   * Size and position the media so it always *covers* the 9:16 canvas.
-   *
-   * Letting the image component do the cover fit turned out not to be
-   * reliable here (pictures ended up letterboxed inside the canvas, and the
-   * black bars were then baked into the posted story), so the crop is worked
-   * out from the asset's own dimensions instead.
+   * Size and position the photo on the 9:16 canvas like Instagram / Facebook:
+   * - Portrait photos near 9:16 cover the canvas by default.
+   * - Square / landscape photos fit across the canvas width so no part of the
+   *   photo is cut off initially, while exposing `coverScale` so a double-tap
+   *   or two-finger pinch can fill or shrink the frame freely.
    */
-  const mediaCoverStyle = useMemo(() => {
+  const mediaLayout = useMemo(() => {
     const canvasWidth = captureDims.w;
     const canvasHeight = captureDims.h;
 
@@ -349,19 +348,31 @@ const CreateStoryScreen = ({ navigation }) => {
     let mediaWidth = canvasWidth;
     let mediaHeight = canvasWidth / aspect;
 
-    if (mediaHeight < canvasHeight) {
+    // Portrait photos close to 9:16 cover the frame; wider photos fit cleanly.
+    if (aspect <= 0.65 && mediaHeight < canvasHeight) {
       mediaHeight = canvasHeight;
       mediaWidth = canvasHeight * aspect;
     }
 
+    const coverScale =
+      mediaHeight < canvasHeight
+        ? canvasHeight / mediaHeight
+        : mediaWidth < canvasWidth
+        ? canvasWidth / mediaWidth
+        : 1;
+
     return {
-      position: "absolute",
-      left: (canvasWidth - mediaWidth) / 2,
-      top: (canvasHeight - mediaHeight) / 2,
-      width: mediaWidth,
-      height: mediaHeight,
+      style: {
+        position: "absolute",
+        left: (canvasWidth - mediaWidth) / 2,
+        top: (canvasHeight - mediaHeight) / 2,
+        width: mediaWidth,
+        height: mediaHeight,
+      },
+      coverScale,
     };
   }, [captureDims.w, captureDims.h, selectedMediaAsset]);
+  const mediaCoverStyle = mediaLayout?.style || null;
 
   /**
    * Photo filters are baked with Skia as soon as they are picked rather than
@@ -624,69 +635,26 @@ const CreateStoryScreen = ({ navigation }) => {
     });
 
   /**
-   * Stories are 9:16, so every picture is centre-cropped to that ratio before
-   * it reaches the canvas. iOS' built-in editor only ever crops square and
-   * ignores the `aspect` hint, so the crop is done here rather than left to
-   * the OS - otherwise the canvas would letterbox the picture and bake black
-   * bars into the posted story.
+   * Resolve image dimensions without cropping so the user can freely pinch to
+   * resize, zoom in/out, rotate, and reposition the full photo inside the 9:16
+   * story canvas just like Instagram and Facebook.
    */
   const forceStoryAspect = async (asset) => {
     const size = await resolveImageSize(asset);
 
     if (!size?.width || !size?.height) return asset;
 
-    const targetRatio = 9 / 16;
-    const currentRatio = size.width / size.height;
-
-    if (Math.abs(currentRatio - targetRatio) <= 0.01) {
-      return { ...asset, width: size.width, height: size.height };
-    }
-
-    try {
-      let cropWidth = size.width;
-      let cropHeight = Math.round(size.width / targetRatio);
-
-      if (cropHeight > size.height) {
-        cropHeight = size.height;
-        cropWidth = Math.round(size.height * targetRatio);
-      }
-
-      const manipulated = await manipulateAsync(
-        asset.uri,
-        [
-          {
-            crop: {
-              originX: Math.round((size.width - cropWidth) / 2),
-              originY: Math.round((size.height - cropHeight) / 2),
-              width: cropWidth,
-              height: cropHeight,
-            },
-          },
-        ],
-        { compress: 1, format: SaveFormat.JPEG }
-      );
-
-      return {
-        ...asset,
-        uri: manipulated.uri,
-        width: manipulated.width,
-        height: manipulated.height,
-      };
-    } catch (error) {
-      console.warn("Failed to force 9:16 crop on story image:", error?.message || error);
-      // The canvas covers the frame anyway, so an uncropped picture still
-      // posts correctly - it just is not the user's own choice of crop.
-      return { ...asset, width: size.width, height: size.height };
-    }
+    return {
+      ...asset,
+      width: size.width,
+      height: size.height,
+    };
   };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      // Android's picker crops to the ratio we ask for; iOS' only does
-      // squares, so there we crop to 9:16 ourselves right after.
-      allowsEditing: Platform.OS === "android",
-      aspect: [9, 16],
+      allowsEditing: false,
       quality: 1,
       // iOS exports video as 720p H.264 (ignored on Android).
       videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
@@ -722,8 +690,7 @@ const CreateStoryScreen = ({ navigation }) => {
           preferredType === "video"
             ? ImagePicker.MediaTypeOptions.Videos
             : ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: Platform.OS === "android",
-        aspect: [9, 16],
+        allowsEditing: false,
         quality: 1,
         videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
       });
@@ -1295,6 +1262,7 @@ const CreateStoryScreen = ({ navigation }) => {
                         ref={pinchableImageRef}
                         uri={displayImage || originalImage}
                         baseStyle={mediaCoverStyle || StyleSheet.absoluteFill}
+                        coverScale={mediaLayout?.coverScale || 1}
                         canvasWidth={captureDims.w}
                         canvasHeight={captureDims.h}
                         disabled={Boolean(isDrawing || editingText)}

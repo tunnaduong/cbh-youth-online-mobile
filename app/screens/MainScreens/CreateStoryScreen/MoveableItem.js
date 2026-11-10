@@ -10,9 +10,21 @@ const distanceBetween = (touches) => {
   return Math.hypot(b.pageX - a.pageX, b.pageY - a.pageY);
 };
 
+const midpointBetween = (touches) => {
+  const [a, b] = touches;
+  return { x: (a.pageX + b.pageX) / 2, y: (a.pageY + b.pageY) / 2 };
+};
+
 const angleBetween = (touches) => {
   const [a, b] = touches;
   return (Math.atan2(b.pageY - a.pageY, b.pageX - a.pageX) * 180) / Math.PI;
+};
+
+const normalizeAngleDelta = (delta) => {
+  let d = delta;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  return d;
 };
 
 /**
@@ -79,7 +91,7 @@ const MoveableItem = ({
       onStartShouldSetPanResponder: () => !disabledRef.current,
       onMoveShouldSetPanResponder: () => !disabledRef.current,
       onPanResponderGrant: () => {
-        gestureStart.current = { ...current.current };
+        gestureStart.current = { ...current.current, dx: 0, dy: 0 };
         pinchStart.current = null;
         didMove.current = false;
       },
@@ -90,10 +102,19 @@ const MoveableItem = ({
 
         if (touches.length >= 2) {
           const distance = distanceBetween(touches);
+          const midpoint = midpointBetween(touches);
           const angle = angleBetween(touches);
 
-          if (!pinchStart.current) {
-            pinchStart.current = { distance, angle, scale: current.current.scale, rotation: current.current.rotation };
+          if (!pinchStart.current || distance < 4) {
+            pinchStart.current = {
+              distance: Math.max(distance, 4),
+              midpoint,
+              angle,
+              x: current.current.x,
+              y: current.current.y,
+              scale: current.current.scale,
+              rotation: current.current.rotation,
+            };
             return;
           }
 
@@ -101,10 +122,16 @@ const MoveableItem = ({
             MIN_SCALE,
             Math.min(MAX_SCALE, pinchStart.current.scale * (distance / pinchStart.current.distance))
           );
-          const nextRotation = pinchStart.current.rotation + (angle - pinchStart.current.angle);
+          const nextRotation =
+            pinchStart.current.rotation + normalizeAngleDelta(angle - pinchStart.current.angle);
+          const nextX = pinchStart.current.x + (midpoint.x - pinchStart.current.midpoint.x);
+          const nextY = pinchStart.current.y + (midpoint.y - pinchStart.current.midpoint.y);
 
+          current.current.x = nextX;
+          current.current.y = nextY;
           current.current.scale = nextScale;
           current.current.rotation = nextRotation;
+          translate.setValue({ x: nextX, y: nextY });
           scale.setValue(nextScale);
           rotation.setValue(nextRotation);
           didMove.current = true;
@@ -115,11 +142,18 @@ const MoveableItem = ({
         // the item does not jump when the gesture continues with one finger.
         if (pinchStart.current) {
           pinchStart.current = null;
-          gestureStart.current = { ...current.current };
+          gestureStart.current = {
+            ...current.current,
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+          };
           return;
         }
 
-        if (!didMove.current && Math.abs(gestureState.dx) < 4 && Math.abs(gestureState.dy) < 4) {
+        const deltaX = gestureState.dx - (gestureStart.current.dx || 0);
+        const deltaY = gestureState.dy - (gestureStart.current.dy || 0);
+
+        if (!didMove.current && Math.abs(deltaX) < 4 && Math.abs(deltaY) < 4) {
           return;
         }
 
@@ -128,8 +162,8 @@ const MoveableItem = ({
           callbacks.current.onDragStart?.(item.id);
         }
 
-        const nextX = gestureStart.current.x + gestureState.dx;
-        const nextY = gestureStart.current.y + gestureState.dy;
+        const nextX = gestureStart.current.x + deltaX;
+        const nextY = gestureStart.current.y + deltaY;
 
         current.current.x = nextX;
         current.current.y = nextY;
