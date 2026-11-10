@@ -128,7 +128,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const scrollX = useRef(new Animated.Value(0)).current;
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
-  const headerHeight = 58 + insets.top;
+  const headerHeight = (Platform.OS === "ios" ? 54 : 58) + insets.top;
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -290,6 +290,115 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
     };
   }, []);
 
+  const renderTopHeader = () => (
+    <View
+      style={[
+        styles.header,
+        {
+          paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8),
+          minHeight: headerHeight,
+          backgroundColor: "transparent",
+        },
+      ]}
+      pointerEvents="box-none"
+    >
+      <View style={styles.headerLeft}>
+        {navigation?.canGoBack?.() ? (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[
+              styles.headerIconButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(34, 197, 94, 0.16)"
+                  : "rgba(34, 197, 94, 0.12)",
+                marginRight: 10,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back", "Back")}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color={isDarkMode ? "#4ADE80" : "#15803D"}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.mascotWrapper}>
+            <View style={styles.actionLinesWrapper}>
+              <View style={[styles.actionLine, styles.actionLine1]} />
+              <View style={[styles.actionLine, styles.actionLine2]} />
+              <View style={[styles.actionLine, styles.actionLine3]} />
+            </View>
+            <FastImage
+              source={require("../../../assets/logo.png")}
+              style={styles.mascotLogo}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+        <View style={styles.titleWrapper}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: isDarkMode ? "#4ADE80" : "#15803D" },
+            ]}
+            numberOfLines={1}
+          >
+            {t("forum.title", "Diễn đàn")}
+          </Text>
+          <Text style={styles.sparkleStar}>✦</Text>
+        </View>
+      </View>
+
+      <View style={styles.headerActions}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("MemberRankingScreen")}
+          accessibilityRole="button"
+          accessibilityLabel={t("sidebar.memberRanking")}
+          activeOpacity={0.7}
+          style={[
+            styles.headerIconButton,
+            {
+              backgroundColor: isDarkMode
+                ? "rgba(34, 197, 94, 0.16)"
+                : "rgba(34, 197, 94, 0.12)",
+            },
+          ]}
+        >
+          <Ionicons
+            name="trophy-outline"
+            size={20}
+            color={isDarkMode ? "#4ADE80" : "#15803D"}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("CreatePostScreen")}
+          accessibilityRole="button"
+          accessibilityLabel={t("createPost.title")}
+          activeOpacity={0.7}
+          style={[
+            styles.headerIconButton,
+            {
+              backgroundColor: isDarkMode
+                ? "rgba(34, 197, 94, 0.16)"
+                : "rgba(34, 197, 94, 0.12)",
+            },
+          ]}
+        >
+          <Ionicons
+            name="add"
+            size={22}
+            color={isDarkMode ? "#4ADE80" : "#15803D"}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -302,68 +411,11 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           }
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
-          style={[styles.ambientGlow, { height: insets.top + 140 }]}
+          style={[styles.ambientGlow, { height: insets.top + 160 }]}
           pointerEvents="none"
         />
 
-        <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
-          <View style={styles.headerLeft}>
-            {navigation?.canGoBack?.() && (
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={{ marginRight: 8, padding: 4 }}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t("common.back", "Back")}
-              >
-                <Ionicons name="chevron-back" size={26} color={theme.primary} />
-              </TouchableOpacity>
-            )}
-            <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
-              {t('forum.title')}
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("MemberRankingScreen")}
-              accessibilityRole="button"
-              accessibilityLabel={t("sidebar.memberRanking")}
-              style={[
-                styles.headerIconButton,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(34, 197, 94, 0.16)"
-                    : "rgba(34, 197, 94, 0.12)",
-                },
-              ]}
-            >
-              <Ionicons
-                name="trophy-outline"
-                size={20}
-                color={isDarkMode ? "#4ADE80" : "#15803D"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("CreatePostScreen")}
-              accessibilityRole="button"
-              accessibilityLabel={t("createPost.title")}
-              style={[
-                styles.headerIconButton,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(34, 197, 94, 0.16)"
-                    : "rgba(34, 197, 94, 0.12)",
-                },
-              ]}
-            >
-              <Ionicons
-                name="add"
-                size={22}
-                color={isDarkMode ? "#4ADE80" : "#15803D"}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+        {renderTopHeader()}
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
@@ -385,69 +437,12 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={[styles.ambientGlow, { height: insets.top + 140 }]}
+        style={[styles.ambientGlow, { height: insets.top + 160 }]}
         pointerEvents="none"
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
-        <View style={styles.headerLeft}>
-          {navigation?.canGoBack?.() && (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ marginRight: 8, padding: 4 }}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t("common.back", "Back")}
-            >
-              <Ionicons name="chevron-back" size={26} color={theme.primary} />
-            </TouchableOpacity>
-          )}
-          <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
-            {t('forum.title')}
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("MemberRankingScreen")}
-            accessibilityRole="button"
-            accessibilityLabel={t("sidebar.memberRanking")}
-            style={[
-              styles.headerIconButton,
-              {
-                backgroundColor: isDarkMode
-                  ? "rgba(34, 197, 94, 0.16)"
-                  : "rgba(34, 197, 94, 0.12)",
-              },
-            ]}
-          >
-            <Ionicons
-              name="trophy-outline"
-              size={20}
-              color={isDarkMode ? "#4ADE80" : "#15803D"}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("CreatePostScreen")}
-            accessibilityRole="button"
-            accessibilityLabel={t("createPost.title")}
-            style={[
-              styles.headerIconButton,
-              {
-                backgroundColor: isDarkMode
-                  ? "rgba(34, 197, 94, 0.16)"
-                  : "rgba(34, 197, 94, 0.12)",
-              },
-            ]}
-          >
-            <Ionicons
-              name="add"
-              size={22}
-              color={isDarkMode ? "#4ADE80" : "#15803D"}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {renderTopHeader()}
 
       <ScrollView
         ref={tabScrollViewRef}
@@ -466,21 +461,46 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               style={[
                 styles.tab,
                 active
-                  ? { backgroundColor: theme.primary, borderColor: "transparent" }
-                  : { backgroundColor: theme.surface, borderColor: theme.border },
+                  ? styles.tabActive
+                  : [
+                      styles.tabInactive,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255, 255, 255, 0.08)"
+                          : "rgba(255, 255, 255, 0.9)",
+                        borderColor: isDarkMode
+                          ? "rgba(255, 255, 255, 0.12)"
+                          : "rgba(0, 0, 0, 0.06)",
+                      },
+                    ],
               ]}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  active
-                    ? { color: "#ffffff", fontWeight: "700" }
-                    : { color: theme.text, fontWeight: "500" },
-                ]}
-              >
-                {getCategoryName(cat.name, t)}
-              </Text>
+              {active ? (
+                <LinearGradient
+                  colors={
+                    isDarkMode
+                      ? ["#22C55E", "#15803D"]
+                      : ["#22C55E", "#16A34A"]
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.tabGradient}
+                >
+                  <Text style={styles.tabTextActive}>
+                    {getCategoryName(cat.name, t)}
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <Text
+                  style={[
+                    styles.tabTextInactive,
+                    { color: isDarkMode ? "#9CA3AF" : "#4B5563" },
+                  ]}
+                >
+                  {getCategoryName(cat.name, t)}
+                </Text>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -613,6 +633,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
+    zIndex: 10,
   },
   headerLeft: {
     flexDirection: "row",
@@ -620,10 +641,62 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
+  mascotWrapper: {
+    position: "relative",
+    width: 42,
+    height: 42,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mascotLogo: {
+    width: 38,
+    height: 38,
+  },
+  actionLinesWrapper: {
+    position: "absolute",
+    top: -7,
+    left: 10,
+    width: 22,
+    height: 14,
+  },
+  actionLine: {
+    position: "absolute",
+    width: 2.5,
+    height: 6,
+    borderRadius: 1.5,
+    backgroundColor: "#EAB308",
+  },
+  actionLine1: {
+    top: 6,
+    left: 1,
+    transform: [{ rotate: "-40deg" }],
+  },
+  actionLine2: {
+    top: 0,
+    left: 8,
+    transform: [{ rotate: "0deg" }],
+  },
+  actionLine3: {
+    top: 5,
+    left: 15,
+    transform: [{ rotate: "35deg" }],
+  },
+  titleWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     flexShrink: 1,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  sparkleStar: {
+    fontSize: 16,
+    color: "#EAB308",
+    marginLeft: 4,
+    marginTop: -8,
   },
   headerActions: {
     flexDirection: "row",
@@ -643,23 +716,59 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   tabContainer: {
-    height: 45,
-    marginTop: 10,
+    height: 48,
+    marginTop: 4,
+    marginBottom: 6,
   },
   tabScrollContent: {
     paddingHorizontal: 16,
+    alignItems: "center",
   },
   tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
     borderRadius: 999,
     marginRight: 8,
     height: 36,
     justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
   },
-  tabText: {
-    fontSize: 14,
+  tabActive: {
+    shadowColor: "#15803D",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 5,
+    elevation: 3,
+    overflow: "hidden",
+  },
+  tabGradient: {
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tabInactive: {
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  tabTextActive: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.1,
+  },
+  tabTextInactive: {
+    fontSize: 13.5,
+    fontWeight: "600",
+    letterSpacing: 0.1,
   },
   sectionBox: {
     borderWidth: StyleSheet.hairlineWidth,
