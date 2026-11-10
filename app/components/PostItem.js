@@ -48,7 +48,8 @@ import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
-import { getAiTranslateLanguage, getLanguageDisplayName } from "../utils/aiTranslation";
+import { getAiTranslateLanguage, getLanguageDisplayName, translatePostWithAi } from "../utils/aiTranslation";
+import AiTranslateEffect from "./AiTranslateEffect";
 import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
@@ -322,6 +323,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 7,
+  },
+  calloutAiButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "rgba(16, 185, 129, 0.16)",
+  },
+  calloutAiText: {
+    color: "#34D399",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   calloutText: {
     color: "#FFFFFF",
@@ -639,7 +653,9 @@ const PostItem = ({
   };
 
   const handleToggleAiTranslate = async () => {
+    if (isTranslating) return;
     if (isTranslated) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setIsTranslated(false);
       Toast.show({
         type: "info",
@@ -650,6 +666,7 @@ const PostItem = ({
       return;
     }
     if (translatedData) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setIsTranslated(true);
       Toast.show({
         type: "success",
@@ -662,9 +679,10 @@ const PostItem = ({
       });
       return;
     }
-    const appLang = i18n.language || "vi";
+    const appLang = i18n?.language || "vi";
     const targetLang = getAiTranslateLanguage(appLang);
     setIsTranslating(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Toast.show({
       type: "info",
       text1: t("post.translating", "Đang dịch bằng Yoyo AI..."),
@@ -672,19 +690,17 @@ const PostItem = ({
       visibilityTime: 3000,
     });
     try {
-      const res = await translateTopic(item.id, targetLang);
-      if (res?.data?.success && res?.data?.translated) {
-        setTranslatedData({
-          ...res.data.translated,
-          target_lang: res.data.target_lang || targetLang,
-        });
+      const translated = await translatePostWithAi(item, targetLang);
+      if (translated) {
+        setTranslatedData(translated);
         setIsTranslated(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Toast.show({
           type: "success",
           text1: t("post.translateSuccess", "Dịch thành công"),
           text2: t("post.translatedByAi", {
-            lang: getLanguageDisplayName(res.data.target_lang || targetLang, t),
-            defaultValue: `Đã dịch (${getLanguageDisplayName(res.data.target_lang || targetLang, t)})`,
+            lang: getLanguageDisplayName(translated.target_lang || targetLang, t),
+            defaultValue: `Đã dịch (${getLanguageDisplayName(translated.target_lang || targetLang, t)})`,
           }),
           visibilityTime: 2500,
         });
@@ -706,6 +722,12 @@ const PostItem = ({
       setIsTranslating(false);
     }
   };
+
+  const handleCalloutTranslate = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setActiveCopyTarget(null);
+    handleToggleAiTranslate();
+  }, [handleToggleAiTranslate]);
 
   const handleMoreOptions = () => {
     showBottomSheet(
@@ -900,8 +922,9 @@ const PostItem = ({
 
   const handleCopyTitle = useCallback(async () => {
     try {
-      if (item?.title) {
-        await Clipboard.setStringAsync(item.title);
+      const titleToCopy = displayTitle || item?.title;
+      if (titleToCopy) {
+        await Clipboard.setStringAsync(titleToCopy);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Toast.show({
           type: "success",
@@ -915,11 +938,11 @@ const PostItem = ({
     } finally {
       setActiveCopyTarget(null);
     }
-  }, [item?.title, t]);
+  }, [displayTitle, item?.title, t]);
 
   const handleCopyCaption = useCallback(async () => {
     try {
-      const text = cleanHtmlToPlainText(item?.content);
+      const text = cleanHtmlToPlainText(displayContent || item?.content);
       if (text) {
         await Clipboard.setStringAsync(text);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -935,11 +958,14 @@ const PostItem = ({
     } finally {
       setActiveCopyTarget(null);
     }
-  }, [item?.content, t]);
+  }, [displayContent, item?.content, t]);
 
   const handleCopyFullPost = useCallback(async () => {
     try {
-      const text = getPostCopyableText(item);
+      const activePost = isTranslated
+        ? { ...item, title: displayTitle, content: displayContent }
+        : item;
+      const text = getPostCopyableText(activePost);
       if (text) {
         await Clipboard.setStringAsync(text);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -955,7 +981,7 @@ const PostItem = ({
     } finally {
       setActiveCopyTarget(null);
     }
-  }, [item, t]);
+  }, [displayContent, displayTitle, isTranslated, item, t]);
 
   const handleVote = async (voteValue) => {
     const existingVote = currentVotes.find(
@@ -1290,263 +1316,334 @@ const PostItem = ({
           {isTranslated && translatedData && (
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#E8F8EA",
-                borderColor: isDarkMode ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0",
-                borderWidth: 1,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                marginBottom: 6,
+                borderRadius: 10,
+                overflow: "hidden",
+                marginBottom: 8,
                 marginTop: single ? 0 : 4,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(16, 185, 129, 0.4)" : "#A7F3D0",
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, flexShrink: 1, marginRight: 8, minWidth: 0 }}>
-                <Ionicons name="sparkles" size={14} color="#10B981" style={{ marginRight: 6, flexShrink: 0 }} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: isDarkMode ? "#6EE7B7" : "#047857",
-                    flex: 1,
-                    flexShrink: 1,
-                  }}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {t("post.translatedByAi", {
-                    lang: getLanguageDisplayName(translatedData.target_lang, t),
-                    defaultValue: `Dịch bởi Yoyo AI (${getLanguageDisplayName(translatedData.target_lang, t)})`,
-                  })}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  setIsTranslated(false);
-                  Toast.show({
-                    type: "info",
-                    text1: t("post.viewOriginal", "Bản gốc"),
-                    text2: t("post.originalRestored", "Đã chuyển về bài viết gốc"),
-                    visibilityTime: 2000,
-                  });
+              <LinearGradient
+                colors={
+                  isDarkMode
+                    ? ["rgba(16, 185, 129, 0.2)", "rgba(6, 182, 212, 0.12)"]
+                    : ["#ECFDF5", "#F0FDFA"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 11,
+                  paddingVertical: 7,
                 }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={{ flexShrink: 0 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: isDarkMode ? "#A7F3D0" : "#065F46" }}>
-                  {t("post.viewOriginal", "Bản gốc")}
-                </Text>
-              </TouchableOpacity>
+                <View style={{ flexDirection: "row", alignItems: "center", flex: 1, flexShrink: 1, marginRight: 8, minWidth: 0 }}>
+                  <Ionicons name="sparkles" size={15} color="#10B981" style={{ marginRight: 6, flexShrink: 0 }} />
+                  <Text
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: "700",
+                      color: isDarkMode ? "#6EE7B7" : "#047857",
+                      flex: 1,
+                      flexShrink: 1,
+                    }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {t("post.translatedByAi", {
+                      lang: getLanguageDisplayName(translatedData.target_lang, t),
+                      defaultValue: `Dịch bởi Yoyo AI (${getLanguageDisplayName(translatedData.target_lang, t)})`,
+                    })}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setIsTranslated(false);
+                    Toast.show({
+                      type: "info",
+                      text1: t("post.viewOriginal", "Bản gốc"),
+                      text2: t("post.originalRestored", "Đã chuyển về bài viết gốc"),
+                      visibilityTime: 2000,
+                    });
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.25)" : "rgba(16, 185, 129, 0.15)",
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 12,
+                  }}
+                >
+                  <Ionicons name="arrow-undo-outline" size={12} color={isDarkMode ? "#A7F3D0" : "#065F46"} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 11.5, fontWeight: "700", color: isDarkMode ? "#A7F3D0" : "#065F46" }}>
+                    {t("post.viewOriginal", "Bản gốc")}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
             </View>
           )}
 
-          {displayTitle ? (
-            <View
-              style={{
-                position: "relative",
-                zIndex: activeCopyTarget === "title" ? 30 : 20,
-                marginTop: single ? 0 : 8,
-                marginBottom: single ? 8 : 4,
-              }}
-            >
-              {activeCopyTarget === "title" && (
-                <View style={styles.calloutWrapper} pointerEvents="box-none">
-                  <View style={styles.calloutBubble}>
-                    <TouchableOpacity
-                      activeOpacity={0.65}
-                      style={styles.calloutButton}
-                      onPress={handleCopyTitle}
-                    >
-                      <Ionicons
-                        name="copy-outline"
-                        size={14}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.calloutText}>
-                        {t("post.copyAction", "Sao chép")}
-                      </Text>
-                    </TouchableOpacity>
+          <AiTranslateEffect
+            isTranslating={isTranslating}
+            isTranslated={isTranslated}
+            targetLang={translatedData?.target_lang || getAiTranslateLanguage(i18n?.language || "vi")}
+            theme={theme}
+            isDarkMode={isDarkMode}
+            t={t}
+          >
+            {displayTitle ? (
+              <View
+                style={{
+                  position: "relative",
+                  zIndex: activeCopyTarget === "title" ? 30 : 20,
+                  marginTop: single ? 0 : 8,
+                  marginBottom: single ? 8 : 4,
+                }}
+              >
+                {activeCopyTarget === "title" && (
+                  <View style={styles.calloutWrapper} pointerEvents="box-none">
+                    <View style={styles.calloutBubble}>
+                      <TouchableOpacity
+                        activeOpacity={0.65}
+                        style={styles.calloutButton}
+                        onPress={handleCopyTitle}
+                      >
+                        <Ionicons
+                          name="copy-outline"
+                          size={14}
+                          color="#FFFFFF"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.calloutText}>
+                          {t("post.copyAction", "Sao chép")}
+                        </Text>
+                      </TouchableOpacity>
+                      <View style={styles.calloutSeparator} />
+                      <TouchableOpacity
+                        activeOpacity={0.65}
+                        style={styles.calloutAiButton}
+                        onPress={handleCalloutTranslate}
+                      >
+                        <Ionicons
+                          name={isTranslated ? "arrow-undo-outline" : "sparkles"}
+                          size={14}
+                          color="#34D399"
+                          style={{ marginRight: 5 }}
+                        />
+                        <Text style={styles.calloutAiText}>
+                          {isTranslating
+                            ? t("post.calloutTranslating", "Đang dịch...")
+                            : isTranslated
+                            ? t("post.calloutOriginal", "Xem gốc")
+                            : t("post.calloutTranslate", "Dịch AI")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.calloutCaret} />
                   </View>
-                  <View style={styles.calloutCaret} />
-                </View>
-              )}
-              {single ? (
-                // Single view: long press to copy title
-                <Pressable
-                  onPress={() => {
-                    if (activeCopyTarget) {
-                      setActiveCopyTarget(null);
-                    }
-                  }}
-                  onLongPress={handleLongPressTitle}
-                  delayLongPress={350}
-                  style={[
-                    styles.textTargetContainer,
-                    activeCopyTarget === "title" && {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255, 255, 255, 0.18)"
-                        : "rgba(50, 110, 240, 0.16)",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: 28,
-                      color: theme.text,
+                )}
+                {single ? (
+                  // Single view: long press to copy title
+                  <Pressable
+                    onPress={() => {
+                      if (activeCopyTarget) {
+                        setActiveCopyTarget(null);
+                      }
                     }}
+                    onLongPress={handleLongPressTitle}
+                    delayLongPress={350}
+                    style={[
+                      styles.textTargetContainer,
+                      activeCopyTarget === "title" && {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255, 255, 255, 0.18)"
+                          : "rgba(50, 110, 240, 0.16)",
+                      },
+                    ]}
                   >
-                    {displayTitle}
-                  </Text>
-                </Pressable>
-              ) : (
-                // Feed view: clickable title that navigates to detail, long press to copy
+                    <Text
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: 28,
+                        color: theme.text,
+                      }}
+                    >
+                      {displayTitle}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  // Feed view: clickable title that navigates to detail, long press to copy
+                  <Pressable
+                    onPress={() => {
+                      if (activeCopyTarget) {
+                        setActiveCopyTarget(null);
+                        return;
+                      }
+                      navigation?.navigate("PostScreen", {
+                        postId: item.id,
+                        item,
+                        screenName,
+                      });
+                    }}
+                    onLongPress={handleLongPressTitle}
+                    delayLongPress={350}
+                    style={[
+                      styles.textTargetContainer,
+                      { paddingRight: 36 },
+                      activeCopyTarget === "title" && {
+                        backgroundColor: isDarkMode
+                          ? "rgba(255, 255, 255, 0.18)"
+                          : "rgba(50, 110, 240, 0.16)",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: 21,
+                        color: theme.text,
+                      }}
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                    >
+                      {displayTitle}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            ) : null}
+
+            {displayContent ? (
+              <View
+                style={{
+                  position: "relative",
+                  zIndex: activeCopyTarget === "caption" ? 30 : 20,
+                  marginTop: displayTitle ? 4 : 6,
+                }}
+              >
+                {activeCopyTarget === "caption" && (
+                  <View style={styles.calloutWrapper} pointerEvents="box-none">
+                    <View style={styles.calloutBubble}>
+                      <TouchableOpacity
+                        activeOpacity={0.65}
+                        style={styles.calloutButton}
+                        onPress={handleCopyCaption}
+                      >
+                        <Ionicons
+                          name="copy-outline"
+                          size={14}
+                          color="#FFFFFF"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.calloutText}>
+                          {t("post.copyAction", "Sao chép")}
+                        </Text>
+                      </TouchableOpacity>
+                      <View style={styles.calloutSeparator} />
+                      <TouchableOpacity
+                        activeOpacity={0.65}
+                        style={styles.calloutAiButton}
+                        onPress={handleCalloutTranslate}
+                      >
+                        <Ionicons
+                          name={isTranslated ? "arrow-undo-outline" : "sparkles"}
+                          size={14}
+                          color="#34D399"
+                          style={{ marginRight: 5 }}
+                        />
+                        <Text style={styles.calloutAiText}>
+                          {isTranslating
+                            ? t("post.calloutTranslating", "Đang dịch...")
+                            : isTranslated
+                            ? t("post.calloutOriginal", "Xem gốc")
+                            : t("post.calloutTranslate", "Dịch AI")}
+                        </Text>
+                      </TouchableOpacity>
+                      {item.title ? (
+                        <>
+                          <View style={styles.calloutSeparator} />
+                          <TouchableOpacity
+                            activeOpacity={0.65}
+                            style={styles.calloutButton}
+                            onPress={handleCopyFullPost}
+                          >
+                            <Text style={styles.calloutText}>
+                              {t("post.copyAllAction", "Tất cả")}
+                            </Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : null}
+                    </View>
+                    <View style={styles.calloutCaret} />
+                  </View>
+                )}
                 <Pressable
                   onPress={() => {
                     if (activeCopyTarget) {
                       setActiveCopyTarget(null);
                       return;
                     }
-                    navigation?.navigate("PostScreen", {
-                      postId: item.id,
-                      item,
-                      screenName,
-                    });
+                    if (isLongContent) {
+                      handleExpandPost();
+                    }
                   }}
-                  onLongPress={handleLongPressTitle}
+                  onLongPress={handleLongPressCaption}
                   delayLongPress={350}
                   style={[
                     styles.textTargetContainer,
-                    { paddingRight: 36 },
-                    activeCopyTarget === "title" && {
+                    activeCopyTarget === "caption" && {
                       backgroundColor: isDarkMode
                         ? "rgba(255, 255, 255, 0.18)"
                         : "rgba(50, 110, 240, 0.16)",
                     },
+                    (!isExpanded && isLongContent) && {
+                      maxHeight: 180,
+                      overflow: "hidden",
+                    },
                   ]}
                 >
-                  <Text
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: 21,
-                      color: theme.text,
-                    }}
-                    numberOfLines={3}
-                    ellipsizeMode="tail"
-                  >
-                    {displayTitle}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          ) : null}
-
-          {displayContent ? (
-            <View
-              style={{
-                position: "relative",
-                zIndex: activeCopyTarget === "caption" ? 30 : 20,
-                marginTop: displayTitle ? 4 : 6,
-              }}
-            >
-              {activeCopyTarget === "caption" && (
-                <View style={styles.calloutWrapper} pointerEvents="box-none">
-                  <View style={styles.calloutBubble}>
-                    <TouchableOpacity
-                      activeOpacity={0.65}
-                      style={styles.calloutButton}
-                      onPress={handleCopyCaption}
-                    >
-                      <Ionicons
-                        name="copy-outline"
-                        size={14}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.calloutText}>
-                        {t("post.copyAction", "Sao chép")}
-                      </Text>
-                    </TouchableOpacity>
-                    {item.title ? (
-                      <>
-                        <View style={styles.calloutSeparator} />
-                        <TouchableOpacity
-                          activeOpacity={0.65}
-                          style={styles.calloutButton}
-                          onPress={handleCopyFullPost}
-                        >
-                          <Text style={styles.calloutText}>
-                            {t("post.copyAllAction", "Tất cả")}
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : null}
-                  </View>
-                  <View style={styles.calloutCaret} />
-                </View>
-              )}
-              <Pressable
-                onPress={() => {
-                  if (activeCopyTarget) {
-                    setActiveCopyTarget(null);
-                    return;
-                  }
-                  if (isLongContent) {
-                    handleExpandPost();
-                  }
-                }}
-                onLongPress={handleLongPressCaption}
-                delayLongPress={350}
-                style={[
-                  styles.textTargetContainer,
-                  activeCopyTarget === "caption" && {
-                    backgroundColor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.18)"
-                      : "rgba(50, 110, 240, 0.16)",
-                  },
-                  (!isExpanded && isLongContent) && {
-                    maxHeight: 180,
-                    overflow: "hidden",
-                  },
-                ]}
-              >
-                <RenderHTML
-                  contentWidth={contentWidth - 30}
-                  customHTMLElementModels={customHTMLElementModels}
-                  renderers={postRenderers}
-                  renderersProps={{
-                    a: {
-                      onPress: (event, href) => {
-                        if (activeCopyTarget) {
-                          setActiveCopyTarget(null);
-                          return;
-                        }
-                        handleContentLinkPress(event, href);
+                  <RenderHTML
+                    contentWidth={contentWidth - 30}
+                    customHTMLElementModels={customHTMLElementModels}
+                    renderers={postRenderers}
+                    renderersProps={{
+                      a: {
+                        onPress: (event, href) => {
+                          if (activeCopyTarget) {
+                            setActiveCopyTarget(null);
+                            return;
+                          }
+                          handleContentLinkPress(event, href);
+                        },
                       },
-                    },
-                  }}
-                  source={postHtmlSource}
-                  baseStyle={postBaseStyle}
-                  classesStyles={POST_HTML_CLASSES_STYLES}
-                  tagsStyles={postTagsStyles}
-                />
-              </Pressable>
-              {isLongContent && (
-                <TouchableOpacity
-                  onPress={handleExpandPost}
-                  style={{ marginTop: 4, alignSelf: "flex-start", paddingVertical: 4 }}
-                  hitSlop={8}
-                >
-                  <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 14 }}>
-                    {isExpanded ? t("common.collapse", "Thu gọn") : t("common.showMore", "Xem thêm")}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : null}
+                    }}
+                    source={postHtmlSource}
+                    baseStyle={postBaseStyle}
+                    classesStyles={POST_HTML_CLASSES_STYLES}
+                    tagsStyles={postTagsStyles}
+                  />
+                </Pressable>
+                {isLongContent && (
+                  <TouchableOpacity
+                    onPress={handleExpandPost}
+                    style={{ marginTop: 4, alignSelf: "flex-start", paddingVertical: 4 }}
+                    hitSlop={8}
+                  >
+                    <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 14 }}>
+                      {isExpanded ? t("common.collapse", "Thu gọn") : t("common.showMore", "Xem thêm")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
+          </AiTranslateEffect>
         </View>
 
         {!single && (

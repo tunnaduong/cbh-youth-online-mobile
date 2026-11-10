@@ -753,6 +753,19 @@ Every new or changed screen must follow this section. If a screen you touch does
   - Added toggle switches in `AppUpdatesScreen.js` for "Bật cập nhật OTA" and "Kiểm tra khi khởi động", backed by MMKV storage keys `ota_enabled` and `ota_check_startup`, with full i18n support in `vi.json`, `en.json`, and `ru.json`.
   - For chats without avatar (such as support chats, bots, or users without profile pictures), the avatar is replaced with a clean circular thumbnail displaying the capitalized first letter on `theme.iconBackground` across `ChatScreen/index.js`, `ConversationHeader.js`, and `MessageRow.js`.
 
+- **Yoyo AI Translation in PostItem Selection Callout with Ultra-Fancy Aurora Animation & Resilient Direct Fallback** (`app/components/PostItem.js`, `app/components/AiTranslateEffect.js`, `app/utils/aiTranslation.js`, `app/i18n/locales/*.json`):
+  - **Selection Callout Menu Integration**: Added "Dịch AI" / "Xem gốc" button with emerald sparkle icon (`Ionicons` `sparkles`) to the long-press selection callout bubble for both Title and Caption (`calloutAiButton`, `calloutAiText`), allowing one-tap AI translation directly from highlighted post text.
+  - **Ultra-Fancy AI Translation Animation (`AiTranslateEffect.js`)**: Wraps post content in an Apple Intelligence / Siri-style futuristic holographic effect:
+    - Glowing emerald/cyan aurora breathing border and halo.
+    - Continuous 45° diagonal holographic shimmer beam sweep across the text container.
+    - Fine laser neural scanner beam running vertically over post sentences.
+    - Floating constellation of rotating and pulsing sparkle stars.
+    - Floating frosted glassmorphic AI status capsule with spinning AI star, animated wave dots, and localized status.
+    - Cosmic particle flash burst and spring bounce reveal on completion, with dissipating magical emerald highlighter sheen.
+  - **Resilient Multi-Tier Fallback ("Bằng mọi cách mọi thủ đoạn")**: Added `translatePostWithAi` in `aiTranslation.js` which queries backend `translateTopic`, and seamlessly falls back to direct keyless Google Translate API engine if backend returns an error or is unreachable, converting paragraphs to safe HTML (`markdownToSimpleHtml`) so translation always succeeds.
+  - **Translated Content Clipboard**: Updated `handleCopyTitle`, `handleCopyCaption`, and `handleCopyFullPost` to copy the active translated content when viewing the translated post.
+  - **Localized strings**: Added `calloutTranslate`, `calloutOriginal`, and `calloutTranslating` across `vi.json`, `en.json`, and `ru.json`.
+
 - **Fix Yoyo AI Translation Text Overflow in PostItem Badge and Settings Screen** (`app/components/PostItem.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/i18n/locales/*.json`):
   - Fixed horizontal text overflow in `PostItem.js` translation status badge by adding `flex: 1`, `flexShrink: 1`, `minWidth: 0`, and `ellipsizeMode="tail"` to the translation text container and `<Text>`, and `flexShrink: 0` to the "Bản gốc" restore button.
   - Fixed text overflow exclusively on `SettingsScreen/index.js` AI translation language dropdown row with inline `maxWidth: "52%"`, `flexShrink: 1`, and `justifyContent: "space-between"`, leaving Theme and Language dropdowns completely in their original default styles.
