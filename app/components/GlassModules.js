@@ -89,17 +89,20 @@ console.log(`[GlassModules] blur glass (iOS < 26): ${BlurView ? "on" : "off"}`);
 //     would hit, a faint one on the bottom / right, over a hairline outline;
 //   - a soft sheen falling off from the top-left corner.
 // All static layers drawn by the compositor - nothing here animates.
-const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
+const BlurGlassView = ({ variant = "regular", tintColor, style, borderRadius, children }) => {
   const { isDarkMode } = useTheme();
   const flat = StyleSheet.flatten(style) || {};
   const radius = borderRadius ?? flat.borderRadius ?? 0;
+  const isClear = variant === "clear";
   // The default glass tint is tuned for real glass; over a blur it would
   // double up with the material's own tint, so it is nearly dropped here. A
   // custom tint (a LiquidButton's own colour) is the surface the caller asked
   // for and is kept.
   const isDefaultTint = tintColor == null || tintColor === glassTint(isDarkMode);
   const overlay = isDefaultTint
-    ? isDarkMode ? "rgba(20, 20, 22, 0.16)" : "rgba(255, 255, 255, 0.10)"
+    ? isDarkMode
+      ? isClear ? "rgba(20, 20, 22, 0.16)" : "rgba(22, 22, 26, 0.32)"
+      : isClear ? "rgba(255, 255, 255, 0.10)" : "rgba(255, 255, 255, 0.36)"
     : tintColor;
 
   return (
@@ -112,8 +115,12 @@ const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
     >
       <BlurView
         pointerEvents="none"
-        intensity={isDarkMode ? 34 : 38}
-        tint={isDarkMode ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
+        intensity={isClear ? (isDarkMode ? 34 : 38) : (isDarkMode ? 58 : 68)}
+        tint={
+          isClear
+            ? isDarkMode ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"
+            : isDarkMode ? "systemChromeMaterialDark" : "systemChromeMaterialLight"
+        }
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: overlay }]} />
@@ -201,7 +208,7 @@ const GatedLiquidGlassView = ({
 
   if (liquidGlassEnabled && BlurView) {
     return (
-      <BlurGlassView tintColor={tintColor} style={style} borderRadius={borderRadius}>
+      <BlurGlassView variant={rest.variant} tintColor={tintColor} style={style} borderRadius={borderRadius}>
         {children}
       </BlurGlassView>
     );

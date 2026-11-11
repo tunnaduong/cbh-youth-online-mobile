@@ -731,179 +731,208 @@ const PostItem = ({
   }, [handleToggleAiTranslate]);
 
   const handleMoreOptions = () => {
+    const sheetCardBg = isDarkMode ? "#1E212B" : "#FFFFFF";
+    const sheetCardBorder = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)";
+    const sheetDivider = isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(15, 23, 42, 0.06)";
+    const rowBaseStyle = {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+    };
+    const rowDividerStyle = {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: sheetDivider,
+    };
+
     showBottomSheet(
-      <View style={{ backgroundColor: theme.cardBackground }}>
-        <TouchableOpacity
-          onPress={() => {
-            handleSavePost();
-            hideBottomSheet();
+      <View style={{ gap: 12 }}>
+        {/* Primary grouped card (Threads / Instagram iOS 26 style) */}
+        <View
+          style={{
+            backgroundColor: sheetCardBg,
+            borderRadius: 20,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: sheetCardBorder,
+            overflow: "hidden",
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons
-              name={currentSaved ? "bookmark" : "bookmark-outline"}
-              size={23}
-              color={currentSaved ? theme.primary : theme.text}
-            />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {currentSaved ? t('post.unsave') : t('post.save')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          disabled={isTranslating}
-          onPress={() => {
-            hideBottomSheet();
-            handleToggleAiTranslate();
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons
-              name="sparkles"
-              size={23}
-              color={theme.primary}
-            />
-            <View style={{ padding: 12, flex: 1 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>
-                {isTranslating
-                  ? t("post.translating", "Đang dịch bằng Yoyo AI...")
-                  : isTranslated
-                  ? t("post.viewOriginal", "Xem bản gốc")
-                  : translatedData
-                  ? t("post.viewTranslation", "Xem bản dịch")
-                  : t("post.translateByAi", "Dịch bằng Yoyo AI")}
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-        {!isCurrentUser && (
-          <TouchableOpacity onPress={handleHidePost}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="eye-off-outline" size={23} color={theme.text} />
-              <View style={{ padding: 12, flex: 1 }}>
-                <Text style={{ fontSize: 17, color: theme.text }}>
-                  {t('post.hide')}
-                </Text>
-                <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
-                  {t('post.hideSubtitle')}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          onPress={() => {
-            hideBottomSheet();
-            setShareModalVisible(true);
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
-          </View>
-        </TouchableOpacity>
-        {!isCurrentUser && (
           <TouchableOpacity
+            activeOpacity={0.7}
+            style={[rowBaseStyle, rowDividerStyle]}
             onPress={() => {
+              handleSavePost();
               hideBottomSheet();
-              setGiftModalVisible(true);
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="gift-outline" size={23} color={theme.text} />
-              <View style={{ padding: 12, flex: 1 }}>
-                <Text style={{ fontSize: 17, color: theme.text }}>
-                  {t('post.giftPoints')}
+            <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text, flex: 1, marginRight: 12 }}>
+              {currentSaved ? t("post.unsave") : t("post.save")}
+            </Text>
+            <Ionicons
+              name={currentSaved ? "bookmark" : "bookmark-outline"}
+              size={22}
+              color={currentSaved ? theme.primary : theme.text}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            disabled={isTranslating}
+            style={[rowBaseStyle, rowDividerStyle]}
+            onPress={() => {
+              hideBottomSheet();
+              handleToggleAiTranslate();
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text, flex: 1, marginRight: 12 }}>
+              {isTranslating
+                ? t("post.translating", "Đang dịch bằng Yoyo AI...")
+                : isTranslated
+                ? t("post.viewOriginal", "Xem bản gốc")
+                : translatedData
+                ? t("post.viewTranslation", "Xem bản dịch")
+                : t("post.translateByAi", "Dịch bằng Yoyo AI")}
+            </Text>
+            <Ionicons name="sparkles" size={21} color={theme.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[
+              rowBaseStyle,
+              (!isCurrentUser || isCurrentUser) && rowDividerStyle,
+            ]}
+            onPress={() => {
+              hideBottomSheet();
+              setShareModalVisible(true);
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text, flex: 1, marginRight: 12 }}>
+              {t("post.share")}
+            </Text>
+            <Ionicons name="share-outline" size={22} color={theme.text} />
+          </TouchableOpacity>
+
+          {!isCurrentUser && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[rowBaseStyle, rowDividerStyle]}
+              onPress={() => {
+                hideBottomSheet();
+                setGiftModalVisible(true);
+              }}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
+                  {t("post.giftPoints")}
                 </Text>
-                <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
-                  {t('post.giftPointsSubtitle')}
+                <Text style={{ fontSize: 12.5, color: theme.subText, marginTop: 2 }}>
+                  {t("post.giftPointsSubtitle")}
                 </Text>
               </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        {false && isCurrentUser && (
-          <TouchableOpacity onPress={() => {
-            if (navigation) {
-              navigation.navigate("PostEditScreen", { postId: item.id });
-            }
-            hideBottomSheet();
-          }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
-              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t('post.privacy')}
+              <Ionicons name="gift-outline" size={22} color={theme.text} />
+            </TouchableOpacity>
+          )}
+
+          {!isCurrentUser && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={rowBaseStyle}
+              onPress={handleHidePost}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
+                  {t("post.hide")}
+                </Text>
+                <Text style={{ fontSize: 12.5, color: theme.subText, marginTop: 2 }}>
+                  {t("post.hideSubtitle")}
+                </Text>
+              </View>
+              <Ionicons name="eye-off-outline" size={22} color={theme.text} />
+            </TouchableOpacity>
+          )}
+
+          {isCurrentUser && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[rowBaseStyle, rowDividerStyle]}
+              onPress={() => {
+                if (navigation) {
+                  navigation.navigate("PostEditScreen", { postId: item.id });
+                }
+                hideBottomSheet();
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text, flex: 1, marginRight: 12 }}>
+                {t("post.edit")}
               </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {isCurrentUser && (
-          <TouchableOpacity onPress={() => {
-            if (navigation) {
-              navigation.navigate("PostEditScreen", { postId: item.id });
-            }
-            hideBottomSheet();
-          }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="create-outline" size={23} color={theme.text} />
-              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t('post.edit')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {isCurrentUser && (
-          <TouchableOpacity
-            onPress={isArchived ? handleUnarchivePost : handleArchivePost}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons
-                name={isArchived ? "arrow-undo-outline" : "archive-outline"}
-                size={23}
-                color={theme.text}
-              />
-              <View style={{ padding: 12, flex: 1 }}>
-                <Text style={{ fontSize: 17, color: theme.text }}>
-                  {isArchived ? t('post.unarchive') : t('post.archive')}
+              <Ionicons name="create-outline" size={22} color={theme.text} />
+            </TouchableOpacity>
+          )}
+
+          {isCurrentUser && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={rowBaseStyle}
+              onPress={isArchived ? handleUnarchivePost : handleArchivePost}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
+                  {isArchived ? t("post.unarchive") : t("post.archive")}
                 </Text>
                 {!isArchived && (
-                  <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
-                    {t('post.archiveSubtitle')}
+                  <Text style={{ fontSize: 12.5, color: theme.subText, marginTop: 2 }}>
+                    {t("post.archiveSubtitle")}
                   </Text>
                 )}
               </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        {!isCurrentUser && (
-          <TouchableOpacity
-            onPress={() => {
-              setReportModalVisible(true);
-              hideBottomSheet();
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-              <Text
-                style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
-              >
-                {t('post.report')}
+              <Ionicons
+                name={isArchived ? "arrow-undo-outline" : "archive-outline"}
+                size={22}
+                color={theme.text}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Destructive grouped card */}
+        <View
+          style={{
+            backgroundColor: sheetCardBg,
+            borderRadius: 20,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: sheetCardBorder,
+            overflow: "hidden",
+          }}
+        >
+          {!isCurrentUser ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={rowBaseStyle}
+              onPress={() => {
+                setReportModalVisible(true);
+                hideBottomSheet();
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#FF3B30", flex: 1, marginRight: 12 }}>
+                {t("post.report")}
               </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {isCurrentUser && (
-          <TouchableOpacity onPress={handleDeletePost}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="trash-outline" size={23} color={"#ef4444"} />
-              <Text
-                style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
-              >
-                {t('post.delete')}
+              <Ionicons name="flag-outline" size={22} color="#FF3B30" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={rowBaseStyle}
+              onPress={handleDeletePost}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#FF3B30", flex: 1, marginRight: 12 }}>
+                {t("post.delete")}
               </Text>
-            </View>
-          </TouchableOpacity>
-        )}
+              <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };

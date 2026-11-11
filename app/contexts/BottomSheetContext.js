@@ -1,8 +1,10 @@
 import React, { createContext, useCallback, useMemo, useRef, useState, useContext } from "react";
+import { StyleSheet } from "react-native";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "./ThemeContext";
 
 const BottomSheetContext = createContext();
@@ -19,9 +21,10 @@ export const BottomSheetProvider = ({ children }) => {
   // that first reaction never lands, and the always-mounted, full-screen
   // backdrop then swallowed every touch in the whole app.
   const [isOpen, setIsOpen] = useState(false);
-  const { theme } = useTheme();
+  const { isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
-  const [snapPoints, setSnapPoints] = useState(["90%"]);
+  const [customSnapPoints, setCustomSnapPoints] = useState(null);
   const onDismissRef = useRef(null);
 
   // Both only touch a ref and state setters, so they can be stable - and the
@@ -30,9 +33,9 @@ export const BottomSheetProvider = ({ children }) => {
   const showBottomSheet = useCallback((sheetContent, options = {}) => {
     onDismissRef.current = options?.onDismiss || null;
     if (options?.snapPoints && Array.isArray(options.snapPoints)) {
-      setSnapPoints(options.snapPoints);
+      setCustomSnapPoints(options.snapPoints);
     } else {
-      setSnapPoints(["90%"]);
+      setCustomSnapPoints(null);
     }
     setContent(sheetContent);
     setIsOpen(true);
@@ -66,6 +69,9 @@ export const BottomSheetProvider = ({ children }) => {
 
   const value = useMemo(() => ({ showBottomSheet, hideBottomSheet }), [showBottomSheet, hideBottomSheet]);
 
+  const sheetBg = isDarkMode ? "#14161C" : "#F4F6F9";
+  const handleColor = isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(15, 23, 42, 0.16)";
+
   return (
     <BottomSheetContext.Provider value={value}>
       {children}
@@ -73,18 +79,32 @@ export const BottomSheetProvider = ({ children }) => {
       {/* Absolutely positioned BottomSheet to sit above everything */}
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={snapPoints}
+        snapPoints={customSnapPoints || undefined}
+        enableDynamicSizing={!customSnapPoints}
         index={-1}
         enablePanDownToClose
         onChange={handleSheetChange}
         onClose={handleSheetClose}
-        backgroundStyle={{ backgroundColor: theme.cardBackground }}
-        handleIndicatorStyle={{ backgroundColor: theme.border }}
+        backgroundStyle={{
+          backgroundColor: sheetBg,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderBottomWidth: 0,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.06)",
+        }}
+        handleIndicatorStyle={{
+          backgroundColor: handleColor,
+          width: 40,
+          height: 5,
+          borderRadius: 2.5,
+        }}
         backdropComponent={
           isOpen
             ? (props) => (
                 <BottomSheetBackdrop
                   {...props}
+                  opacity={isDarkMode ? 0.65 : 0.45}
                   appearsOnIndex={0}
                   disappearsOnIndex={-1}
                   pressBehavior="close"
@@ -93,7 +113,14 @@ export const BottomSheetProvider = ({ children }) => {
             : undefined
         }
       >
-        <BottomSheetView style={{ padding: 16, paddingBottom: 50, backgroundColor: theme.cardBackground }}>
+        <BottomSheetView
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 6,
+            paddingBottom: Math.max(insets.bottom + 18, 28),
+            backgroundColor: sheetBg,
+          }}
+        >
           {content}
         </BottomSheetView>
       </BottomSheet>

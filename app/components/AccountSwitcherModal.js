@@ -1,15 +1,16 @@
 import React, { useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, DeviceEventEmitter } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import ActionSheet from "react-native-actions-sheet";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 import { SavedAccountList } from "./AccountSwitcher";
-import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 export default function AccountSwitcherModal({ visible, onClose, currentUserId }) {
   const actionSheetRef = useRef(null);
-  const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -20,60 +21,85 @@ export default function AccountSwitcherModal({ visible, onClose, currentUserId }
     }
   }, [visible]);
 
-  const SheetWrapper = (liquidGlassEnabled && LiquidGlassView) ? LiquidGlassView : View;
-  const glassProps = (liquidGlassEnabled && LiquidGlassView)
-    ? {
-        variant: "clear",
-        tintColor: glassTint(isDarkMode),
-        borderRadius: 24,
-        ...androidGlassPerfProps,
-      }
-    : {};
+  const sheetBg = isDarkMode ? "#14161C" : "#F4F6F9";
+  const cardBg = isDarkMode ? "#1E212B" : "#FFFFFF";
+  const cardBorder = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)";
+  const handleColor = isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(15, 23, 42, 0.16)";
 
   return (
     <ActionSheet
       ref={actionSheetRef}
       onClose={onClose}
       gestureEnabled={true}
-      indicatorStyle={{ backgroundColor: theme.subText, width: 40 }}
+      defaultOverlayOpacity={isDarkMode ? 0.65 : 0.45}
+      indicatorStyle={{ width: 0, height: 0, margin: 0, backgroundColor: "transparent" }}
       containerStyle={{
-        backgroundColor: "transparent",
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        backgroundColor: sheetBg,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: 0,
+        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.06)",
         overflow: "hidden",
       }}
     >
-      <SheetWrapper
-        {...glassProps}
+      <View
         style={[
           styles.sheetContainer,
           {
-            backgroundColor: (liquidGlassEnabled && LiquidGlassView)
-              ? "transparent"
-              : isDarkMode
-              ? "#181A20"
-              : "#FFFFFF",
-            borderColor: theme.border,
+            backgroundColor: sheetBg,
+            paddingBottom: Math.max(insets.bottom + 16, 28),
           },
         ]}
       >
+        {/* Drag handle */}
+        <View style={styles.handleWrap}>
+          <View style={[styles.handlePill, { backgroundColor: handleColor }]} />
+        </View>
+
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={[styles.iconCircle, { backgroundColor: theme.iconBackground }]}>
-              <Ionicons name="swap-horizontal" size={20} color={theme.primary} />
-            </View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>
-              {t("sidebar.switchAccount", "Chuyển tài khoản")}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close-circle" size={24} color={theme.subText} />
+          <View style={styles.headerSpacer} />
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+            {t("sidebar.switchAccount", "Chuyển tài khoản")}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              actionSheetRef.current?.hide();
+              onClose?.();
+            }}
+            style={[
+              styles.closeButton,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(255, 255, 255, 0.08)"
+                  : "rgba(15, 23, 42, 0.06)",
+              },
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={18} color={theme.subText} />
           </TouchableOpacity>
         </View>
 
-        <View style={{ paddingBottom: 24 }}>
+        {/* Grouped account card (Instagram / Threads iOS 26 style) */}
+        <View
+          style={[
+            styles.accountCard,
+            {
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+            },
+          ]}
+        >
           <SavedAccountList
             excludeUserId={currentUserId}
+            showCurrent={true}
+            onClose={() => {
+              actionSheetRef.current?.hide();
+              onClose?.();
+            }}
             onSwitched={() => {
               actionSheetRef.current?.hide();
               onClose?.();
@@ -81,43 +107,50 @@ export default function AccountSwitcherModal({ visible, onClose, currentUserId }
             showAdd={true}
           />
         </View>
-      </SheetWrapper>
+      </View>
     </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
   sheetContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    paddingTop: 12,
+    paddingTop: 10,
+    paddingHorizontal: 16,
+  },
+  handleWrap: {
+    alignItems: "center",
+    paddingBottom: 10,
+  },
+  handlePill: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
     paddingBottom: 14,
-    marginBottom: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(150, 150, 150, 0.2)",
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  headerSpacer: {
+    width: 32,
   },
-  iconCircle: {
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+  accountCard: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
 });

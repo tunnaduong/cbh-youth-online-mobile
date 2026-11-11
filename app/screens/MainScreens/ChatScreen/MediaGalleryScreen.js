@@ -89,14 +89,18 @@ const SF_SYMBOLS = {
   link: ["link", "link"],
 };
 
-const NAV_HEIGHT = 49;
-const NAV_RADIUS = 24.5;
+const NAV_HEIGHT = 56;
+const NAV_RADIUS = 28;
+const NAV_INSET = 5;
+const NAV_PILL_HEIGHT = NAV_HEIGHT - NAV_INSET * 2;
+const NAV_PILL_RADIUS = NAV_PILL_HEIGHT / 2;
 const NAV_BUTTON_WIDTH = 76;
+const IS_IOS_26_PLUS = Platform.OS === "ios" && parseInt(Platform.Version, 10) >= 26;
 
 // Bottom nav pill - mirrors CustomTabBar's structure so the two read as the
 // same control. Kept local to this file because it is gallery-only.
 const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
-  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const { isDarkMode, liquidGlassEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -104,29 +108,36 @@ const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
   const buttonWidth = NAV_BUTTON_WIDTH;
 
   useEffect(() => {
-    Animated.timing(slideAnim, {
+    Animated.spring(slideAnim, {
       toValue: activeIndex * buttonWidth,
-      duration: 180,
-      easing: Easing.out(Easing.quad),
+      damping: 24,
+      stiffness: 280,
+      mass: 0.8,
       useNativeDriver: true,
     }).start();
-  }, [activeIndex, buttonWidth]);
+  }, [activeIndex, buttonWidth, slideAnim]);
 
-  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
-  const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
-  const border = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
-  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
-  const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
+  const bottomOffset = insets.bottom > 0 ? insets.bottom + 4 : 16;
+  const surface = isDarkMode ? "rgba(22, 22, 26, 0.86)" : "rgba(255, 255, 255, 0.86)";
+  const border = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.07)";
+  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.075)";
+  const activeColor = isDarkMode ? "#FFFFFF" : "#111827";
+  const inactiveColor = isDarkMode ? "rgba(255, 255, 255, 0.72)" : "rgba(17, 24, 39, 0.78)";
   const NavGlassWrapper = LiquidGlassView ?? View;
+  const useNativeIos26Glass = IS_IOS_26_PLUS && !!LiquidGlassView && liquidGlassEnabled;
 
   return (
     <View style={[styles.navWrap, { bottom: bottomOffset }]}>
       <NavGlassWrapper
         {...(LiquidGlassView
           ? {
-              variant: "clear",
+              variant: "regular",
               interactive: true,
-              tintColor: glassTint(isDarkMode),
+              tintColor: useNativeIos26Glass
+                ? isDarkMode
+                  ? "rgba(18, 18, 22, 0.28)"
+                  : "rgba(255, 255, 255, 0.22)"
+                : glassTint(isDarkMode),
               borderRadius: NAV_RADIUS,
               ...androidGlassPerfProps,
             }
@@ -135,44 +146,46 @@ const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
         style={[
           styles.navPill,
           {
-            width: buttonWidth * tabs.length,
+            width: buttonWidth * tabs.length + NAV_INSET * 2,
+            paddingHorizontal: NAV_INSET,
             backgroundColor: LiquidGlassView ? "transparent" : surface,
+            borderWidth: useNativeIos26Glass ? 0 : 1,
             borderColor: border,
+            overflow: useNativeIos26Glass ? "visible" : "hidden",
           },
           // Android's elevation shadow renders black and ignores borderRadius
           // clipping, poking a square corner past the pill in dark mode.
-          isDarkMode && { elevation: 0, shadowOpacity: 0 },
+          Platform.OS === "android" && isDarkMode && { elevation: 0, shadowOpacity: 0 },
         ]}
       >
         <Animated.View
+          pointerEvents="none"
           renderToHardwareTextureAndroid
           style={{
             position: "absolute",
             width: buttonWidth,
-            height: NAV_HEIGHT,
-            borderRadius: NAV_RADIUS,
-            top: 0,
-            left: 0,
+            height: NAV_PILL_HEIGHT,
+            borderRadius: NAV_PILL_RADIUS,
+            top: NAV_INSET,
+            left: NAV_INSET,
             backgroundColor: indicator,
             transform: [{ translateX: slideAnim }],
           }}
         />
         {tabs.map((tab) => {
           const focused = tab.key === activeTab;
-          const color = focused ? theme.primary : inactiveColor;
+          const color = focused ? activeColor : inactiveColor;
           return (
             <TouchableOpacity
               key={tab.key}
               style={styles.navButton}
               onPress={() => onSelect(tab.key)}
-              activeOpacity={0.8}
+              activeOpacity={0.75}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={t(tab.labelKey, tab.fallback)}
             >
-              <Ionicons name={focused ? tab.iconFocused : tab.icon} size={22} color={color} />
-              {!hideTabLabels && (
-                <Text style={[styles.navLabel, { color }]} numberOfLines={1}>
-                  {t(tab.labelKey, tab.fallback)}
-                </Text>
-              )}
+              <Ionicons name={focused ? tab.iconFocused : tab.icon} size={24} color={color} />
             </TouchableOpacity>
           );
         })}
