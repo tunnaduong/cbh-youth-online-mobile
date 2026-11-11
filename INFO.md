@@ -361,6 +361,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Feed posts: collapsed text fades out toward "Xem thêm"** (`app/components/PostItem.js`; not run - no `node_modules` here): a long post clipped at 180px now ends in a 90px `LinearGradient` from transparent to `theme.cardBackground` over the bottom of the text, instead of a hard cut. Shown only while collapsed; `pointerEvents="none"` so taps still expand the post.
+
 - **Calls: the other person's voice no longer lags or doubles** (`app/components/call/WebRtcBridge.js`, `app/contexts/CallContext.js`; the bridge page was run as a two-page loopback call in headless Chromium - connected, one output, relay off; not run on a device; JS only, so OTA is enough):
   - **One audio output.** The remote voice was played at once by `<audio>`, the hidden `<video playsinline>` and a WebAudio graph (gain 1.15 / 1.65). Each has its own delay, so the voice came out doubled / echoing. Only the `<video playsinline>` plays it now (the element kept for iOS WKWebView). **Rule: never attach the remote stream to a second unmuted element or to WebAudio.** The speaker button's gain boost went with the WebAudio path (it never changed the audio route).
   - **The HTTP relay is a last resort.** The 8 kHz `AUDIO_CHUNK` relay ran from the first second of every call on top of the real audio. It now starts only when the peer connection has been down for 3 seconds in a row (`transportDownSeconds`), and the microphone tap runs only then.
