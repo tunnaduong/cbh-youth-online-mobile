@@ -31,6 +31,24 @@ const clearSessionCaches = () => {
   if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
   if (storage.contains("shakeToReportEnabled")) preserved.shakeToReportEnabled = storage.getBoolean("shakeToReportEnabled");
   if (storage.contains("ota_channel")) preserved.ota_channel = storage.getString("ota_channel");
+  if (storage.contains("ota_active_build_number")) {
+    preserved.ota_active_build_number = storage.getNumber("ota_active_build_number");
+  }
+  if (storage.contains("ota_active_update_id")) {
+    preserved.ota_active_update_id = storage.getString("ota_active_update_id");
+  }
+  if (storage.contains("ota_active_channel")) {
+    preserved.ota_active_channel = storage.getString("ota_active_channel");
+  }
+  if (storage.contains("ota_active_created_at")) {
+    preserved.ota_active_created_at = storage.getNumber("ota_active_created_at");
+  }
+  if (storage.contains("ota_enabled")) {
+    preserved.ota_enabled = storage.getBoolean("ota_enabled");
+  }
+  if (storage.contains("ota_check_startup")) {
+    preserved.ota_check_startup = storage.getBoolean("ota_check_startup");
+  }
   // Which login the WebViews / in-app browser were signed in with (see
   // utils/webSession.js). Wiping these made the app forget that they hold a
   // session at all, so after a sign-out they stayed signed in as the old

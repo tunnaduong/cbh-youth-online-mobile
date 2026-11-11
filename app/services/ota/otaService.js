@@ -3,6 +3,7 @@ import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { requireOptionalNativeModule } from "expo-modules-core";
 import { storage } from "../../global/storage";
 import { MIN_NATIVE_BUILD_REQUIRED, getEmbeddedDefaultChannel } from "./otaConfig";
 import i18n from "../../i18n";
@@ -20,6 +21,7 @@ export const OTA_STORAGE_KEY = "ota_channel";
 export const OTA_ACTIVE_BUILD_KEY = "ota_active_build_number";
 export const OTA_ACTIVE_UPDATE_ID_KEY = "ota_active_update_id";
 export const OTA_ACTIVE_CHANNEL_KEY = "ota_active_channel";
+export const OTA_ACTIVE_CREATED_AT_KEY = "ota_active_created_at";
 export const OTA_ENABLED_KEY = "ota_enabled";
 export const OTA_CHECK_STARTUP_KEY = "ota_check_startup";
 
@@ -27,6 +29,100 @@ export const OTA_CHANNELS = {
   PRODUCTION: "production",
   PREVIEW: "preview",
 };
+
+function normalizeUpdateId(id) {
+  return typeof id === "string" && id.trim() ? id.trim().toLowerCase() : "";
+}
+
+/**
+ * Reads live runtime metadata directly from the native ExpoUpdates module and JS wrapper.
+ * Handles both new base binaries and older base binaries (where `disableAntiBrickingMeasures`
+ * could cause `Updates.isEmbeddedLaunch` to report `false` on embedded/emergency launches).
+ */
+export function getLiveUpdatesRuntime() {
+  let nativeMod = null;
+  try {
+    nativeMod = requireOptionalNativeModule("ExpoUpdates");
+  } catch {}
+
+  const updateId = normalizeUpdateId(nativeMod?.updateId ?? Updates.updateId) || null;
+
+  let manifest = null;
+  if (nativeMod?.manifest && typeof nativeMod.manifest === "object") {
+    manifest = nativeMod.manifest;
+  } else if (typeof nativeMod?.manifestString === "string" && nativeMod.manifestString) {
+    try {
+      manifest = JSON.parse(nativeMod.manifestString);
+    } catch {}
+  }
+  if ((!manifest || typeof manifest !== "object") && Updates.manifest && typeof Updates.manifest === "object") {
+    manifest = Updates.manifest;
+  }
+  if (!manifest || typeof manifest !== "object") {
+    manifest = {};
+  }
+
+  const isEmbeddedFlag = Boolean(nativeMod?.isEmbeddedLaunch ?? Updates.isEmbeddedLaunch);
+  const isEmergencyLaunch = Boolean(nativeMod?.isEmergencyLaunch ?? Updates.isEmergencyLaunch);
+
+  const hasOtaMetadata = Boolean(
+    manifest.metadata && typeof manifest.metadata === "object"
+  );
+  const hasRemoteLaunchAsset = Boolean(manifest.launchAsset?.url);
+  const hasManifestKeys = Object.keys(manifest).length > 0;
+
+  // Embedded BareManifests only contain { id, commitTime, assets } (never `metadata` or `launchAsset.url`),
+  // whereas every OTA manifest from our server includes `metadata` and `launchAsset.url`.
+  // Checking this guarantees accurate embedded detection even on older base binaries where
+  // `disableAntiBrickingMeasures: true` set `Updates.isEmbeddedLaunch = false`.
+  const isEmbeddedLaunch =
+    isEmbeddedFlag ||
+    isEmergencyLaunch ||
+    !updateId ||
+    (hasManifestKeys && !hasOtaMetadata && !hasRemoteLaunchAsset);
+
+  const parsedManifestBuild = parseInt(manifest?.metadata?.build_number, 10);
+  const manifestBuildNumber =
+    Number.isFinite(parsedManifestBuild) && parsedManifestBuild > 0
+      ? parsedManifestBuild
+      : 0;
+
+  const manifestChannel =
+    typeof manifest?.metadata?.channel === "string" && manifest.metadata.channel
+      ? manifest.metadata.channel
+      : null;
+
+  const commitTimeRaw = nativeMod?.commitTime ?? Updates.createdAt ?? manifest?.createdAt ?? null;
+  let createdAt = null;
+  if (commitTimeRaw) {
+    const parsedDate = new Date(commitTimeRaw);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      createdAt = parsedDate;
+    }
+  }
+
+  return {
+    isEnabled: Boolean(nativeMod?.isEnabled ?? Updates.isEnabled),
+    isEmbeddedLaunch,
+    isEmergencyLaunch,
+    updateId,
+    manifest,
+    manifestBuildNumber,
+    manifestChannel,
+    createdAt,
+    runtimeVersion: nativeMod?.runtimeVersion ?? Updates.runtimeVersion ?? null,
+    channel: nativeMod?.channel ?? Updates.channel ?? null,
+  };
+}
+
+function clearStoredActiveOtaMetadata() {
+  try {
+    if (storage.contains(OTA_ACTIVE_BUILD_KEY)) storage.delete(OTA_ACTIVE_BUILD_KEY);
+    if (storage.contains(OTA_ACTIVE_UPDATE_ID_KEY)) storage.delete(OTA_ACTIVE_UPDATE_ID_KEY);
+    if (storage.contains(OTA_ACTIVE_CHANNEL_KEY)) storage.delete(OTA_ACTIVE_CHANNEL_KEY);
+    if (storage.contains(OTA_ACTIVE_CREATED_AT_KEY)) storage.delete(OTA_ACTIVE_CREATED_AT_KEY);
+  } catch {}
+}
 
 /**
  * Returns the base binary build number from the native AndroidManifest (versionCode)
@@ -50,45 +146,92 @@ export function getNativeBuildNumber() {
 
 /**
  * Returns the build number of the currently running JS bundle.
- * If running embedded, returns the native binary build number.
- * If running an OTA update, returns the active OTA build number stored on update.
+ * - If running embedded, returns the native binary build number.
+ * - If running an OTA update, reads `manifest.metadata.build_number` directly from the
+ *   live launched OTA manifest first (and keeps MMKV in sync), so consecutive OTA updates
+ *   (including background `ON_LOAD` updates) always report the true running OTA build number
+ *   instead of falling back to the embedded build number.
  */
 export function getRunningOtaBuildNumber() {
   const nativeBuild = getNativeBuildNumber();
-  if (Updates.isEmbeddedLaunch) {
-    return nativeBuild;
-  }
-  const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY);
-  const storedUpdateId = storage.getString(OTA_ACTIVE_UPDATE_ID_KEY);
+  const runtime = getLiveUpdatesRuntime();
 
-  // If native runtime provides a running updateId, verify that storedUpdateId
-  // actually matches the update that was successfully launched by native runtime.
-  // If native rolled back or hasn't applied the update yet, do not return a phantom build.
-  if (Updates.updateId && storedUpdateId && Updates.updateId !== storedUpdateId) {
-    console.warn(
-      `[OTA] Native running updateId (${Updates.updateId}) differs from stored active updateId (${storedUpdateId}). Falling back to native/embedded build.`
-    );
+  if (runtime.isEmbeddedLaunch) {
     return nativeBuild;
   }
 
-  return storedBuild && storedBuild > 0 ? storedBuild : nativeBuild;
+  const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY) || 0;
+  const storedUpdateId = normalizeUpdateId(storage.getString(OTA_ACTIVE_UPDATE_ID_KEY));
+
+  // Primary source of truth: the live manifest of the currently launched OTA bundle.
+  if (runtime.manifestBuildNumber > 0) {
+    if (
+      storedBuild !== runtime.manifestBuildNumber ||
+      (runtime.updateId && storedUpdateId !== runtime.updateId)
+    ) {
+      try {
+        storage.set(OTA_ACTIVE_BUILD_KEY, runtime.manifestBuildNumber);
+        if (runtime.updateId) {
+          storage.set(OTA_ACTIVE_UPDATE_ID_KEY, runtime.updateId);
+        }
+        if (runtime.manifestChannel) {
+          storage.set(OTA_ACTIVE_CHANNEL_KEY, runtime.manifestChannel);
+        }
+        if (runtime.createdAt) {
+          storage.set(OTA_ACTIVE_CREATED_AT_KEY, runtime.createdAt.getTime());
+        }
+      } catch {}
+    }
+    return runtime.manifestBuildNumber;
+  }
+
+  // Fallback when manifest metadata is absent: check stored MMKV metadata
+  if (runtime.updateId && storedUpdateId && runtime.updateId === storedUpdateId && storedBuild > 0) {
+    return storedBuild;
+  }
+
+  if (storedBuild > nativeBuild) {
+    return storedBuild;
+  }
+
+  return nativeBuild;
 }
 
 /**
- * Synchronizes the native binary APK build number with the stored OTA build number.
- * If the user upgraded the app via native APK/IPA (e.g. from Google Play Store),
- * the newly installed base APK has a strictly higher build number than the preinstalled OTA bundle.
- * In this case, we use the bundled one with the APK and clear stale OTA state.
+ * Synchronizes the native binary APK/IPA build number and live expo-updates runtime
+ * with MMKV storage:
+ * 1. If running an embedded bundle (e.g. after upgrading to a newer base APK/IPA or rollback),
+ *    clears any stale OTA build/updateId entries so the UI cleanly reflects the embedded build.
+ * 2. If running an OTA bundle (e.g. applied silently via `ON_LOAD` on a 2nd consecutive OTA),
+ *    syncs MMKV to the live OTA manifest's build number, updateId, channel, and timestamp.
  */
 export function syncNativeAndOtaBuild() {
   try {
     const nativeBuild = getNativeBuildNumber();
-    const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY) || 0;
+    const runtime = getLiveUpdatesRuntime();
 
+    if (runtime.isEmbeddedLaunch) {
+      clearStoredActiveOtaMetadata();
+      return;
+    }
+
+    if (runtime.manifestBuildNumber > 0) {
+      storage.set(OTA_ACTIVE_BUILD_KEY, runtime.manifestBuildNumber);
+      if (runtime.updateId) {
+        storage.set(OTA_ACTIVE_UPDATE_ID_KEY, runtime.updateId);
+      }
+      if (runtime.manifestChannel) {
+        storage.set(OTA_ACTIVE_CHANNEL_KEY, runtime.manifestChannel);
+      }
+      if (runtime.createdAt) {
+        storage.set(OTA_ACTIVE_CREATED_AT_KEY, runtime.createdAt.getTime());
+      }
+      return;
+    }
+
+    const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY) || 0;
     if (nativeBuild > 0 && storedBuild > 0 && nativeBuild > storedBuild) {
-      storage.delete(OTA_ACTIVE_BUILD_KEY);
-      storage.delete(OTA_ACTIVE_UPDATE_ID_KEY);
-      storage.delete("ota_active_created_at");
+      clearStoredActiveOtaMetadata();
     }
   } catch (err) {
     console.warn("[OTA] syncNativeAndOtaBuild error:", err?.message);
@@ -243,33 +386,38 @@ export function getRunningUpdateInfo() {
   const activeChannel = getOtaChannel();
   const nativeBuildNumber = getNativeBuildNumber();
   const activeBuildNumber = getRunningOtaBuildNumber();
-  const storedUpdateId = storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || null;
-  const currentUpdateId = Updates.updateId || storedUpdateId;
+  const storedUpdateId = normalizeUpdateId(storage.getString(OTA_ACTIVE_UPDATE_ID_KEY)) || null;
 
   try {
+    const runtime = getLiveUpdatesRuntime();
+    const isOtaActive = !runtime.isEmbeddedLaunch && Boolean(runtime.updateId);
+    const currentUpdateId = runtime.isEmbeddedLaunch
+      ? runtime.updateId
+      : runtime.updateId || storedUpdateId;
+
     return {
-      isEnabled: Updates.isEnabled,
-      isEmbeddedLaunch: Updates.isEmbeddedLaunch,
+      isEnabled: runtime.isEnabled,
+      isEmbeddedLaunch: runtime.isEmbeddedLaunch,
       updateId: currentUpdateId,
-      channel: Updates.channel || activeChannel,
+      channel: (isOtaActive && runtime.manifestChannel) || runtime.channel || activeChannel,
       activeChannel,
-      runtimeVersion: Updates.runtimeVersion || null,
-      createdAt: Updates.createdAt ? new Date(Updates.createdAt) : null,
+      runtimeVersion: runtime.runtimeVersion,
+      createdAt: runtime.createdAt,
       nativeBuildNumber,
       activeBuildNumber,
-      isOtaActive: !Updates.isEmbeddedLaunch && !!currentUpdateId,
+      isOtaActive,
     };
   } catch (err) {
     return {
       isEnabled: false,
       isEmbeddedLaunch: true,
-      updateId: storedUpdateId,
+      updateId: null,
       channel: activeChannel,
       activeChannel,
       runtimeVersion: null,
       createdAt: null,
       nativeBuildNumber,
-      activeBuildNumber,
+      activeBuildNumber: nativeBuildNumber,
       isOtaActive: false,
       error: err?.message,
     };
@@ -301,9 +449,10 @@ export async function logNativeUpdatesLogs() {
  * Queries the self-hosted manifest or native expo-updates to check if an update is available.
  *
  * Implements intelligent checks:
- * 1. Minimum native build check: blocks OTA if base APK is older than min_native_build (1008).
- * 2. Build number comparison: only allows upgrade if upstream build > current active build.
- * 3. Update ID matching: prevents re-downloading current update.
+ * 1. Minimum native build check: blocks OTA if base APK is older than min_native_build.
+ * 2. Build number & timestamp comparison: blocks downgrades (< active or < native) while allowing
+ *    both higher build numbers and newer consecutive OTA releases with equal build numbers.
+ * 3. Update ID matching: prevents re-downloading the currently running update.
  *
  * @param {string} [channelOverride] Optional channel name to check
  * @returns {Promise<{
@@ -328,9 +477,16 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
   const channel = channelOverride || getOtaChannel();
   const currentNativeBuild = getNativeBuildNumber();
   const currentActiveBuild = getRunningOtaBuildNumber();
+  const runtime = getLiveUpdatesRuntime();
+  const liveUpdateId = runtime.updateId || "";
+  const activeTime = runtime.createdAt
+    ? runtime.createdAt.getTime()
+    : !runtime.isEmbeddedLaunch
+    ? storage.getNumber(OTA_ACTIVE_CREATED_AT_KEY) || 0
+    : 0;
 
   console.log(
-    `[OTA] checkUpdateAvailable started (channel: "${channel}", force: ${force}, nativeBuild: ${currentNativeBuild}, activeOtaBuild: ${currentActiveBuild})`
+    `[OTA] checkUpdateAvailable started (channel: "${channel}", force: ${force}, nativeBuild: ${currentNativeBuild}, activeOtaBuild: ${currentActiveBuild}, embedded: ${runtime.isEmbeddedLaunch})`
   );
 
   if (__DEV__) {
@@ -368,10 +524,19 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
 
       // Native confirmed a newer update is available!
       const manifest = checkResult.manifest || {};
+      const manifestId = normalizeUpdateId(manifest.id);
+      const parsedUpstreamBuild = parseInt(manifest.metadata?.build_number, 10);
       const upstreamBuildNumber =
-        parseInt(manifest.metadata?.build_number, 10) || currentNativeBuild;
+        Number.isFinite(parsedUpstreamBuild) && parsedUpstreamBuild > 0
+          ? parsedUpstreamBuild
+          : currentNativeBuild;
       const minNativeBuild =
         parseInt(manifest.metadata?.min_native_build, 10) || MIN_NATIVE_BUILD_REQUIRED;
+
+      if (liveUpdateId && manifestId && manifestId === liveUpdateId) {
+        console.log(`[OTA Native] Upstream update ID matches running update (${liveUpdateId}). Up to date.`);
+        return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+      }
 
       // Check if installed base APK is too old for this OTA update
       if (currentNativeBuild > 0 && currentNativeBuild < minNativeBuild) {
@@ -398,16 +563,6 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         };
       }
 
-      // Upstream OTA version must be strictly newer than the active running build
-      // (and at least as new as the installed native APK).
-      // Only strictly higher build numbers can be upgraded. If equal or lower, client is up to date.
-      if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
-        console.log(
-          `[OTA Native] Upstream build (${upstreamBuildNumber}) <= active build (${currentActiveBuild}). No upgrade available.`
-        );
-        return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
-      }
-
       if (upstreamBuildNumber > 0 && currentNativeBuild > 0 && upstreamBuildNumber < currentNativeBuild) {
         console.log(
           `[OTA Native] Upstream build (${upstreamBuildNumber}) < native build (${currentNativeBuild}). Blocking update downgrade.`
@@ -415,10 +570,21 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
       }
 
-      const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
-      if (runningUpdateId && manifest.id === runningUpdateId) {
-        console.log(`[OTA Native] Upstream update ID matches running update (${runningUpdateId}). Up to date.`);
+      if (upstreamBuildNumber > 0 && currentActiveBuild > 0 && upstreamBuildNumber < currentActiveBuild) {
+        console.log(
+          `[OTA Native] Upstream build (${upstreamBuildNumber}) < active build (${currentActiveBuild}). Blocking update downgrade.`
+        );
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+      }
+
+      if (upstreamBuildNumber > 0 && upstreamBuildNumber === currentActiveBuild) {
+        const serverTime = manifest.createdAt ? new Date(manifest.createdAt).getTime() : 0;
+        if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
+          console.log(
+            `[OTA Native] Server update time (${serverTime}) <= active update time (${activeTime}) with equal build (${upstreamBuildNumber}). Up to date.`
+          );
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+        }
       }
 
       console.log(`[OTA Native] Valid new update available: ID=${manifest.id}, Build=${upstreamBuildNumber}`);
@@ -428,7 +594,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         channel,
         updateInfo: {
           id: manifest.id,
-          buildNumber: upstreamBuildNumber || currentNativeBuild,
+          buildNumber: upstreamBuildNumber || currentActiveBuild || currentNativeBuild,
           minNativeBuild,
           currentNativeBuild,
           message: manifest.metadata?.message || "",
@@ -446,14 +612,13 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
   try {
     const platform = Platform.OS === "ios" ? "ios" : "android";
     const runtimeVersion =
-      Updates.runtimeVersion ||
+      runtime.runtimeVersion ||
       Constants.expoConfig?.runtimeVersion ||
       "7.4.10";
-    const currentUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
     const url = `https://api.chuyenbienhoa.com/v1.0/ota/manifest?channel=${encodeURIComponent(
       channel
     )}&runtime-version=${encodeURIComponent(runtimeVersion)}&platform=${platform}&current_update_id=${encodeURIComponent(
-      currentUpdateId
+      liveUpdateId
     )}`;
 
     console.log(`[OTA] Querying direct HTTP manifest: ${url}`);
@@ -482,9 +647,16 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
       }
       if (data?.id) {
+        const manifestId = normalizeUpdateId(data.id);
         const upstreamBuildNumber = parseInt(data.metadata?.build_number, 10) || 0;
         const minNativeBuild =
           parseInt(data.metadata?.min_native_build, 10) || MIN_NATIVE_BUILD_REQUIRED;
+
+        // Check if currently running update ID matches
+        if (liveUpdateId && manifestId && manifestId === liveUpdateId) {
+          console.log(`[OTA] Upstream update ID matches running update (${liveUpdateId}). Up to date.`);
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+        }
 
         // Check if the current native APK/IPA is too old for this OTA bundle
         if (currentNativeBuild > 0 && currentNativeBuild < minNativeBuild) {
@@ -511,15 +683,6 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           };
         }
 
-        // Upstream OTA version must be strictly higher than the current active build.
-        // If equal or lower, client is already on this or a newer build (e.g. switching preview -> older production).
-        if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
-          console.log(
-            `[OTA HTTP] Upstream build (${upstreamBuildNumber}) <= active build (${currentActiveBuild}). No upgrade available.`
-          );
-          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
-        }
-
         // Upstream OTA version must be at least as new as the installed native APK.
         if (upstreamBuildNumber > 0 && currentNativeBuild > 0 && upstreamBuildNumber < currentNativeBuild) {
           console.log(
@@ -528,21 +691,18 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
-        // Check if currently running update ID matches
-        const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
-        if (runningUpdateId && data.id === runningUpdateId) {
-          console.log(`[OTA] Upstream update ID matches running update (${runningUpdateId}). Up to date.`);
+        // Block downgrades (e.g. switching preview -> older production).
+        if (upstreamBuildNumber > 0 && currentActiveBuild > 0 && upstreamBuildNumber < currentActiveBuild) {
+          console.log(
+            `[OTA HTTP] Upstream build (${upstreamBuildNumber}) < active build (${currentActiveBuild}). Blocking update downgrade.`
+          );
           return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
-        // Check timestamps against active/embedded update ONLY if build numbers are equal
-        // (if upstream build number is strictly higher, it is always newer).
+        // Check timestamps against active/embedded update if build numbers are equal
+        // (allows consecutive OTA pushes with the same build number while blocking older channels).
         if (upstreamBuildNumber === currentActiveBuild) {
           const serverTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
-          const runningTime = Updates.createdAt ? new Date(Updates.createdAt).getTime() : 0;
-          const storedTime = storage.getNumber("ota_active_created_at") || 0;
-          const activeTime = Math.max(runningTime, storedTime);
-
           if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
             console.log(
               `[OTA] Server update time (${serverTime}) <= active update time (${activeTime}) with same build. Up to date.`
@@ -566,7 +726,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           channel,
           updateInfo: {
             id: data.id,
-            buildNumber: upstreamBuildNumber || currentNativeBuild,
+            buildNumber: upstreamBuildNumber || currentActiveBuild || currentNativeBuild,
             minNativeBuild,
             currentNativeBuild,
             message: data.metadata?.message || "",
@@ -617,12 +777,14 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
 
   const currentNativeBuild = getNativeBuildNumber();
   const currentActiveBuild = getRunningOtaBuildNumber();
-  const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
+  const runtime = getLiveUpdatesRuntime();
+  const liveUpdateId = runtime.updateId || "";
+  const requestedTargetId = normalizeUpdateId(targetUpdateInfo?.id);
 
-  // Prevent downloading if the update is not strictly higher than the running build or is older than the base APK
-  if (targetUpdateInfo?.buildNumber && currentActiveBuild > 0 && targetUpdateInfo.buildNumber <= currentActiveBuild) {
+  // Prevent downgrading below the currently active OTA build or the base APK/IPA build
+  if (targetUpdateInfo?.buildNumber && currentActiveBuild > 0 && targetUpdateInfo.buildNumber < currentActiveBuild) {
     console.log(
-      `[OTA] targetUpdateInfo.buildNumber (${targetUpdateInfo.buildNumber}) <= active build (${currentActiveBuild}). Blocking download.`
+      `[OTA] targetUpdateInfo.buildNumber (${targetUpdateInfo.buildNumber}) < active build (${currentActiveBuild}). Blocking download downgrade.`
     );
     return { status: "up_to_date", channel };
   }
@@ -634,9 +796,9 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
     return { status: "up_to_date", channel };
   }
 
-  if (targetUpdateInfo?.id && runningUpdateId && targetUpdateInfo.id === runningUpdateId) {
+  if (requestedTargetId && liveUpdateId && requestedTargetId === liveUpdateId) {
     console.log(
-      `[OTA] targetUpdateInfo.id (${targetUpdateInfo.id}) matches currently running update ID. Already applied.`
+      `[OTA] targetUpdateInfo.id (${requestedTargetId}) matches currently running update ID. Already applied.`
     );
     return { status: "up_to_date", channel };
   }
@@ -654,11 +816,17 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
       `[OTA] fetchUpdateAsync result: isNew=${fetchResult?.isNew}, isRollBack=${fetchResult?.isRollBackToEmbedded}, manifestId=${fetchResult?.manifest?.id || targetUpdateInfo?.id || "none"}`
     );
 
-    const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
-    const targetId = targetUpdateInfo?.id || fetchResult?.manifest?.id || "";
+    if (fetchResult?.isRollBackToEmbedded) {
+      clearStoredActiveOtaMetadata();
+      applyChannelOverride(channel);
+      return { status: "downloaded", channel };
+    }
+
+    const fetchedManifest = fetchResult?.manifest || targetUpdateInfo?.manifest || null;
+    const targetId = normalizeUpdateId(fetchResult?.manifest?.id || targetUpdateInfo?.id);
 
     if (fetchResult?.isNew === false && !fetchResult?.manifest) {
-      if (runningUpdateId && targetId && runningUpdateId === targetId) {
+      if (!targetId || (liveUpdateId && liveUpdateId === targetId)) {
         console.log(
           "[OTA] fetchUpdateAsync returned isNew=false and client already runs this update. Up to date."
         );
@@ -668,17 +836,21 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
         };
       }
       console.log(
-        "[OTA] fetchUpdateAsync returned isNew=false, but update is cached/pending. Proceeding with reload."
+        "[OTA] fetchUpdateAsync returned isNew=false, but newer update is cached/pending. Proceeding with reload."
       );
     }
 
-    // Persist active build number, update ID, created time, and channel to storage so it survives app reboots
+    // Persist active build number, normalized update ID, created time, and channel to storage.
+    // Never fall back to getNativeBuildNumber() ahead of currentActiveBuild when manifest is omitted on cached updates!
+    const parsedManifestBuild = parseInt(fetchedManifest?.metadata?.build_number, 10);
     const buildToSave =
       targetUpdateInfo?.buildNumber ||
-      parseInt(fetchResult?.manifest?.metadata?.build_number, 10) ||
-      getNativeBuildNumber();
+      (Number.isFinite(parsedManifestBuild) && parsedManifestBuild > 0 ? parsedManifestBuild : 0) ||
+      currentActiveBuild ||
+      currentNativeBuild;
 
-    const updateIdToSave = targetId || runningUpdateId;
+    const updateIdToSave = targetId || liveUpdateId;
+    const channelToSave = fetchedManifest?.metadata?.channel || channel;
 
     if (buildToSave > 0) {
       storage.set(OTA_ACTIVE_BUILD_KEY, buildToSave);
@@ -686,26 +858,26 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
     if (updateIdToSave) {
       storage.set(OTA_ACTIVE_UPDATE_ID_KEY, updateIdToSave);
     }
-    storage.set(OTA_ACTIVE_CHANNEL_KEY, channel);
+    storage.set(OTA_ACTIVE_CHANNEL_KEY, channelToSave);
 
-    const createdAt = targetUpdateInfo?.createdAt || fetchResult?.manifest?.createdAt;
+    const createdAt = targetUpdateInfo?.createdAt || fetchedManifest?.createdAt;
     if (createdAt) {
       const createdTime = new Date(createdAt).getTime();
       if (createdTime > 0) {
-        storage.set("ota_active_created_at", createdTime);
+        storage.set(OTA_ACTIVE_CREATED_AT_KEY, createdTime);
       }
     }
 
     console.log(
-      `[OTA] Persisted active build to storage: buildNumber=${buildToSave}, updateId=${updateIdToSave}, channel=${channel}`
+      `[OTA] Persisted active build to storage: buildNumber=${buildToSave}, updateId=${updateIdToSave}, channel=${channelToSave}`
     );
 
-    // Also persist header override to SharedPreferences
+    // Also persist header override to SharedPreferences / UserDefaults
     applyChannelOverride(channel);
 
     return {
       status: "downloaded",
-      manifest: fetchResult?.manifest || targetUpdateInfo?.manifest,
+      manifest: fetchedManifest,
       channel,
     };
   } catch (error) {

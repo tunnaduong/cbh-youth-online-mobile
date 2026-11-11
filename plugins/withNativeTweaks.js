@@ -124,6 +124,9 @@ const withDirectUpdatesMetadata = (config) =>
     const mainApp = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
     const runtimeVersion = cfg.runtimeVersion || "7.4.10";
     const updateUrl = cfg.updates?.url || "https://api.chuyenbienhoa.com/v1.0/ota/manifest";
+    const requestHeadersJson = JSON.stringify(
+      cfg.updates?.requestHeaders || { "expo-channel-name": "production" }
+    );
 
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       mainApp,
@@ -134,6 +137,11 @@ const withDirectUpdatesMetadata = (config) =>
       mainApp,
       "expo.modules.updates.EXPO_UPDATE_URL",
       String(updateUrl)
+    );
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      mainApp,
+      "expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY",
+      requestHeadersJson
     );
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       mainApp,

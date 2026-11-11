@@ -1,5 +1,5 @@
 diff --git a/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesConfiguration.kt b/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesConfiguration.kt
-index 8d6d273..1a48eb9 100644
+index 8d6d273..03d4d78 100644
 --- a/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesConfiguration.kt
 +++ b/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesConfiguration.kt
 @@ -86,10 +86,10 @@ data class UpdatesConfiguration(
@@ -25,7 +25,20 @@ index 8d6d273..1a48eb9 100644
      }
    }
  
-@@ -208,6 +208,7 @@ data class UpdatesConfiguration(
+@@ -180,7 +180,11 @@ data class UpdatesConfiguration(
+       disableAntiBrickingMeasures: Boolean,
+       configOverride: UpdatesConfigurationOverride?
+     ): Boolean {
+-      if (disableAntiBrickingMeasures && configOverride != null) {
++      if (
++        disableAntiBrickingMeasures &&
++        configOverride?.updateUrl != null &&
++        configOverride.updateUrl != getOriginalEmbeddedUpdateUrl(context, overrideMap)
++      ) {
+         return false
+       }
+       return getOriginalHasEmbeddedUpdate(context, overrideMap)
+@@ -208,6 +212,7 @@ data class UpdatesConfiguration(
      private fun getOriginalEmbeddedUpdateUrl(context: Context?, overrideMap: Map<String, Any>?) =
        overrideMap?.readValueCheckingType(UPDATES_CONFIGURATION_UPDATE_URL_KEY)
          ?: context?.getMetadataValue<String>("expo.modules.updates.EXPO_UPDATE_URL")?.let { Uri.parse(it) }
@@ -33,8 +46,41 @@ index 8d6d273..1a48eb9 100644
  
      private fun getRequestHeaders(
        context: Context?,
-@@ -260,11 +261,25 @@ data class UpdatesConfiguration(
+@@ -253,18 +258,54 @@ data class UpdatesConfiguration(
+       )
+     }
+ 
+-    private fun getOriginalEmbeddedRequestHeaders(context: Context?, overrideMap: Map<String, Any>?) =
+-      overrideMap?.readValueCheckingType<Map<String, String>>(UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY)
+-        ?: (context?.getMetadataValue<String>("expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY") ?: "{}").let {
+-          UpdatesUtils.getMapFromJSONString(it)
++    private fun getOriginalEmbeddedRequestHeaders(context: Context?, overrideMap: Map<String, Any>?): Map<String, String> {
++      overrideMap?.readValueCheckingType<Map<String, String>>(UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY)?.let {
++        if (it.isNotEmpty()) return it
++      }
++      var rawHeaders: String? = null
++      if (context != null) {
++        try {
++          val resId = context.getMetadataValue<Int>("expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY")
++          if (resId != null && resId != 0) {
++            rawHeaders = context.resources.getString(resId)
++          }
++        } catch (_: Exception) {}
++        if (rawHeaders.isNullOrEmpty()) {
++          rawHeaders = context.getMetadataValue<String>("expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY")
          }
++      }
++      val parsed = try {
++        UpdatesUtils.getMapFromJSONString(rawHeaders ?: "{}")
++      } catch (_: Exception) {
++        emptyMap()
++      }
++      return if (parsed.containsKey("expo-channel-name")) {
++        parsed
++      } else {
++        parsed + mapOf("expo-channel-name" to "production")
++      }
++    }
  
      private fun getIsEnabled(context: Context?, overrideMap: Map<String, Any>?): Boolean {
 -      return overrideMap?.readValueCheckingType(UPDATES_CONFIGURATION_ENABLED_KEY) ?: context?.getMetadataValue("expo.modules.updates.ENABLED") ?: true
@@ -61,7 +107,7 @@ index 8d6d273..1a48eb9 100644
  
        if (context != null && runtimeVersion == UPDATES_CONFIGURATION_RUNTIME_VERSION_READ_FINGERPRINT_FILE_SENTINEL) {
          return context.assets.open(FINGERPRINT_FILE_NAME).use { stream ->
-@@ -272,22 +287,14 @@ data class UpdatesConfiguration(
+@@ -272,22 +313,14 @@ data class UpdatesConfiguration(
          }
        }
  
@@ -88,27 +134,112 @@ index 8d6d273..1a48eb9 100644
        return UpdatesConfigurationValidationResult.VALID
      }
  
+diff --git a/node_modules/expo-updates/android/src/main/java/expo/modules/updates/launcher/DatabaseLauncher.kt b/node_modules/expo-updates/android/src/main/java/expo/modules/updates/launcher/DatabaseLauncher.kt
+index 2bcb8cf..67f8143 100644
+--- a/node_modules/expo-updates/android/src/main/java/expo/modules/updates/launcher/DatabaseLauncher.kt
++++ b/node_modules/expo-updates/android/src/main/java/expo/modules/updates/launcher/DatabaseLauncher.kt
+@@ -148,6 +148,18 @@ class DatabaseLauncher(
+     val launchableUpdates = database.updateDao().loadLaunchableUpdatesForScope(configuration.scopeKey)
+ 
+     val embeddedUpdate = EmbeddedManifestUtils.getOriginalEmbeddedUpdate(context, configuration)
++    val currentNativeBuildCode: Long = try {
++      val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
++      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
++        pInfo.longVersionCode
++      } else {
++        @Suppress("DEPRECATION")
++        pInfo.versionCode.toLong()
++      }
++    } catch (_: Exception) {
++      0L
++    }
++
+     val filteredLaunchableUpdates = mutableListOf<UpdateEntity>()
+     for (update in launchableUpdates) {
+       // We can only run an update marked as embedded if it's actually the update embedded in the
+@@ -161,6 +173,23 @@ class DatabaseLauncher(
+       if (!configuration.hasEmbeddedUpdate && embeddedUpdate?.updateEntity?.id == update.id) {
+         continue
+       }
++
++      // When upgrading from an older base APK to a newer base APK, ignore any previously cached
++      // remote OTA update that is older than or equal to the new embedded manifest commitTime,
++      // or whose manifest metadata.build_number is strictly lower than the installed APK versionCode.
++      if (configuration.hasEmbeddedUpdate && embeddedUpdate != null && update.status != UpdateStatus.EMBEDDED) {
++        if (!update.commitTime.after(embeddedUpdate.updateEntity.commitTime)) {
++          continue
++        }
++        val otaBuildNum = update.manifest
++          .optJSONObject("metadata")
++          ?.optString("build_number")
++          ?.toLongOrNull() ?: 0L
++        if (otaBuildNum > 0L && currentNativeBuildCode > 0L && otaBuildNum < currentNativeBuildCode) {
++          continue
++        }
++      }
++
+       filteredLaunchableUpdates.add(update)
+     }
+     val manifestFilters = ManifestMetadata.getManifestFilters(database, configuration)
+diff --git a/node_modules/expo-updates/bin/cli.js b/node_modules/expo-updates/bin/cli.js
+index a2869b8..bc7c4f7 100755
+--- a/node_modules/expo-updates/bin/cli.js
++++ b/node_modules/expo-updates/bin/cli.js
+@@ -1,3 +1,3 @@
+-#!/usr/bin/env node
++#!/data/data/com.termux/files/usr/bin/env node
+ 
+ require('../cli/build/cli.js');
 diff --git a/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift b/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift
-index 76737f3..98a52f7 100644
+index 76737f3..d07d31d 100644
 --- a/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift
 +++ b/node_modules/expo-updates/ios/EXUpdates/AppLauncher/AppLauncherWithDatabase.swift
-@@ -107,6 +107,15 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+@@ -93,6 +93,13 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+         }
+ 
+         let embeddedManifest = EmbeddedAppLoader.originalEmbeddedManifest(withConfig: config, database: database)
++        let currentNativeBuildCode: Int = {
++          if let buildStr = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
++             let parsed = Int(buildStr) {
++            return parsed
++          }
++          return 0
++        }()
+         var filteredLaunchableUpdates: [Update] = []
+         for update in launchableUpdates {
+           // We can only run an update marked as embedded if it's actually the update embedded in the
+@@ -107,6 +114,30 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
              continue
            }
  
-+          // When upgrading from an older binary build to a newer native binary, if an older remote update
-+          // from a previous binary is in the database with commitTime older than or equal to the new embedded manifest,
-+          // ignore the older update so the new embedded update with all its fresh assets is preferred.
-+          if let embeddedManifest = embeddedManifest,
-+             update.status != UpdateStatus.StatusEmbedded,
-+             update.commitTime <= embeddedManifest.commitTime {
-+            continue
++          // When upgrading from an older binary build to a newer native binary, ignore any older remote update
++          // whose commitTime <= new embedded manifest commitTime or whose metadata.build_number < CFBundleVersion,
++          // so the new embedded update with all its fresh assets is preferred.
++          if config.hasEmbeddedUpdate,
++             let embeddedManifest = embeddedManifest,
++             update.status != UpdateStatus.StatusEmbedded {
++            if update.commitTime <= embeddedManifest.commitTime {
++              continue
++            }
++            var otaBuildNum = 0
++            if let metadata = update.manifest.rawManifestJSON()["metadata"] as? [String: Any] {
++              if let num = metadata["build_number"] as? Int {
++                otaBuildNum = num
++              } else if let num = metadata["build_number"] as? NSNumber {
++                otaBuildNum = num.intValue
++              } else if let str = metadata["build_number"] as? String, let parsed = Int(str) {
++                otaBuildNum = parsed
++              }
++            }
++            if otaBuildNum > 0 && currentNativeBuildCode > 0 && otaBuildNum < currentNativeBuildCode {
++              continue
++            }
 +          }
 +
            filteredLaunchableUpdates.append(update)
          }
  
-@@ -214,8 +223,33 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+@@ -214,8 +245,33 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
            if asset.isLaunchAsset {
              self.launchAssetUrl = assetLocalUrl
            } else {
@@ -143,7 +274,7 @@ index 76737f3..98a52f7 100644
              }
            }
          }
-@@ -275,7 +309,13 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+@@ -275,7 +331,13 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
  
    private func checkExistence(ofAsset asset: UpdateAsset, withLocalUrl assetLocalUrl: URL, completion: @escaping (Bool) -> Void) {
      FileDownloader.assetFilesQueue.async {
@@ -158,7 +289,7 @@ index 76737f3..98a52f7 100644
        self.launcherQueue.async {
          completion(exists)
        }
-@@ -309,6 +349,9 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
+@@ -309,6 +371,9 @@ public class AppLauncherWithDatabase: NSObject, AppLauncher {
          }
  
          do {
@@ -169,7 +300,7 @@ index 76737f3..98a52f7 100644
            self.launcherQueue.async {
              completion(true, nil)
 diff --git a/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift b/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift
-index 2bd7b5e..9aa5886 100644
+index 2bd7b5e..a0208d0 100644
 --- a/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift
 +++ b/node_modules/expo-updates/ios/EXUpdates/UpdatesConfig.swift
 @@ -172,45 +172,26 @@ public final class UpdatesConfig: NSObject {
@@ -230,7 +361,18 @@ index 2bd7b5e..9aa5886 100644
      return UpdatesConfigurationValidationResult.Valid
    }
  
-@@ -400,7 +381,7 @@ public final class UpdatesConfig: NSObject {
+@@ -376,7 +357,9 @@ public final class UpdatesConfig: NSObject {
+     fromDictionary config: [String: Any],
+     configOverride: UpdatesConfigOverride?
+   ) -> Bool {
+-    if getDisableAntiBrickingMeasures(fromDictionary: config) && configOverride != nil {
++    if getDisableAntiBrickingMeasures(fromDictionary: config),
++       let overrideUrl = configOverride?.updateUrl,
++       overrideUrl != getOriginalEmbeddedUpdateUrl(fromDictionary: config) {
+       return false
+     }
+     return getOriginalHasEmbeddedUpdate(fromDictionary: config)
+@@ -400,7 +383,7 @@ public final class UpdatesConfig: NSObject {
    private static func getOriginalEmbeddedUpdateUrl(fromDictionary config: [String: Any]) -> URL? {
      return config.optionalValue(forKey: EXUpdatesConfigUpdateUrlKey).let { it in
        URL(string: it)
@@ -239,6 +381,19 @@ index 2bd7b5e..9aa5886 100644
    }
  
    private static func getRequestHeaders(
+@@ -421,7 +404,11 @@ public final class UpdatesConfig: NSObject {
+   }
+ 
+   private static func getOriginalEmbeddedRequestHeaders(fromDictionary config: [String: Any]) -> [String: String] {
+-    return config.optionalValue(forKey: EXUpdatesConfigRequestHeadersKey) ?? [:]
++    var headers: [String: String] = config.optionalValue(forKey: EXUpdatesConfigRequestHeadersKey) ?? [:]
++    if headers["expo-channel-name"] == nil {
++      headers["expo-channel-name"] = "production"
++    }
++    return headers
+   }
+ 
+   internal static func isValidRequestHeadersOverride(
 diff --git a/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift b/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift
 index fa1fb9a..ff88701 100644
 --- a/node_modules/expo-updates/ios/EXUpdates/UpdatesUtils.swift

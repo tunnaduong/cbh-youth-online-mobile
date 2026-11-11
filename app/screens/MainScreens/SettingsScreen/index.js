@@ -95,7 +95,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const runningUpdate = getRunningUpdateInfo();
+  const [runningUpdate, setRunningUpdate] = React.useState(() => getRunningUpdateInfo());
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -111,6 +111,7 @@ export default function SettingsScreen({ navigation }) {
   useFocusEffect(
     React.useCallback(() => {
       setDevMode(isDevModeEnabled());
+      setRunningUpdate(getRunningUpdateInfo());
     }, [])
   );
 

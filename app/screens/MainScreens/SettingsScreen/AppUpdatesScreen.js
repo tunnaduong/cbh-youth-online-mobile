@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Application from "expo-application";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -55,7 +56,16 @@ export default function AppUpdatesScreen({ navigation }) {
   const [promptUpdateInfo, setPromptUpdateInfo] = useState(null);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [remoteForceOta, setRemoteForceOta] = useState(null);
-  const runningUpdate = getRunningUpdateInfo();
+  const [runningUpdate, setRunningUpdate] = useState(() => getRunningUpdateInfo());
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setRunningUpdate(getRunningUpdateInfo());
+      setSelectedChannel(getOtaChannel());
+      setOtaEnabledState(isOtaEnabled());
+      setStartupCheckEnabledState(isStartupCheckEnabled());
+    }, [])
+  );
 
   useEffect(() => {
     let isMounted = true;
