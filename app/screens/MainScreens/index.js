@@ -20,6 +20,8 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LiquidGlassView, AndroidGlassBackdrop, glassTint, androidGlassPerfProps } from "../../components/GlassModules";
 import { markAllNotificationsAsRead } from "../../services/api/Api";
+import AccountSwitcherModal from "../../components/AccountSwitcherModal";
+import { NativeEventEmitter, NativeModules } from "react-native";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -42,7 +44,7 @@ const ANDROID_ICON_MAP = {
 // Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
-const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl, username }) => {
+const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, onProfileLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl, username }) => {
   const { theme, isDarkMode, hideTabLabels, liquidGlassEnabled } = useTheme();
   const ownTheme = useOwnProfileTheme(username);
   const insets = useSafeAreaInsets();
@@ -179,6 +181,8 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
       {/* Right pill: Me ("Tôi") button */}
       <TouchableOpacity
         onPress={() => onTabPress("Profile")}
+        onLongPress={onProfileLongPress}
+        delayLongPress={450}
         activeOpacity={0.8}
         accessibilityRole="tab"
         accessibilityState={{ selected: isProfileFocused }}
@@ -281,7 +285,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
   }, [stackNavigation]);
 
   const { chatUnreadCount, notificationUnreadCount, setNotificationUnreadCount } = useUnreadCountsContext();
-  const { username, getAvatarUrl } = useContext(AuthContext);
+  const { username, userInfo, getAvatarUrl } = useContext(AuthContext);
+  const [accountSwitcherVisible, setAccountSwitcherVisible] = useState(false);
   const avatarUrl = username && getAvatarUrl ? getAvatarUrl(username) : null;
   const homeScreenScrollTriggerRef = useRef(null);
   const exploreScrollTriggerRef = useRef(null);
@@ -338,6 +343,31 @@ export default function MainScreens({ navigation: stackNavigation }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     stackNavigation.navigate("FeedbackScreen", { source: "home_long_press" });
   }, [stackNavigation]);
+
+  const openAccountSwitcher = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setAccountSwitcherVisible(true);
+  }, []);
+
+  // Native iOS 26+ tab bar long press listener from Swift native module
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    const { CBHTabBarLongPressManager } = NativeModules;
+    if (!CBHTabBarLongPressManager) return;
+
+    const eventEmitter = new NativeEventEmitter(CBHTabBarLongPressManager);
+    const subscription = eventEmitter.addListener("onTabBarLongPress", (event) => {
+      if (event?.routeName === "Home" || event?.index === 0) {
+        openFeedback();
+      } else if (event?.routeName === "Profile" || event?.index === 4) {
+        openAccountSwitcher();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [openFeedback, openAccountSwitcher]);
 
   const handleAndroidTabPress = (routeName) => {
     if (routeName === "Notifications") {
@@ -560,10 +590,17 @@ export default function MainScreens({ navigation: stackNavigation }) {
           notificationUnreadCount={notificationUnreadCount}
           onTabPress={handleAndroidTabPress}
           onHomeLongPress={openFeedback}
+          onProfileLongPress={openAccountSwitcher}
           avatarUrl={avatarUrl}
           username={username}
         />
       )}
+
+      <AccountSwitcherModal
+        visible={accountSwitcherVisible}
+        onClose={() => setAccountSwitcherVisible(false)}
+        currentUserId={userInfo?.id}
+      />
     </View>
   );
 }
