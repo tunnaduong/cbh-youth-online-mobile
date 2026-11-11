@@ -39,6 +39,49 @@ const EXTRA_INTER_FAMILIES = Object.keys(INTER_FONT_SOURCES).filter(
 const INTER_FAMILIES = new Set(Object.keys(INTER_FONT_SOURCES));
 const loadedInterFamilies = new Set();
 
+// PostScript names of the bundled TTFs. When the binary embeds the fonts natively
+// (expo-font config plugin in app.json), iOS addresses them by PostScript name while
+// Android addresses them by asset file name (= the Inter_* key).
+const IOS_POSTSCRIPT_NAMES = {
+  Inter_300Light: "Inter-Light",
+  Inter_400Regular: "Inter-Regular",
+  Inter_500Medium: "Inter-Medium",
+  Inter_600SemiBold: "Inter-SemiBold",
+  Inter_700Bold: "Inter-Bold",
+  Inter_800ExtraBold: "Inter-ExtraBold",
+  Inter_900Black: "Inter-Black",
+  Inter_300Light_Italic: "Inter-LightItalic",
+  Inter_400Regular_Italic: "Inter-Italic",
+  Inter_500Medium_Italic: "Inter-MediumItalic",
+  Inter_600SemiBold_Italic: "Inter-SemiBoldItalic",
+  Inter_700Bold_Italic: "Inter-BoldItalic",
+  Inter_800ExtraBold_Italic: "Inter-ExtraBoldItalic",
+  Inter_900Black_Italic: "Inter-BlackItalic",
+};
+
+// family -> fontFamily string to hand to native. Defaults to the runtime alias
+// registered by Font.loadAsync; replaced by the native name for embedded fonts.
+const NATIVE_FAMILY_NAMES = {};
+for (const family of INTER_FAMILIES) NATIVE_FAMILY_NAMES[family] = family;
+
+// Fonts embedded in the native binary are usable from the very first frame, so
+// the splash screen and first render use Inter without waiting for loadAsync.
+// Older binaries (reached through OTA) don't embed them and fall back to loadAsync.
+function detectEmbeddedInterFonts() {
+  if (Platform.OS !== "ios" && Platform.OS !== "android") return;
+  try {
+    const nativeFonts = new Set(Font.getLoadedFonts?.() || []);
+    for (const family of INTER_FAMILIES) {
+      const nativeName = Platform.OS === "ios" ? IOS_POSTSCRIPT_NAMES[family] : family;
+      if (nativeName && nativeFonts.has(nativeName)) {
+        NATIVE_FAMILY_NAMES[family] = nativeName;
+        loadedInterFamilies.add(family);
+      }
+    }
+  } catch {}
+}
+detectEmbeddedInterFonts();
+
 const DEFAULT_SYSTEM_FAMILIES_LOWER = new Set([
   "",
   "inter",
@@ -177,13 +220,13 @@ const OVERRIDE_STYLES = {};
 for (const family of INTER_FAMILIES) {
   const isItalicFamily = family.endsWith("_Italic");
   OVERRIDE_STYLES[family] = Object.freeze({
-    fontFamily: family,
+    fontFamily: NATIVE_FAMILY_NAMES[family],
     fontWeight: "normal",
     fontStyle: isItalicFamily && Platform.OS === "ios" ? "italic" : "normal",
   });
 }
 
-let interLoaded = false;
+let interLoaded = loadedInterFamilies.has("Inter_400Regular");
 let fontLoadVersion = 0;
 let loadPromise = null;
 const listeners = new Set();
@@ -228,7 +271,7 @@ function getOtaAssetUrlMap() {
 
 async function loadSingleInterFont(family, source, otaAssetMap) {
   try {
-    if (Font.isLoaded(family)) {
+    if (loadedInterFamilies.has(family) || Font.isLoaded(family)) {
       loadedInterFamilies.add(family);
       return true;
     }

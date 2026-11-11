@@ -227,7 +227,27 @@
           }
         }
       ],
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./app/assets/fonts/inter/Inter_300Light.ttf",
+            "./app/assets/fonts/inter/Inter_300Light_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_400Regular.ttf",
+            "./app/assets/fonts/inter/Inter_400Regular_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_500Medium.ttf",
+            "./app/assets/fonts/inter/Inter_500Medium_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_600SemiBold.ttf",
+            "./app/assets/fonts/inter/Inter_600SemiBold_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_700Bold.ttf",
+            "./app/assets/fonts/inter/Inter_700Bold_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_800ExtraBold.ttf",
+            "./app/assets/fonts/inter/Inter_800ExtraBold_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_900Black.ttf",
+            "./app/assets/fonts/inter/Inter_900Black_Italic.ttf"
+          ]
+        }
+      ],
       [
         "expo-alternate-app-icons",
         [
