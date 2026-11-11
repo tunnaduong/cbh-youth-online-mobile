@@ -72,6 +72,8 @@ export const CallProvider = ({ children }) => {
   const [callDuration, setCallDuration] = useState(0);
 
   const bridgeRef = useRef(null);
+  // Whether the bridge's peer connection is up (slows the HTTP poll down)
+  const transportConnectedRef = useRef(false);
   const timerRef = useRef(null);
   const activeCallRef = useRef(null);
   const conversationChannelRef = useRef(null);
@@ -467,7 +469,13 @@ export const CallProvider = ({ children }) => {
               processedAudioSeqRef.current = chunk.aseq;
             }
             if (String(chunk.sender_id) !== String(userInfo?.id) && chunk.payload) {
-              bridgeRef.current?.sendMessage("PLAY_AUDIO_CHUNK", chunk.payload);
+              // aseq lets the bridge drop a chunk it already played from the socket
+              bridgeRef.current?.sendMessage(
+                "PLAY_AUDIO_CHUNK",
+                typeof chunk.payload === "object"
+                  ? { ...chunk.payload, aseq: chunk.aseq }
+                  : chunk.payload
+              );
             }
           }
         }
@@ -497,12 +505,22 @@ export const CallProvider = ({ children }) => {
       } catch {}
     };
 
-    const interval = setInterval(syncCallSignals, 1200);
-    syncCallSignals();
+    // Poll fast while the call is being set up or runs on the relay; once the
+    // direct connection is up the poll only watches for the call ending, so it
+    // slows down and stops competing with the audio for the connection.
+    let timer = null;
+    const loop = async () => {
+      await syncCallSignals();
+      if (cancelled) return;
+      const settled =
+        callStatusRef.current === "connected" && transportConnectedRef.current;
+      timer = setTimeout(loop, settled ? 5000 : 1200);
+    };
+    loop();
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (timer) clearTimeout(timer);
     };
   }, [
     isLoggedIn,
@@ -1014,6 +1032,7 @@ export const CallProvider = ({ children }) => {
           sr: data.sampleRate || 8000,
         }).catch(() => {});
       } else if (data.type === "CONNECTION_STATE_CHANGE") {
+        transportConnectedRef.current = data.state === "connected";
         if (data.state === "connected") {
           callStatusRef.current = "connected";
           setCallStatus("connected");
