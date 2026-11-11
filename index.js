@@ -54,11 +54,13 @@ global.RN$registerExceptionListener?.((data) => {
 // error thrown while the app's modules load must land in this try.
 let App = null;
 try {
-  // Reanimated first: when it fails to start, libraries that load it lazily
+  // Patch global Text/TextInput first before Reanimated or any UI module
+  // captures the default Text component reference.
+  require("./app/utils/globalFont");
+  // Reanimated next: when it fails to start, libraries that load it lazily
   // (Skia's ReanimatedProxy) replace its error with "react-native-reanimated
   // is not installed!" - loading it here shows the real one.
   require("react-native-reanimated");
-  require("./app/utils/globalFont");
   require("./app/i18n");
   App = require("./App").default;
 
