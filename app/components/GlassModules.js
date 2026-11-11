@@ -197,6 +197,13 @@ const BlurGlassView = ({ variant = "regular", tintColor, style, borderRadius, ch
 const ANDROID_NO_EDGE_REFLECTION =
   Platform.OS === "android" ? { edgeReflectionStrength: 0 } : null;
 
+// Android always renders the library's "clear" variant (whatever a call site
+// asks for); iOS keeps the variant the call site passes. When the library is
+// not installed in the build, `LiquidGlassView` below is null and every call
+// site uses its own existing fallback.
+const ANDROID_CLEAR_VARIANT =
+  Platform.OS === "android" ? { variant: "clear" } : null;
+
 const GatedLiquidGlassView = ({
   tintColor,
   style,
@@ -221,6 +228,7 @@ const GatedLiquidGlassView = ({
         style={style}
         borderRadius={borderRadius}
         {...rest}
+        {...ANDROID_CLEAR_VARIANT}
         {...ANDROID_NO_EDGE_REFLECTION}
       >
         {children}

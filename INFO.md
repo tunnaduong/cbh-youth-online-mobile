@@ -361,6 +361,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Android liquid glass uses the `clear` variant (`app/components/GlassModules.js`)**: `GatedLiquidGlassView` forces `variant: "clear"` on Android (`ANDROID_CLEAR_VARIANT`, spread after call-site props); iOS keeps the call site's variant. If `react-native-liquid-glassmorphism` is missing from the build, `LiquidGlassView` stays `null` and call sites use their own fallbacks.
+
 - **Print requests from Explore** (`app/screens/MainScreens/ExploreScreen/index.js`, `app/screens/MainScreens/WebAppScreen/index.js`, `App.js`): the "In ấn tài liệu" card now opens `PrintRequestsScreen` (a `WebAppScreen` with `site: "print"`), which loads `https://www.chuyenbienhoa.com/explore/print-requests?app=true` in a WebView with a web session of its own. It was a "under development" toast before. Web page moved from `/print-requests` to `/explore/print-requests` (`cbh-youth-online-next-js`). JS only; no new native build.
 
 - **Fix Consecutive OTA Build Number Fallback & Old-Base -> New-Base Binary Upgrade (`app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/contexts/AuthContext.js`, `app/components/StartupErrorScreen.js`, `app.json`, `plugins/withNativeTweaks.js`, `patches/expo-updates+55.0.26.patch`)**:
