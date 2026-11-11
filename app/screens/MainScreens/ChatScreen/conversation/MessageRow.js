@@ -175,8 +175,8 @@ const MessageRow = React.memo(({
   }, [displayImageUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
 
   const handleSwipeReply = () => {
-    // Still sending: it has no real id to reply to yet.
-    if (item.is_sending) return;
+    // Still sending or recalled: cannot reply
+    if (item.is_sending || item.is_recalled) return;
     const contentType =
       item.type === "image" || item.type === "video" || item.type === "file"
         ? item.type
@@ -194,7 +194,7 @@ const MessageRow = React.memo(({
   };
 
   return (
-    <SwipeableMessage isMyMessage={item.is_myself} onSwipe={handleSwipeReply}>
+    <SwipeableMessage isMyMessage={item.is_myself} onSwipe={handleSwipeReply} disabled={item.is_recalled}>
     <View
       style={[
         // Add extra spacing for group chats when sender changes (applies to entire message block)

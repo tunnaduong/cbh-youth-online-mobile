@@ -1297,16 +1297,17 @@ const ConversationScreen = ({ navigation, route }) => {
     };
     const handleRecalled = (data) => {
       if (!data?.message_id) return;
+      setReplyingTo((prev) => (String(prev?.id) === String(data.message_id) ? null : prev));
       setMessages((prev) =>
         prev.map((m) => {
-          if (m.id === data.message_id) {
+          if (String(m.id) === String(data.message_id)) {
             return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
           }
           // Any OTHER message quoting this one in its reply preview carries
           // its own denormalized snapshot of it (m.reply_to) that never gets
           // touched by the update above - without this it would keep
           // showing the pre-recall content forever.
-          if (m.reply_to?.id === data.message_id) {
+          if (String(m.reply_to?.id) === String(data.message_id)) {
             return {
               ...m,
               reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
@@ -2010,6 +2011,7 @@ const ConversationScreen = ({ navigation, route }) => {
               type: replySnapshot.type,
               file_url: replySnapshot.file_url,
               sender: replySnapshot.sender,
+              is_recalled: Boolean(replySnapshot.is_recalled),
             }
           : undefined,
       };
@@ -2301,6 +2303,7 @@ const ConversationScreen = ({ navigation, route }) => {
               type: replySnapshot.type,
               file_url: replySnapshot.file_url,
               sender: replySnapshot.sender,
+              is_recalled: Boolean(replySnapshot.is_recalled),
             }
           : undefined,
       };
@@ -2619,7 +2622,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleReplyToMessage = () => {
     const item = reactionPicker.message;
     closeReactionPicker();
-    if (!item || typeof item.id !== "number") return;
+    if (!item || typeof item.id !== "number" || item.is_recalled) return;
 
     const contentType =
       item.type === "image" || item.type === "video" || item.type === "file"
@@ -2708,12 +2711,13 @@ const ConversationScreen = ({ navigation, route }) => {
             // snapshot of this one, same as the realtime handleRecalled
             // handler does for everyone else's clients (recall broadcasts
             // via ->toOthers(), so the sender never gets their own here).
+            setReplyingTo((prev) => (String(prev?.id) === String(item.id) ? null : prev));
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.id === item.id) {
+                if (String(m.id) === String(item.id)) {
                   return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
                 }
-                if (m.reply_to?.id === item.id) {
+                if (String(m.reply_to?.id) === String(item.id)) {
                   return {
                     ...m,
                     reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },

@@ -5,21 +5,23 @@ import { Ionicons } from "@expo/vector-icons";
 const SWIPE_THRESHOLD = 55;
 const SWIPE_ICON_OFFSET = 44;
 
-const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
+const SwipeableMessage = ({ children, isMyMessage, onSwipe, disabled = false }) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const triggeredRef = useRef(false);
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        !disabledRef.current && Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       // Capture phase runs top-down BEFORE any nested touchable (e.g. the
       // video tile's mute button) gets a chance to claim the responder in
       // the bubble phase - without this, a clear horizontal swipe starting
       // on top of a nested TouchableOpacity never reached this PanResponder
       // at all, so swipe-to-reply silently did nothing on video messages.
       onMoveShouldSetPanResponderCapture: (_, g) =>
-        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        !disabledRef.current && Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderGrant: () => {
         triggeredRef.current = false;
       },
