@@ -160,10 +160,7 @@ const Sidebar = ({
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
-  const isCustomTabBar =
-    Platform.OS === "android" ||
-    Platform.isPad ||
-    (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
+  const isCustomTabBar = true;
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);

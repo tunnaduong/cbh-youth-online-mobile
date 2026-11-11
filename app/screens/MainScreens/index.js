@@ -276,7 +276,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // (react-navigation/UIKit's own adaptive behavior for wide layouts), so
   // iPad always gets this app's own bar to keep it floating at the bottom
   // like Android and iPhone.
-  const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
+  // CustomTabBar (built with LiquidGlassView pill) is used on Android, iPad,
+  // and iOS to guarantee long-press events (Home -> Report, Profile -> Account Switcher)
+  // and maintain a consistent liquid glass UI across all platforms.
+  const isCustomTabBar = true;
   const [currentRoute, setCurrentRoute] = useState("Home");
 
   // Opens the forum screen from the HomeScreen top-left button
