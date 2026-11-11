@@ -1,5 +1,4 @@
 import "./app/services/ota/patchLocalAssets";
-import "./app/utils/globalFont";
 import React from "react";
 import { registerRootComponent } from "expo";
 import * as SplashScreen from "expo-splash-screen";
@@ -40,6 +39,16 @@ global.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
   }
   previousHandler?.(error, isFatal);
 });
+global.RN$registerExceptionListener?.((data) => {
+  if (data?.isFatal && !__DEV__) {
+    data.preventDefault?.();
+    const err = new Error(data.message || data.originalMessage || "Fatal JS Error");
+    if (data.extraData?.rawStack) {
+      err.stack = data.extraData.rawStack;
+    }
+    showFatal(err);
+  }
+});
 
 // require, not import: imports are hoisted above the handler above, and an
 // error thrown while the app's modules load must land in this try.
@@ -49,6 +58,7 @@ try {
   // (Skia's ReanimatedProxy) replace its error with "react-native-reanimated
   // is not installed!" - loading it here shows the real one.
   require("react-native-reanimated");
+  require("./app/utils/globalFont");
   require("./app/i18n");
   App = require("./App").default;
 

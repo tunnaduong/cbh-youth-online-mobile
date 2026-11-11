@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import * as Font from "expo-font";
 
@@ -7,22 +7,23 @@ const TextAncestorContext = require("react-native/Libraries/Text/TextAncestorCon
 const TextInputModule = require("react-native/Libraries/Components/TextInput/TextInput");
 
 export const INTER_FONT_SOURCES = {
-  Inter_300Light: require("../assets/fonts/inter/Inter_300Light.ttf"),
-  Inter_300Light_Italic: require("../assets/fonts/inter/Inter_300Light_Italic.ttf"),
   Inter_400Regular: require("../assets/fonts/inter/Inter_400Regular.ttf"),
-  Inter_400Regular_Italic: require("../assets/fonts/inter/Inter_400Regular_Italic.ttf"),
   Inter_500Medium: require("../assets/fonts/inter/Inter_500Medium.ttf"),
-  Inter_500Medium_Italic: require("../assets/fonts/inter/Inter_500Medium_Italic.ttf"),
   Inter_600SemiBold: require("../assets/fonts/inter/Inter_600SemiBold.ttf"),
-  Inter_600SemiBold_Italic: require("../assets/fonts/inter/Inter_600SemiBold_Italic.ttf"),
   Inter_700Bold: require("../assets/fonts/inter/Inter_700Bold.ttf"),
-  Inter_700Bold_Italic: require("../assets/fonts/inter/Inter_700Bold_Italic.ttf"),
+  Inter_300Light: require("../assets/fonts/inter/Inter_300Light.ttf"),
   Inter_800ExtraBold: require("../assets/fonts/inter/Inter_800ExtraBold.ttf"),
-  Inter_800ExtraBold_Italic: require("../assets/fonts/inter/Inter_800ExtraBold_Italic.ttf"),
   Inter_900Black: require("../assets/fonts/inter/Inter_900Black.ttf"),
+  Inter_400Regular_Italic: require("../assets/fonts/inter/Inter_400Regular_Italic.ttf"),
+  Inter_500Medium_Italic: require("../assets/fonts/inter/Inter_500Medium_Italic.ttf"),
+  Inter_600SemiBold_Italic: require("../assets/fonts/inter/Inter_600SemiBold_Italic.ttf"),
+  Inter_700Bold_Italic: require("../assets/fonts/inter/Inter_700Bold_Italic.ttf"),
+  Inter_300Light_Italic: require("../assets/fonts/inter/Inter_300Light_Italic.ttf"),
+  Inter_800ExtraBold_Italic: require("../assets/fonts/inter/Inter_800ExtraBold_Italic.ttf"),
   Inter_900Black_Italic: require("../assets/fonts/inter/Inter_900Black_Italic.ttf"),
 };
 
+const INTER_FONT_ENTRIES = Object.entries(INTER_FONT_SOURCES);
 const INTER_FAMILIES = new Set(Object.keys(INTER_FONT_SOURCES));
 
 const DEFAULT_SYSTEM_FAMILIES = new Set([
@@ -43,7 +44,10 @@ const DEFAULT_SYSTEM_FAMILIES = new Set([
 function isSystemFontFamily(fontFamily) {
   if (!fontFamily) return true;
   if (DEFAULT_SYSTEM_FAMILIES.has(fontFamily)) return true;
-  if (typeof fontFamily === "string" && (fontFamily.startsWith("Roboto,") || fontFamily.startsWith("system-ui,"))) {
+  if (
+    typeof fontFamily === "string" &&
+    (fontFamily.startsWith("Roboto,") || fontFamily.startsWith("system-ui,"))
+  ) {
     return true;
   }
   return false;
@@ -112,11 +116,10 @@ export function getInterFontFamily(weight = "400", italic = false) {
   }
 }
 
-// Pre-allocated style overrides and context states so rendering allocates no
-// extra objects on the hot path.
-// Custom fonts registered via expo-font on Android are stored under
-// Typeface.NORMAL, so fontWeight/fontStyle must be reset to "normal" to
-// prevent Android from falling back to Roboto or synthesizing fake bold.
+// Pre-allocated style overrides so rendering allocates no extra objects on the hot path.
+// Custom fonts registered via expo-font carry their own weight/italic in the TTF file;
+// resetting fontWeight and fontStyle to "normal" prevents iOS and Android from falling
+// back to the system font or synthesizing fake bold/italic.
 const OVERRIDE_STYLES = {};
 for (const family of INTER_FAMILIES) {
   OVERRIDE_STYLES[family] = Object.freeze({
@@ -126,56 +129,43 @@ for (const family of INTER_FAMILIES) {
   });
 }
 
-const DEFAULT_FONT_STATE = Object.freeze({ customFont: false, weight: "400", italic: false });
-const CUSTOM_FONT_STATE = Object.freeze({ customFont: true, weight: "400", italic: false });
-const FONT_STATES = {};
-for (const weight of ["300", "400", "500", "600", "700", "800", "900"]) {
-  FONT_STATES[`${weight}_normal`] = Object.freeze({ customFont: false, weight, italic: false });
-  FONT_STATES[`${weight}_italic`] = Object.freeze({ customFont: false, weight, italic: true });
-}
-
-const ParentFontStateContext = createContext(DEFAULT_FONT_STATE);
-
 let interLoaded = false;
 let loadPromise = null;
 const listeners = new Set();
 
-function checkInterLoaded() {
-  if (interLoaded) return true;
-  try {
-    if (Font.isLoaded("Inter_400Regular")) {
-      interLoaded = true;
-      return true;
-    }
-  } catch {}
-  return false;
-}
-
 export function loadGlobalFonts() {
-  if (checkInterLoaded()) return Promise.resolve(true);
+  if (interLoaded) return Promise.resolve(true);
   if (!loadPromise) {
-    loadPromise = Font.loadAsync(INTER_FONT_SOURCES)
-      .then(() => {
+    loadPromise = (async () => {
+      try {
+        for (let i = 0; i < INTER_FONT_ENTRIES.length; i++) {
+          const [family, source] = INTER_FONT_ENTRIES[i];
+          await Font.loadAsync({ [family]: source });
+        }
         interLoaded = true;
-        listeners.forEach((listener) => listener(true));
+        listeners.forEach((listener) => {
+          try {
+            listener(true);
+          } catch {}
+        });
         return true;
-      })
-      .catch((error) => {
+      } catch (error) {
         if (__DEV__) {
           console.warn("[globalFont] Failed to load Inter fonts:", error?.message || error);
         }
         loadPromise = null;
         return false;
-      });
+      }
+    })();
   }
   return loadPromise;
 }
 
 export function useGlobalFontsLoaded() {
-  const [loaded, setLoaded] = useState(checkInterLoaded);
+  const [loaded, setLoaded] = useState(interLoaded);
 
   useEffect(() => {
-    if (checkInterLoaded()) {
+    if (interLoaded) {
       if (!loaded) setLoaded(true);
       return undefined;
     }
@@ -187,17 +177,65 @@ export function useGlobalFontsLoaded() {
   return loaded;
 }
 
-function mayContainElementChildren(children) {
-  if (children == null || typeof children !== "object") return false;
-  if (Array.isArray(children) && children.length <= 3) {
-    for (let i = 0; i < children.length; i++) {
-      if (children[i] != null && typeof children[i] === "object") {
-        return true;
-      }
+function resolveInterTextStyle(style, hasTextAncestor) {
+  try {
+    const flat = style != null ? StyleSheet.flatten(style) : null;
+    const explicitFamily = flat?.fontFamily;
+
+    // Already an explicit Inter variant (e.g. Inter_600SemiBold)
+    if (explicitFamily && INTER_FAMILIES.has(explicitFamily)) {
+      return [style, OVERRIDE_STYLES[explicitFamily]];
     }
-    return false;
+
+    // Explicit non-system font (vector icons, StyledName custom fonts, monospace, story fonts)
+    if (explicitFamily && !isSystemFontFamily(explicitFamily)) {
+      return style;
+    }
+
+    const hasOwnWeight =
+      flat?.fontWeight != null ||
+      explicitFamily === "sans-serif-medium" ||
+      explicitFamily === "sans-serif-light" ||
+      explicitFamily === "sans-serif-thin";
+    const hasOwnStyle = flat?.fontStyle != null;
+
+    // Nested <Text> without its own font family/weight/style inherits the parent <Text>'s
+    // font attributes natively on both iOS (CoreText) and Android (Spannable).
+    if (hasTextAncestor && !explicitFamily && !hasOwnWeight && !hasOwnStyle) {
+      return style;
+    }
+
+    const weight = normalizeFontWeight(flat?.fontWeight, explicitFamily);
+    const italic = flat?.fontStyle === "italic";
+    const interFamily = getInterFontFamily(weight, italic);
+    const override = OVERRIDE_STYLES[interFamily];
+    return style != null ? [style, override] : override;
+  } catch {
+    return style;
   }
-  return true;
+}
+
+function resolveInterTextInputStyle(style) {
+  try {
+    const flat = style != null ? StyleSheet.flatten(style) : null;
+    const explicitFamily = flat?.fontFamily;
+
+    if (explicitFamily && INTER_FAMILIES.has(explicitFamily)) {
+      return [style, OVERRIDE_STYLES[explicitFamily]];
+    }
+
+    if (explicitFamily && !isSystemFontFamily(explicitFamily)) {
+      return style;
+    }
+
+    const weight = normalizeFontWeight(flat?.fontWeight, explicitFamily);
+    const italic = flat?.fontStyle === "italic";
+    const interFamily = getInterFontFamily(weight, italic);
+    const override = OVERRIDE_STYLES[interFamily];
+    return style != null ? [style, override] : override;
+  } catch {
+    return style;
+  }
 }
 
 let patched = false;
@@ -206,139 +244,48 @@ export function applyGlobalInterFont() {
   if (patched) return;
   patched = true;
 
-  const OriginalText = TextModule.default;
-  const OriginalTextInput = TextInputModule.default;
-
-  if (OriginalText) {
-    const InterText = ({ ref, style, children, ...restProps }) => {
-      const hasTextAncestor = useContext(TextAncestorContext);
-      const parentState = useContext(ParentFontStateContext);
-
-      if (!checkInterLoaded()) {
-        return (
-          <OriginalText {...restProps} style={style} ref={ref}>
-            {children}
-          </OriginalText>
-        );
-      }
-
-      const flat = style != null ? StyleSheet.flatten(style) : null;
-      const explicitFamily = flat?.fontFamily;
-
-      // Already an explicit Inter variant (e.g. Inter_600SemiBold)
-      if (explicitFamily && INTER_FAMILIES.has(explicitFamily)) {
-        return (
-          <OriginalText {...restProps} style={[style, OVERRIDE_STYLES[explicitFamily]]} ref={ref}>
-            {children}
-          </OriginalText>
-        );
-      }
-
-      // Explicit non-system font (vector icons, StyledName custom fonts, monospace, story fonts)
-      if (explicitFamily && !isSystemFontFamily(explicitFamily)) {
-        const element = (
-          <OriginalText {...restProps} style={style} ref={ref}>
-            {children}
-          </OriginalText>
-        );
-        if (mayContainElementChildren(children) && !parentState.customFont) {
-          return (
-            <ParentFontStateContext.Provider value={CUSTOM_FONT_STATE}>
-              {element}
-            </ParentFontStateContext.Provider>
-          );
+  try {
+    const OriginalText = TextModule?.default;
+    if (typeof OriginalText === "function") {
+      const InterText = (props) => {
+        const hasTextAncestor = useContext(TextAncestorContext);
+        if (!interLoaded || !props) {
+          return OriginalText(props);
         }
-        return element;
-      }
-
-      // Inside a parent <Text> that uses a custom/monospace font: inherit it
-      if (hasTextAncestor && parentState.customFont && !explicitFamily) {
-        return (
-          <OriginalText {...restProps} style={style} ref={ref}>
-            {children}
-          </OriginalText>
-        );
-      }
-
-      const hasOwnWeight = flat?.fontWeight != null || explicitFamily === "sans-serif-medium" || explicitFamily === "sans-serif-light" || explicitFamily === "sans-serif-thin";
-      const hasOwnStyle = flat?.fontStyle != null;
-
-      const weight = hasOwnWeight
-        ? normalizeFontWeight(flat?.fontWeight, explicitFamily)
-        : hasTextAncestor
-        ? parentState.weight
-        : "400";
-      const italic = hasOwnStyle
-        ? flat.fontStyle === "italic"
-        : hasTextAncestor
-        ? parentState.italic
-        : false;
-
-      const interFamily = getInterFontFamily(weight, italic);
-      const resolvedStyle = style != null ? [style, OVERRIDE_STYLES[interFamily]] : OVERRIDE_STYLES[interFamily];
-
-      const element = (
-        <OriginalText {...restProps} style={resolvedStyle} ref={ref}>
-          {children}
-        </OriginalText>
-      );
-
-      if (mayContainElementChildren(children)) {
-        const nextState = FONT_STATES[`${weight}_${italic ? "italic" : "normal"}`] || DEFAULT_FONT_STATE;
-        if (nextState !== parentState) {
-          return (
-            <ParentFontStateContext.Provider value={nextState}>
-              {element}
-            </ParentFontStateContext.Provider>
-          );
+        const resolvedStyle = resolveInterTextStyle(props.style, hasTextAncestor);
+        if (resolvedStyle === props.style) {
+          return OriginalText(props);
         }
-      }
+        return OriginalText({ ...props, style: resolvedStyle });
+      };
 
-      return element;
-    };
+      Object.assign(InterText, OriginalText);
+      InterText.displayName = "Text";
+      TextModule.default = InterText;
+    }
 
-    Object.assign(InterText, OriginalText);
-    InterText.displayName = "Text";
-    TextModule.default = InterText;
-  }
+    const OriginalTextInput = TextInputModule?.default;
+    if (typeof OriginalTextInput === "function") {
+      const InterTextInput = (props) => {
+        if (!interLoaded || !props) {
+          return OriginalTextInput(props);
+        }
+        const resolvedStyle = resolveInterTextInputStyle(props.style);
+        if (resolvedStyle === props.style) {
+          return OriginalTextInput(props);
+        }
+        return OriginalTextInput({ ...props, style: resolvedStyle });
+      };
 
-  if (OriginalTextInput) {
-    const InterTextInput = ({ ref, style, ...restProps }) => {
-      if (!checkInterLoaded()) {
-        return <OriginalTextInput {...restProps} style={style} ref={ref} />;
-      }
-
-      const flat = style != null ? StyleSheet.flatten(style) : null;
-      const explicitFamily = flat?.fontFamily;
-
-      if (explicitFamily && INTER_FAMILIES.has(explicitFamily)) {
-        return (
-          <OriginalTextInput
-            {...restProps}
-            style={[style, OVERRIDE_STYLES[explicitFamily]]}
-            ref={ref}
-          />
-        );
-      }
-
-      if (explicitFamily && !isSystemFontFamily(explicitFamily)) {
-        return <OriginalTextInput {...restProps} style={style} ref={ref} />;
-      }
-
-      const weight = normalizeFontWeight(flat?.fontWeight, explicitFamily);
-      const italic = flat?.fontStyle === "italic";
-      const interFamily = getInterFontFamily(weight, italic);
-      const resolvedStyle = style != null ? [style, OVERRIDE_STYLES[interFamily]] : OVERRIDE_STYLES[interFamily];
-
-      return <OriginalTextInput {...restProps} style={resolvedStyle} ref={ref} />;
-    };
-
-    Object.assign(InterTextInput, OriginalTextInput);
-    InterTextInput.displayName = "TextInput";
-    TextInputModule.default = InterTextInput;
+      Object.assign(InterTextInput, OriginalTextInput);
+      InterTextInput.displayName = "TextInput";
+      TextInputModule.default = InterTextInput;
+    }
+  } catch (error) {
+    if (__DEV__) {
+      console.warn("[globalFont] Failed to patch Text/TextInput:", error?.message || error);
+    }
   }
 }
 
-// Apply component patches and start loading Inter fonts immediately on import.
 applyGlobalInterFont();
-loadGlobalFonts();
