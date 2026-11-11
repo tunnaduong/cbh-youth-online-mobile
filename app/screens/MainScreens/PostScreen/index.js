@@ -56,6 +56,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedActionsContext } from "../../../contexts/FeedContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
+import { tableRenderers } from "../../../components/MarkdownTable";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -169,7 +170,7 @@ const Comment = React.memo(React.forwardRef(
                     contentWidth={contentWidth - 90 - level * 20}
                     source={{ html: linkifyMentionsInHtml(contentHtml, validMentions, { allowBroadcastMention: true }) }}
                     customHTMLElementModels={customHTMLElementModels}
-                    renderers={{ iframe: YouTubeIframeRenderer }}
+                    renderers={{ iframe: YouTubeIframeRenderer, ...tableRenderers }}
                     renderersProps={{
                       a: {
                         onPress: (event, href) => {

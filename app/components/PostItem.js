@@ -21,6 +21,7 @@ import RenderHTML, {
   HTMLContentModel,
   getNativePropsForTNode,
 } from "react-native-render-html";
+import { tableRenderers } from "./MarkdownTable";
 import { WebView } from "react-native-webview";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
@@ -1285,7 +1286,7 @@ const PostItem = ({
   );
 
   const postRenderers = useMemo(
-    () => ({ iframe: YouTubeIframeRenderer, a: AnchorRenderer }),
+    () => ({ iframe: YouTubeIframeRenderer, a: AnchorRenderer, ...tableRenderers }),
     [AnchorRenderer]
   );
 

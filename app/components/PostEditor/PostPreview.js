@@ -8,6 +8,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { previewPostMarkdown, isRequestCanceled } from "../../services/api/Api";
 import { linkifyMentionsInHtml } from "../../utils/mentionRender";
 import { customHTMLElementModels, YouTubeIframeRenderer } from "../PostItem";
+import { tableRenderers } from "../MarkdownTable";
 
 // Tab content for the editor's "Preview". The HTML comes from the server's
 // own Markdown pipeline (the same one that renders a published post), so what
@@ -158,7 +159,7 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
             contentWidth={width - horizontalPadding * 2}
             source={source}
             customHTMLElementModels={customHTMLElementModels}
-            renderers={{ iframe: YouTubeIframeRenderer }}
+            renderers={{ iframe: YouTubeIframeRenderer, ...tableRenderers }}
             // It's a preview: a tapped link shouldn't whisk the author away
             // from a half-written post.
             renderersProps={{ a: { onPress: () => {} } }}
