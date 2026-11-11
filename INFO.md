@@ -270,7 +270,7 @@ export default function ExampleScreen({ navigation }) {
 
 ### Typography
 
-System font everywhere (custom fonts only inside `StyledName` and story overlays). Sizes in use:
+Global **Inter** font family (`app/utils/globalFont.js`, `app/assets/fonts/inter/Inter_*.ttf`) across all `<Text>`, `<Animated.Text>`, and `<TextInput>` elements (custom fonts only inside `StyledName`, story overlays, vector icons, and monospace code blocks). Sizes in use:
 
 | Size / weight | Use |
 | --- | --- |
@@ -360,6 +360,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 ---
 
 ## 6. Recent work (newest first, as of 2026-11)
+
+- **Global Inter Font Across Mobile App (`app/utils/globalFont.js`, `app/assets/fonts/inter/*.ttf`, `index.js`, `App.js`, `app/components/SplashScreen.js`, `tailwind.config.js`)**:
+  - Bundled full Inter font family (`300Light` through `900Black` + italic variants, including full Vietnamese and Cyrillic subsets) in `app/assets/fonts/inter/` and loaded asynchronously via `expo-font` at startup (`loadGlobalFonts()`).
+  - Globally patched React Native `Text` and `TextInput` (`app/utils/globalFont.js`, imported at root in `index.js` before `App` and `Reanimated`) to automatically map `fontWeight` (`300`–`900`, `normal`, `bold`) and `fontStyle` (`italic`) to the corresponding `Inter_*` font family with `fontWeight: "normal"` and `fontStyle: "normal"`, preventing Android `ReactFontManager` fallback to Roboto or synthetic bolding while preserving nested `<Text>` weight/italic inheritance and custom fonts (`StyledName`, vector icons, monospace code blocks, story fonts).
+  - Configured React Navigation's `navigationTheme.fonts` in `App.js` and `fontFamily` in `tailwind.config.js` to use Inter.
 
 - **Instagram & Facebook-Style Story Photo Pinch-to-Resize, Rotate & Pan + `PostItem` `i18n` Fix (`CreateStoryScreen/PinchableStoryImage.js`, `CreateStoryScreen/MoveableItem.js`, `CreateStoryScreen/index.js`, `components/PostItem.js`)**:
   - Added `PinchableStoryImage` in `CreateStoryScreen` supporting 2-finger pinch-to-resize (both shrinking down to `0.25x` and zooming in up to `6x` with elastic rubber-banding), 2-finger twist rotation with magnetic snap at cardinal angles (`0°`, `90°`, `180°`, `270°`), 1-finger and 2-finger panning with magnetic center alignment snap + Instagram-style cyan guide lines (`#00D4FF`) and light haptic feedback, double-tap fit/fill toggle & reset, and an ambient blurred backdrop when the photo is scaled down, rotated, or non-9:16.

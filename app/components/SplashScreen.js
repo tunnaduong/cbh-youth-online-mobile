@@ -4,12 +4,14 @@ import LottieView from "lottie-react-native";
 import * as NativeSplashScreen from "expo-splash-screen";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useGlobalFontsLoaded } from "../utils/globalFont";
 
 // This is our Splash Screen component
 const SplashScreen = ({ onFinish }) => {
   const animation = useRef(null);
   const { theme } = useTheme();
   const { t } = useTranslation();
+  useGlobalFontsLoaded();
 
   useEffect(() => {
     // Hide native splash screen immediately when JS splash mounts

@@ -1,4 +1,5 @@
 import "./app/services/ota/patchLocalAssets";
+import "./app/utils/globalFont";
 import React from "react";
 import { registerRootComponent } from "expo";
 import * as SplashScreen from "expo-splash-screen";

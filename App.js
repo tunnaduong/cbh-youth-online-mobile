@@ -117,6 +117,7 @@ import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsol
 import ShakeToReport from "./app/components/ShakeToReport";
 import { checkUpdateAvailable, isOtaEnabled, isStartupCheckEnabled } from "./app/services/ota/otaService";
 import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
+import { useGlobalFontsLoaded } from "./app/utils/globalFont";
 
 // Patches console.log/warn/error as early as possible so nothing logged
 // during app startup is missed if dev mode is already enabled from a
@@ -344,6 +345,7 @@ const parseDeepLink = (url) => {
 // Main App component
 const App = ({ skipSplash = false }) => {
   const { theme, isDarkMode } = useTheme();
+  const fontsLoaded = useGlobalFontsLoaded();
   // React Navigation was never told the app's theme, so it ran with its
   // default light one whatever the app showed. On iOS 26 the tab bar is the
   // system's and is built from this: in a dark app it came up as a light bar
@@ -363,8 +365,16 @@ const App = ({ skipSplash = false }) => {
         text: theme.text,
         border: theme.border,
       },
+      fonts: fontsLoaded
+        ? {
+            regular: { fontFamily: "Inter_400Regular", fontWeight: "normal" },
+            medium: { fontFamily: "Inter_500Medium", fontWeight: "normal" },
+            bold: { fontFamily: "Inter_600SemiBold", fontWeight: "normal" },
+            heavy: { fontFamily: "Inter_700Bold", fontWeight: "normal" },
+          }
+        : base.fonts,
     };
-  }, [isDarkMode, theme]);
+  }, [isDarkMode, theme, fontsLoaded]);
   const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
