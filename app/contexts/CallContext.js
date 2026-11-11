@@ -84,6 +84,7 @@ export const CallProvider = ({ children }) => {
   const offerStartedForCallRef = useRef(null);
   const sdpChunksBufferRef = useRef({});
   const processedSignalSeqRef = useRef(0);
+  const processedAudioSeqRef = useRef(0);
   const processedCandidatesSetRef = useRef(new Set());
   const callTypeRef = useRef("audio");
 
@@ -157,6 +158,7 @@ export const CallProvider = ({ children }) => {
     offerStartedForCallRef.current = null;
     sdpChunksBufferRef.current = {};
     processedSignalSeqRef.current = 0;
+    processedAudioSeqRef.current = 0;
     processedCandidatesSetRef.current = new Set();
     bridgeRef.current?.sendMessage("STOP_RINGING");
     pendingRemoteOfferRef.current = null;
@@ -165,10 +167,11 @@ export const CallProvider = ({ children }) => {
     bridgeRef.current?.sendMessage("END_CALL");
     if (conversationChannelRef.current) {
       try {
-        const echo = getEcho();
-        if (echo && activeCallRef.current?.conversation_id) {
-          echo.leave(`chat.${activeCallRef.current.conversation_id}`);
-        }
+        conversationChannelRef.current
+          .stopListening(".call.answered")
+          .stopListening(".call.rejected")
+          .stopListening(".call.ended")
+          .stopListening(".call.signaled");
       } catch (e) {}
       conversationChannelRef.current = null;
     }
@@ -420,6 +423,8 @@ export const CallProvider = ({ children }) => {
           callId: data?.call_id || current.id,
           callType: callTypeRef.current,
         });
+      } else if (type === "audio_chunk" && payload) {
+        bridgeRef.current?.sendMessage("PLAY_AUDIO_CHUNK", payload);
       }
     },
     [userInfo?.id, startOutgoingRingingPhase]
@@ -440,6 +445,7 @@ export const CallProvider = ({ children }) => {
         if (cancelled) return;
         const remoteCall = res?.data?.call;
         const signals = res?.data?.signals;
+        const audioChunks = res?.data?.audio_chunks;
 
         if (Array.isArray(signals)) {
           for (const sig of signals) {
@@ -448,6 +454,20 @@ export const CallProvider = ({ children }) => {
             }
             if (String(sig.sender_id) !== String(userInfo?.id)) {
               handleCallSignaledEvent(sig);
+            }
+          }
+        }
+
+        if (Array.isArray(audioChunks)) {
+          for (const chunk of audioChunks) {
+            if (chunk.aseq && chunk.aseq <= processedAudioSeqRef.current) {
+              continue;
+            }
+            if (chunk.aseq) {
+              processedAudioSeqRef.current = chunk.aseq;
+            }
+            if (String(chunk.sender_id) !== String(userInfo?.id) && chunk.payload) {
+              bridgeRef.current?.sendMessage("PLAY_AUDIO_CHUNK", chunk.payload);
             }
           }
         }
@@ -503,6 +523,14 @@ export const CallProvider = ({ children }) => {
 
       const channel = echo.join(`chat.${conversationId}`);
       conversationChannelRef.current = channel;
+
+      try {
+        channel
+          .stopListening(".call.answered")
+          .stopListening(".call.rejected")
+          .stopListening(".call.ended")
+          .stopListening(".call.signaled");
+      } catch (e) {}
 
       channel
         .listen(".call.answered", handleCallAnsweredEvent)
@@ -953,7 +981,11 @@ export const CallProvider = ({ children }) => {
   }, []);
 
   const toggleSpeaker = useCallback(() => {
-    setIsSpeakerOn((prev) => !prev);
+    setIsSpeakerOn((prev) => {
+      const next = !prev;
+      bridgeRef.current?.sendMessage("SET_SPEAKER", { enabled: next });
+      return next;
+    });
   }, []);
 
   const toggleMinimize = useCallback(() => {
@@ -976,6 +1008,11 @@ export const CallProvider = ({ children }) => {
         ).catch(() => {});
       } else if (data.type === "ICE_CANDIDATE" && data.candidate) {
         sendCallSignalApi(callId, "candidate", data.candidate).catch(() => {});
+      } else if (data.type === "AUDIO_CHUNK" && data.chunk) {
+        sendCallSignalApi(callId, "audio_chunk", {
+          d: data.chunk,
+          sr: data.sampleRate || 8000,
+        }).catch(() => {});
       } else if (data.type === "CONNECTION_STATE_CHANGE") {
         if (data.state === "connected") {
           callStatusRef.current = "connected";
