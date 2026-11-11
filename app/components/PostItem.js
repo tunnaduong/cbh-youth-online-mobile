@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { getPostCopyableText, cleanHtmlToPlainText } from "../utils/postCopy";
@@ -1350,6 +1351,25 @@ const PostItem = ({
                   classesStyles={POST_HTML_CLASSES_STYLES}
                   tagsStyles={postTagsStyles}
                 />
+                {!isExpanded && isLongContent && (
+                  // Fade the clipped text out toward "Xem thêm" instead of cutting it hard.
+                  <LinearGradient
+                    pointerEvents="none"
+                    colors={[
+                      /^#[0-9a-f]{6}$/i.test(theme.cardBackground)
+                        ? `${theme.cardBackground}00`
+                        : "rgba(255,255,255,0)",
+                      theme.cardBackground,
+                    ]}
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 90,
+                    }}
+                  />
+                )}
               </Pressable>
               {isLongContent && (
                 <TouchableOpacity

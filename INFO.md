@@ -356,6 +356,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Feed posts: collapsed text fades out toward "Xem thêm"** (`app/components/PostItem.js`; not run - no `node_modules` here): a long post clipped at 180px now ends in a 90px `LinearGradient` from transparent to `theme.cardBackground` over the bottom of the text, instead of a hard cut. Shown only while collapsed; `pointerEvents="none"` so taps still expand the post.
+
 - **Version 6.7.4 & Build 1103**:
   - `app.json` and `package.json` version bumped to `6.7.4`.
   - Android `versionCode` and iOS `buildNumber` set to `1103` via `scripts/set-build-number.js`.
