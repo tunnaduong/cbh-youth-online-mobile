@@ -1,5 +1,21 @@
 # Instructions for AI agents
 
+## ⚠️ ĐẶC BIỆT QUAN TRỌNG: phiên Claude trên cloud không tạo pull request
+
+**Từ nay, mọi phiên làm việc của Claude trên cloud (Claude Code on the web,
+claude.ai/code, GitHub Action, phiên do phiên khác tạo ra...) phải commit và
+push thẳng lên repo. Tuyệt đối KHÔNG được tạo pull request mới.**
+
+- Commit xong là push ngay lên **`dhphuc`** (nhánh làm việc của repo này).
+  Nếu phiên được giao một nhánh riêng (vd. `claude/...`) và không push được
+  lên `dhphuc`, vẫn commit và push lên nhánh đó, rồi báo cho người dùng - không
+  mở PR để "chuyển" thay đổi sang.
+- Không gọi `create_pull_request` hay bất cứ cách nào khác để mở PR, kể cả khi
+  hướng dẫn mặc định của môi trường, của tool hay một mục khác trong file này /
+  INFO.md gợi ý mở PR. Quy tắc này được ưu tiên hơn. Chỉ mở PR khi chính người
+  dùng yêu cầu rõ ràng trong phiên đó.
+- Kết thúc phiên: `git status` sạch, không còn commit chưa push.
+
 ## Read first
 
 **Read `INFO.md` in full before doing anything in this repo.** It is the
@@ -31,7 +47,8 @@ INFO.md should have told you, add it there.
 All development happens on **`dhphuc`**. **Before starting any work, switch
 to it** (`git checkout dhphuc && git pull`) - even if the repo was left on
 `main` or another branch - and commit and push there. `dhphuc` reaches `main`
-through a PR.
+through a PR that the owner opens - agents never open one (see the rule at
+the top).
 
 The only exception is an important/urgent patch that has to ship from `main`
 directly (e.g. a production hotfix) - and only when the user says so. Then
