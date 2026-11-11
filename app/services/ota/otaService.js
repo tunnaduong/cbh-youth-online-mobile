@@ -24,6 +24,11 @@ export const OTA_ACTIVE_CHANNEL_KEY = "ota_active_channel";
 export const OTA_ACTIVE_CREATED_AT_KEY = "ota_active_created_at";
 export const OTA_ENABLED_KEY = "ota_enabled";
 export const OTA_CHECK_STARTUP_KEY = "ota_check_startup";
+// Update the user answered "Để sau" to at startup: not offered again at startup.
+export const OTA_PROMPT_SKIPPED_ID_KEY = "ota_prompt_skipped_update_id";
+// Update last downloaded + reloaded into. If the app still is not running it after
+// that, the native launcher refused it, and offering it again would loop forever.
+export const OTA_APPLY_ATTEMPT_ID_KEY = "ota_apply_attempt_update_id";
 
 export const OTA_CHANNELS = {
   PRODUCTION: "production",
@@ -577,11 +582,15 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
       }
 
-      if (upstreamBuildNumber > 0 && upstreamBuildNumber === currentActiveBuild) {
+      // An update not newer than the running bundle can never launch: the native launcher
+      // (patched DatabaseLauncher / AppLauncherWithDatabase) drops OTAs whose commitTime is
+      // <= the embedded one, and otherwise picks the newest. Offering it showed the prompt
+      // on every launch while the app kept running the same bundle.
+      {
         const serverTime = manifest.createdAt ? new Date(manifest.createdAt).getTime() : 0;
         if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
           console.log(
-            `[OTA Native] Server update time (${serverTime}) <= active update time (${activeTime}) with equal build (${upstreamBuildNumber}). Up to date.`
+            `[OTA Native] Server update time (${serverTime}) <= running bundle time (${activeTime}). Up to date.`
           );
           return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
@@ -701,11 +710,12 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
 
         // Check timestamps against active/embedded update if build numbers are equal
         // (allows consecutive OTA pushes with the same build number while blocking older channels).
-        if (upstreamBuildNumber === currentActiveBuild) {
+        // Same rule as the native path: not newer than the running bundle = never launched.
+        {
           const serverTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
           if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
             console.log(
-              `[OTA] Server update time (${serverTime}) <= active update time (${activeTime}) with same build. Up to date.`
+              `[OTA] Server update time (${serverTime}) <= running bundle time (${activeTime}). Up to date.`
             );
             return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
           }
@@ -754,6 +764,45 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
     channel,
     error: "Không thể kiểm tra bản cập nhật. Vui lòng thử lại sau.",
   };
+}
+
+/**
+ * The user answered "Để sau" to this update at startup: don't offer it again at startup
+ * (Settings > App updates still does). With checkAutomatically ON_LOAD it is usually
+ * fetched in the background and applied on a later cold start anyway.
+ */
+export function rememberSkippedStartupUpdate(updateId) {
+  const id = normalizeUpdateId(updateId);
+  if (!id) return;
+  try {
+    storage.set(OTA_PROMPT_SKIPPED_ID_KEY, id);
+  } catch {}
+}
+
+/**
+ * Whether the startup check may show the prompt for this update.
+ * - not after the user said "Để sau" to the same update;
+ * - not when it was already downloaded and reloaded into but the app still runs
+ *   another bundle (the native launcher refused it) - prompting again would loop.
+ */
+export function shouldPromptAtStartup(updateInfo) {
+  const id = normalizeUpdateId(updateInfo?.id);
+  if (!id) return true;
+  try {
+    if (normalizeUpdateId(storage.getString(OTA_PROMPT_SKIPPED_ID_KEY)) === id) {
+      console.log(`[OTA Startup] Update ${id} was postponed by the user. Not prompting.`);
+      return false;
+    }
+    const attempted = normalizeUpdateId(storage.getString(OTA_APPLY_ATTEMPT_ID_KEY));
+    const running = getLiveUpdatesRuntime().updateId || "";
+    if (attempted === id && running !== id) {
+      console.warn(
+        `[OTA Startup] Update ${id} was already applied once but the app still runs ${running || "the embedded bundle"}. Not prompting again.`
+      );
+      return false;
+    }
+  } catch {}
+  return true;
 }
 
 /**
@@ -857,6 +906,9 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
     }
     if (updateIdToSave) {
       storage.set(OTA_ACTIVE_UPDATE_ID_KEY, updateIdToSave);
+    }
+    if (targetId) {
+      storage.set(OTA_APPLY_ATTEMPT_ID_KEY, targetId);
     }
     storage.set(OTA_ACTIVE_CHANNEL_KEY, channelToSave);
 

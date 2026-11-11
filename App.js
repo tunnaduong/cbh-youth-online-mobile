@@ -115,7 +115,13 @@ import { parseYouTubeShare } from "./app/utils/youtubeShare";
 import { initDevConsole } from "./app/utils/devConsole";
 import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
 import ShakeToReport from "./app/components/ShakeToReport";
-import { checkUpdateAvailable, isOtaEnabled, isStartupCheckEnabled } from "./app/services/ota/otaService";
+import {
+  checkUpdateAvailable,
+  isOtaEnabled,
+  isStartupCheckEnabled,
+  rememberSkippedStartupUpdate,
+  shouldPromptAtStartup,
+} from "./app/services/ota/otaService";
 import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
 import { useGlobalFontsLoaded } from "./app/utils/globalFont";
 
@@ -438,6 +444,9 @@ const App = ({ skipSplash = false }) => {
         const res = await checkUpdateAvailable();
         if (!isMounted) return;
         console.log(`[OTA Startup] Startup check finished: status="${res.status}", isAvailable=${res.isAvailable}`);
+        if (res.updateInfo && !shouldPromptAtStartup(res.updateInfo)) {
+          return;
+        }
         if (res.isAvailable && res.updateInfo) {
           setStartupUpdateInfo(res.updateInfo);
           setShowUpdateModal(true);
@@ -1273,6 +1282,7 @@ const App = ({ skipSplash = false }) => {
         visible={showUpdateModal}
         updateInfo={startupUpdateInfo}
         onDismiss={() => setShowUpdateModal(false)}
+        onLater={(info) => rememberSkippedStartupUpdate(info?.id)}
       />
     </>
   );

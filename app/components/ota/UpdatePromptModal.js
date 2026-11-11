@@ -32,6 +32,7 @@ export default function UpdatePromptModal({
   visible,
   updateInfo,
   onDismiss,
+  onLater,
 }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -226,6 +227,9 @@ export default function UpdatePromptModal({
   const handleClose = () => {
     if (status === STATUS.DOWNLOADING || status === STATUS.RESTARTING) {
       return;
+    }
+    if (status === STATUS.PROMPT) {
+      onLater?.(updateInfo);
     }
     setStatus(STATUS.PROMPT);
     onDismiss?.();
