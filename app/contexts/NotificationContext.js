@@ -11,6 +11,7 @@ import {
   registerExpoPushToken,
   unregisterExpoPushToken,
   getUnreadNotificationCount,
+  markConversationAsDelivered,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
 import { resolveNotificationTarget } from '../utils/notificationRouting';
@@ -159,6 +160,9 @@ export const NotificationProvider = ({ children }) => {
 
   const handleNotificationReceived = (notification) => {
     const callData = notification?.request?.content?.data;
+    if (callData?.type === 'chat_message' && callData?.conversation_id) {
+      markConversationAsDelivered(callData.conversation_id, callData.message_id).catch(() => {});
+    }
     // In prod/demo mode, do NOT auto-popup the incoming call dialog when surfing in app.
     // The call UI will only appear when the user explicitly taps the push notification.
     if (callData?.type === 'incoming_call' && CALL_FEATURES_ENABLED) {

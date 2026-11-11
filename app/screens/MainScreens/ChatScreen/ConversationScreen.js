@@ -22,6 +22,7 @@ import {
   sendMessage,
   createConversation,
   markConversationAsRead,
+  markConversationAsDelivered,
   blockUser,
   reportUser,
   reactToMessage,
@@ -331,6 +332,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const {
     onMessageSent,
+    onMessageDelivered,
     onMessageRead,
     onMessageDeleted,
     onMessageReacted,
@@ -1253,13 +1255,16 @@ const ConversationScreen = ({ navigation, route }) => {
       // send a read receipt so the sender's "seen" status keeps updating live.
       // Not when another screen covers this one or the app is in the
       // background: the user has not seen it (it is marked when they return).
-      if (isFocusedRef.current && AppState.currentState === "active")
-      markConversationAsRead(activeId).catch((error) => {
-        console.log(
-          "[ConversationScreen] Error marking conversation as read:",
-          error?.response?.data || error?.message,
-        );
-      });
+      if (isFocusedRef.current && AppState.currentState === "active") {
+        markConversationAsRead(activeId).catch((error) => {
+          console.log(
+            "[ConversationScreen] Error marking conversation as read:",
+            error?.response?.data || error?.message,
+          );
+        });
+      } else {
+        markConversationAsDelivered(activeId).catch(() => {});
+      }
       // Any incoming activity from the other user is a good moment to re-check their online dot.
       refreshOtherUserOnlineStatusRef.current();
     };
@@ -1332,7 +1337,22 @@ const ConversationScreen = ({ navigation, route }) => {
       );
     };
 
+    const handleDelivered = (event) => {
+      const deliveredAt = event?.delivered_at || new Date().toISOString();
+      const messageIds = event?.message_ids;
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (!m || m.type !== "message" || !m.is_myself || m.read_at || m.delivered_at) return m;
+          if (!messageIds || messageIds.length === 0 || messageIds.includes(m.id)) {
+            return { ...m, delivered_at: deliveredAt };
+          }
+          return m;
+        })
+      );
+    };
+
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
+    const unsubscribeDelivered = onMessageDelivered ? onMessageDelivered(activeId, handleDelivered) : () => {};
     const unsubscribeRead = onMessageRead(activeId, refresh);
     const unsubscribeDeleted = onMessageDeleted(activeId, refresh);
     const unsubscribeTyping = onTyping(activeId, handleTyping);
@@ -1342,6 +1362,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
     return () => {
       unsubscribeSent();
+      unsubscribeDelivered();
       unsubscribeRead();
       unsubscribeDeleted();
       unsubscribeTyping();
@@ -1361,6 +1382,7 @@ const ConversationScreen = ({ navigation, route }) => {
     currentConversationId,
     conversationId,
     onMessageSent,
+    onMessageDelivered,
     onMessageRead,
     onMessageDeleted,
     onMessageReacted,
@@ -3424,6 +3446,7 @@ const ConversationScreen = ({ navigation, route }) => {
             pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
             attemptScrollToHighlightRef={attemptScrollToHighlightRef}
             seenParticipants={seenParticipants}
+            otherUser={otherUser}
           />
           <TypingIndicator typingUsers={typingUsers} participants={currentConversation?.participants} />
           <View style={{ height: isAndroid ? 82 : 24 }} />

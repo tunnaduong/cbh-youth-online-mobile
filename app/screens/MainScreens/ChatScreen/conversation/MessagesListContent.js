@@ -51,6 +51,7 @@ const MessageListItem = React.memo(({
   messageHandlersRef,
   onImageError,
   seenAvatars,
+  otherUser,
   conversationId,
   activeInlineVideoId,
   autoplayVideos,
@@ -185,6 +186,7 @@ const MessageListItem = React.memo(({
           handlersRef={messageHandlersRef}
           onImageError={onImageError}
           seenAvatars={seenAvatars}
+          otherUser={otherUser}
           activeInlineVideoId={activeInlineVideoId}
           autoplayVideos={autoplayVideos}
           bubbleMaxWidth={bubbleMaxWidth}
@@ -218,6 +220,7 @@ const MessagesListContent = React.memo(({
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
   seenParticipants,
+  otherUser,
   visibleViewport,
   conversationId,
 }) => {
@@ -263,8 +266,11 @@ const MessagesListContent = React.memo(({
         (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
       );
     }
+    if (!isGroupChat && lastRealMessage?.is_myself && lastRealMessage?.read_at && otherUser) {
+      return [otherUser];
+    }
     return undefined;
-  }, [isGroupChat, lastRealMessage?.id, lastRealMessage?.is_myself, lastRealMessage?.created_at, seenParticipants]);
+  }, [isGroupChat, lastRealMessage?.id, lastRealMessage?.is_myself, lastRealMessage?.created_at, lastRealMessage?.read_at, seenParticipants, otherUser]);
 
   return messages.map((value, index) => {
     const isHighlighted =
@@ -321,6 +327,7 @@ const MessagesListContent = React.memo(({
         attemptScrollToHighlightRef={attemptScrollToHighlightRef}
         isOffscreen={isOffscreen}
         conversationId={conversationId}
+        otherUser={otherUser}
       />
     );
   });

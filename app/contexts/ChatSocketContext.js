@@ -24,6 +24,7 @@ export const ChatSocketProvider = ({ children }) => {
     if (!listenersRef.current[id]) {
       listenersRef.current[id] = {
         sent: new Set(),
+        delivered: new Set(),
         read: new Set(),
         deleted: new Set(),
         typing: new Set(),
@@ -50,6 +51,10 @@ export const ChatSocketProvider = ({ children }) => {
       .listen(".message.sent", (e) => {
         console.log("[ChatSocket] message.sent on chat." + id, e);
         bucket.sent.forEach((cb) => cb(e));
+      })
+      .listen(".message.delivered", (e) => {
+        console.log("[ChatSocket] message.delivered on chat." + id, e);
+        bucket.delivered.forEach((cb) => cb(e));
       })
       .listen(".message.read", (e) => {
         console.log("[ChatSocket] message.read on chat." + id, e);
@@ -112,6 +117,10 @@ export const ChatSocketProvider = ({ children }) => {
 
   const onMessageSent = useCallback(
     (conversationId, callback) => addListener("sent", conversationId, callback),
+    [addListener]
+  );
+  const onMessageDelivered = useCallback(
+    (conversationId, callback) => addListener("delivered", conversationId, callback),
     [addListener]
   );
   const onMessageRead = useCallback(
@@ -191,6 +200,7 @@ export const ChatSocketProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       onMessageSent,
+      onMessageDelivered,
       onMessageRead,
       onMessageDeleted,
       onMessageReacted,
@@ -201,6 +211,7 @@ export const ChatSocketProvider = ({ children }) => {
     }),
     [
       onMessageSent,
+      onMessageDelivered,
       onMessageRead,
       onMessageDeleted,
       onMessageReacted,

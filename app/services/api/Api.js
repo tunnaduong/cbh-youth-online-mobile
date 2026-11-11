@@ -747,6 +747,10 @@ export const markConversationAsRead = (id) => {
   return Api.postRequest(`/v1.0/chat/conversations/${id}/read`);
 };
 
+export const markConversationAsDelivered = (id, messageId = null) => {
+  return Api.postRequest(`/v1.0/chat/conversations/${id}/delivered`, messageId ? { message_id: messageId } : {});
+};
+
 export const reactToMessage = (messageId, reactionType) => {
   return Api.postRequest(`/v1.0/chat/messages/${messageId}/reactions`, {
     reaction_type: reactionType,

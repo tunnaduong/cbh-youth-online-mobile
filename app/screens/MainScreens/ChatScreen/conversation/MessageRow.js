@@ -61,6 +61,7 @@ const MessageRow = React.memo(({
   activeInlineVideoId,
   autoplayVideos,
   seenAvatars,
+  otherUser,
   // Worked out once by MessagesListContent from the window width.
   bubbleMaxWidth,
 }) => {
@@ -665,44 +666,82 @@ const MessageRow = React.memo(({
               </Text>
             ) : null}
           </Text>
-          {!isGroupChat && item.is_myself && (
-            <View style={styles.readStatus}>
-              {item.read_at ? (
+          {item.is_myself && (
+            item.is_sending ? (
+              <View style={styles.readStatus}>
+                <ActivityIndicator
+                  size="small"
+                  color={isDarkMode ? "rgba(255,255,255,0.7)" : "#6B7280"}
+                  style={{ transform: [{ scale: 0.55 }], width: 14, height: 14 }}
+                />
+              </View>
+            ) : (seenAvatars && seenAvatars.length > 0) || (!isGroupChat && item.read_at) ? (
+              <TouchableOpacity
+                style={styles.seenByRow}
+                onPress={isGroupChat && seenAvatars?.length > 0 ? () => handlersRef.current.showSeenBy?.(seenAvatars) : undefined}
+                disabled={!isGroupChat || !seenAvatars || seenAvatars.length <= 1}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                {(seenAvatars && seenAvatars.length > 0 ? seenAvatars : (otherUser ? [otherUser] : [{ id: "read" }])).slice(0, 3).map((p, i) => (
+                  p.avatar_url && !p.avatar_url.includes("placeholder-user.jpg") && !p.avatar_url.includes("default-avatar.png") ? (
+                    <FastImage
+                      key={p.id || i}
+                      source={{ uri: p.avatar_url }}
+                      style={[
+                        styles.seenAvatar,
+                        { borderColor: theme.background, marginLeft: i === 0 ? 0 : -6 },
+                      ]}
+                    />
+                  ) : (
+                    <View
+                      key={p.id || i}
+                      style={[
+                        styles.seenAvatar,
+                        {
+                          borderColor: theme.background,
+                          marginLeft: i === 0 ? 0 : -6,
+                          backgroundColor: theme.iconBackground || (isDarkMode ? "#374151" : "#E5E7EB"),
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                      ]}
+                    >
+                      {p.profile_name || p.username ? (
+                        <Text style={{ fontSize: 7, fontWeight: "bold", color: theme.text }}>
+                          {(p.profile_name || p.username).charAt(0)?.toUpperCase()}
+                        </Text>
+                      ) : (
+                        <Ionicons name="person" size={7} color={theme.subText} />
+                      )}
+                    </View>
+                  )
+                ))}
+              </TouchableOpacity>
+            ) : (item.delivered_at || item.is_delivered) ? (
+              <View style={styles.readStatus}>
                 <View style={styles.doubleCheck}>
                   <Ionicons
                     name="checkmark"
                     size={13}
-                    color="#86EFAC"
+                    color={isDarkMode ? "rgba(255,255,255,0.7)" : "#6B7280"}
                     style={styles.checkOverlap}
                   />
                   <Ionicons
                     name="checkmark"
                     size={13}
-                    color="#86EFAC"
+                    color={isDarkMode ? "rgba(255,255,255,0.7)" : "#6B7280"}
                   />
                 </View>
-              ) : (
-                <Ionicons name="checkmark" size={13} color={isDarkMode ? "rgba(255,255,255,0.7)" : "#6B7280"} />
-              )}
-            </View>
-          )}
-          {isGroupChat && seenAvatars?.length > 0 && (
-            <TouchableOpacity
-              style={styles.seenByRow}
-              onPress={() => handlersRef.current.showSeenBy?.(seenAvatars)}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              {seenAvatars.slice(0, 3).map((p, i) => (
-                <FastImage
-                  key={p.id}
-                  source={{ uri: p.avatar_url }}
-                  style={[
-                    styles.seenAvatar,
-                    { borderColor: theme.background, marginLeft: i === 0 ? 0 : -6 },
-                  ]}
+              </View>
+            ) : (
+              <View style={styles.readStatus}>
+                <Ionicons
+                  name="checkmark"
+                  size={13}
+                  color={isDarkMode ? "rgba(255,255,255,0.7)" : "#6B7280"}
                 />
-              ))}
-            </TouchableOpacity>
+              </View>
+            )
           )}
         </View>
       )}
@@ -733,6 +772,7 @@ const MessageRow = React.memo(({
     prev.handlersRef === next.handlersRef &&
     prev.onImageError === next.onImageError &&
     prev.seenAvatars === next.seenAvatars &&
+    prev.otherUser === next.otherUser &&
     prev.bubbleMaxWidth === next.bubbleMaxWidth
   );
 });
