@@ -1058,6 +1058,12 @@ const App = ({ skipSplash = false }) => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="PrintRequestsScreen"
+                component={WebAppScreen}
+                initialParams={{ site: "print" }}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="DepositScreen"
                 component={DepositScreen}
                 options={{ headerShown: false }}
