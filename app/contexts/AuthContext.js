@@ -49,6 +49,11 @@ const clearSessionCaches = () => {
   if (storage.contains("ota_check_startup")) {
     preserved.ota_check_startup = storage.getBoolean("ota_check_startup");
   }
+  // Device-level OTA prompt memory: a sign-out must not bring back an update
+  // prompt the user postponed, or one the native launcher already refused.
+  ["ota_prompt_skipped_update_id", "ota_apply_attempt_update_id"].forEach((key) => {
+    if (storage.contains(key)) preserved[key] = storage.getString(key);
+  });
   // Which login the WebViews / in-app browser were signed in with (see
   // utils/webSession.js). Wiping these made the app forget that they hold a
   // session at all, so after a sign-out they stayed signed in as the old
