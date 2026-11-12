@@ -17,11 +17,12 @@ import { getPostCopyableText, cleanHtmlToPlainText } from "../utils/postCopy";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
 import MediaShimmer from "./MediaShimmer";
-import RenderHTML, {
-  HTMLElementModel,
-  HTMLContentModel,
-  getNativePropsForTNode,
-} from "react-native-render-html";
+import { getNativePropsForTNode } from "react-native-render-html";
+import {
+  PostHtml,
+  customHTMLElementModels,
+  truncateHtmlForPreview,
+} from "./PostHtml";
 import { tableRenderers } from "./MarkdownTable";
 import { WebView } from "react-native-webview";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -64,18 +65,20 @@ import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
 import UserNameRow from "./profile/UserNameRow";
 import { AvatarFrameWrap } from "./profile/AvatarFrame";
 
-// react-native-render-html doesn't know about <iframe> by default (it's not
-// a real HTML content tag), so it has to be registered as a custom element
-// and given a custom renderer that plays the embed in a WebView. Exported so
-// other RenderHTML instances (e.g. PostScreen's comment renderer) that also
-// display backend-whitelisted YouTube/SoundCloud iframes can reuse the exact
-// same setup instead of silently dropping unrecognized <iframe> tags.
-export const customHTMLElementModels = {
-  iframe: HTMLElementModel.fromCustomModel({
-    tagName: "iframe",
-    contentModel: HTMLContentModel.block,
-  }),
-};
+// Other RenderHTML instances (e.g. PostScreen's comment renderer) import the
+// <iframe> element model from here; it lives in PostHtml now.
+export { customHTMLElementModels };
+
+// isLongContent's "more than N <br>/<p>" test, without building an array of
+// every match in a very long post.
+function hasMoreLineBreaksThan(html, limit) {
+  const re = /<br|<p/gi;
+  let count = 0;
+  while (re.exec(html)) {
+    if (++count > limit) return true;
+  }
+  return false;
+}
 
 // Persistent measured-height cache (postId -> pixel height) so recycled or
 // remounted feed cards lock their exact height and prevent scroll jumps when
@@ -92,15 +95,6 @@ function recordPostHeight(postId, height) {
     postHeightCache.delete(oldestKey);
   }
 }
-
-// Constant RenderHTML props of a post row (see postHtmlSource in PostItem).
-
-const POST_HTML_CLASSES_STYLES = {
-  "mention-tag": {
-    color: "#22c55e",
-    fontWeight: "600",
-  },
-};
 
 // Handles youtube.com/embed/<id>, youtube.com/watch?v=<id>, and youtu.be/<id>.
 const extractYouTubeId = (url) => {
@@ -1106,7 +1100,7 @@ const PostItem = ({
   const isLongContent =
     !single &&
     Boolean(displayContent) &&
-    (displayContent.length > 280 || (displayContent.match(/<br|<p/gi) || []).length > 3);
+    (displayContent.length > 280 || hasMoreLineBreaksThan(displayContent, 3));
 
   const handleExpandPost = () => {
     setIsExpanded((prev) => !prev);
@@ -1133,108 +1127,25 @@ const PostItem = ({
   // render of the row, which makes the library run the mention / embed
   // regexes again and rebuild its whole tree for a post that has not
   // changed. Same values, computed once per input.
-  const postHtmlSource = useMemo(
-    () => ({
-      html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
-        linkifyMentionsInHtml(
-          displayContent || "",
-          validMentions
-        )
-      )),
-    }),
-    [displayContent, validMentions]
-  );
-  const postBaseStyle = useMemo(() => ({ fontSize: 16, color: theme.text }), [theme.text]);
-  const postTagsStyles = useMemo(
-    () => ({
-              h1: {
-                fontSize: 24,
-                fontWeight: "bold",
-                marginVertical: 12,
-                color: theme.text,
-              },
-              h2: {
-                fontSize: 18,
-                fontWeight: "bold",
-                marginTop: 14,
-                marginBottom: 8,
-                color: theme.text,
-              },
-              h3: {
-                fontSize: 16,
-                fontWeight: "bold",
-                marginTop: 12,
-                marginBottom: 6,
-                color: theme.text,
-              },
-              h4: {
-                fontSize: 14,
-                fontWeight: "600",
-                marginTop: 10,
-                marginBottom: 4,
-                color: theme.text,
-              },
-              h5: {
-                fontSize: 13,
-                fontWeight: "600",
-                marginTop: 8,
-                marginBottom: 4,
-                color: theme.text,
-              },
-              h6: {
-                fontSize: 12,
-                fontWeight: "600",
-                marginTop: 8,
-                marginBottom: 4,
-                color: theme.subText,
-              },
-              p: { marginBottom: 8, marginTop: 0, color: theme.text },
-              ul: { marginVertical: 6 },
-              ol: { marginVertical: 6 },
-              li: { marginBottom: 4, color: theme.text },
-              pre: {
-                backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
-                borderRadius: 6,
-                padding: 12,
-                marginVertical: 12,
-              },
-              strong: { fontWeight: "bold", color: theme.text },
-              em: { fontStyle: "italic", color: theme.text },
-              br: { marginBottom: 4 },
-              blockquote: {
-                backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
-                borderLeftWidth: 4,
-                borderLeftColor: theme.primary,
-                marginVertical: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                fontStyle: "italic",
-                borderRadius: 4,
-              },
-              hr: {
-                borderTopWidth: 1,
-                borderTopColor: theme.border,
-                marginVertical: 15,
-                backgroundColor: "transparent",
-                height: 1,
-              },
-              code: {
-                backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
-                color: "#d63384",
-                fontFamily: "monospace",
-                fontSize: 14,
-                paddingHorizontal: 4,
-                paddingVertical: 2,
-                borderRadius: 4,
-              },
-              a: {
-                color: theme.primary,
-                textDecorationLine: "underline",
-              },
-    }),
-    [theme, isDarkMode]
-  );
-
+  //
+  // A collapsed card shows only its first 180px, but it used to render the
+  // whole post under that clip: a very long article built thousands of
+  // native views every time the card scrolled back into the feed's window
+  // (the Android scroll lag). It now gets just the start of the post - about
+  // 1.6x what fits, so the clip and the fade look exactly as before - and the
+  // full post is rendered only once the user expands it. Embeds are appended
+  // below the text, so in a collapsed card they were always clipped away.
+  const showPreview = !isExpanded && isLongContent;
+  const previewChars = Math.max(400, Math.round((contentWidth - 30) * 1.6));
+  const postHtml = useMemo(() => {
+    const raw = displayContent || "";
+    if (showPreview) {
+      return linkifyMentionsInHtml(truncateHtmlForPreview(raw, previewChars), validMentions);
+    }
+    return appendSoundCloudEmbedBelow(
+      appendYouTubeEmbedBelow(linkifyMentionsInHtml(raw, validMentions))
+    );
+  }, [displayContent, validMentions, showPreview, previewChars]);
   const handleContentLinkPress = (event, href) => {
     const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
     if (hashtagMatch) {
@@ -1281,6 +1192,26 @@ const PostItem = ({
           />
         );
       },
+    []
+  );
+
+  // AnchorRenderer above handles taps itself; this only matters if the
+  // library ever calls the default <a> handler. Stable, so the post's HTML
+  // subtree is not re-rendered when only the copy callout changes.
+  const activeCopyTargetRef = useRef(activeCopyTarget);
+  activeCopyTargetRef.current = activeCopyTarget;
+  const postRenderersProps = useMemo(
+    () => ({
+      a: {
+        onPress: (event, href) => {
+          if (activeCopyTargetRef.current) {
+            setActiveCopyTarget(null);
+            return;
+          }
+          handleContentLinkPressRef.current(event, href);
+        },
+      },
+    }),
     []
   );
 
@@ -1639,25 +1570,11 @@ const PostItem = ({
                     },
                   ]}
                 >
-                  <RenderHTML
+                  <PostHtml
+                    html={postHtml}
                     contentWidth={contentWidth - 30}
-                    customHTMLElementModels={customHTMLElementModels}
                     renderers={postRenderers}
-                    renderersProps={{
-                      a: {
-                        onPress: (event, href) => {
-                          if (activeCopyTarget) {
-                            setActiveCopyTarget(null);
-                            return;
-                          }
-                          handleContentLinkPress(event, href);
-                        },
-                      },
-                    }}
-                    source={postHtmlSource}
-                    baseStyle={postBaseStyle}
-                    classesStyles={POST_HTML_CLASSES_STYLES}
-                    tagsStyles={postTagsStyles}
+                    renderersProps={postRenderersProps}
                   />
                   {!isExpanded && isLongContent && (
                     // Fade the clipped text out toward "Xem thêm" instead of cutting it hard.

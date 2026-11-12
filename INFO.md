@@ -66,6 +66,7 @@ app/
   components/              Shared UI
     Sidebar.js             Drawer menu (Utilities / Settings / Support sections)
     PostItem.js            Feed post card (largest component)
+    PostHtml.js            Post body rendering: shared HTML engine, parsed-tree cache, collapsed preview
     LiquidButton.js        Floating glass button used by native screen headers
     GlassModules.js        Liquid-glass wrappers + AndroidGlassBackdrop
     LiquidTabBar.js        Glass capsule bar with a draggable liquid selection pill (main bottom nav + chat gallery tabs)
@@ -373,6 +374,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 > **Size rules - read before adding an entry.** Max 10 entries, each max 3 lines (~300 chars); adding one drops the oldest (`git log -p -- INFO.md` keeps everything). No file-by-file changelogs or step lists - commits hold that. Record only what the code cannot tell a future agent: rules, gotchas, "needs a new native build", API dependencies. A lasting rule goes in Conventions / Design system, not here. Keep this whole file under ~500 lines / 60 KB; trim in the same commit if you push past it.
 
+- **Long posts no longer lag the feed** (`components/PostHtml.js`; JS only, OTA is enough; not benchmarked on a device yet): a collapsed card renders only the start of the post (`truncateHtmlForPreview`), every post body shares one render engine (`PostHtmlEngineProvider` in `contexts/index.js`) and parsed trees are cached by HTML. No chunked loading - expanding renders the whole post at once.
 - **Draggable liquid tab bar + shared sheet shell** (`LiquidTabBar.js`, `SheetShell.js`; not run on a device; JS only, OTA is enough): the selection pill is dragged/flicked (Reanimated + GH 3 `usePanGesture`), stretches with speed, swells the icons under it; used by the main nav and the gallery tabs. Sheets take colours/spring from `SheetShell`.
 - **Lag with scroll depth** (not run on a device): chat collapses runs of off-screen rows (any kind) into one spacer (`MessagesListContent.js` `OffscreenSpacer`; spacer `onLayout` re-derives each row's `y`); Home feed has a stable `renderItem`, `windowSize 3`, `HOME_SCROLL` emitted only near the top.
 - **Chat: quick-react icon and seen/delivered status no longer sit under every bubble** (`conversation/ReactionBadge.js`, `MessageRow.js`, `MessagesListContent.js`; not run on a device): both now gate on `isLastRealMessage` (the conversation's true last message, not just last-in-group), like Messenger/Zalo - older own messages no longer each show their own checkmark/avatar row. Long-press still reacts to any message; the timestamp footer and existing reactions pill are unaffected.
@@ -382,4 +384,3 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **OTA prompt no longer on every launch** (`services/ota/otaService.js`): an update whose `createdAt` is not newer than the running bundle is `up_to_date`; "Để sau" remembers the update id; a reload that did not take stays quiet.
 - **Android liquid glass uses `variant: "clear"`** (`GlassModules.js`); iOS keeps the call site's variant.
 - **Print requests from Explore** (`WebAppScreen` `site: "print"`): loads `/explore/print-requests` on the web site.
-- **OTA build-number and old-base -> new-base fixes** (`otaService.js`, `patches/expo-updates+55.0.26.patch`, `plugins/withNativeTweaks.js`): live runtime manifest is the source of truth; new binaries always boot their embedded bundle.

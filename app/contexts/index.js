@@ -7,10 +7,13 @@ import { UnreadCountsProvider } from "./UnreadCountsContext";
 import { NotificationProvider } from "./NotificationContext";
 import { ThemeProvider } from "./ThemeContext";
 import { CallProvider } from "./CallContext";
+import { PostHtmlEngineProvider } from "../components/PostHtml";
 
 export default function MultiContextProvider({ children }) {
   return (
     <ThemeProvider>
+      {/* One render engine for every post body (see components/PostHtml.js). */}
+      <PostHtmlEngineProvider>
       <AuthProvider>
         <CallProvider>
         <ChatSocketProvider>
@@ -26,6 +29,7 @@ export default function MultiContextProvider({ children }) {
         </ChatSocketProvider>
         </CallProvider>
       </AuthProvider>
+      </PostHtmlEngineProvider>
     </ThemeProvider>
   );
 }
