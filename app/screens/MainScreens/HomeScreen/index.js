@@ -1120,6 +1120,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [resendingVerification, setResendingVerification] = useState(false);
   const scrollPositionRef = useRef(0);
   const lastScrollYRef = useRef(0);
+  const lastHomeScrollEmitRef = useRef(0);
   const isScrollingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
@@ -1592,6 +1593,33 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         : prevFeed
     );
   };
+
+  // The row renderer is stable: the handlers it hands to PostItem are read
+  // through a ref (PostItem keeps its own stable wrappers), so it only changes
+  // with what a row really draws. An inline function here was a new renderItem
+  // on every render of this screen, re-rendering every mounted row's cell.
+  const feedHandlersRef = useRef({});
+  feedHandlersRef.current = { handleExpandPost, handleVoteUpdate, handleSaveUpdate };
+  const renderFeedItem = useCallback(
+    ({ item, index }) =>
+      item.type === "divider" ? (
+        <View style={{ paddingVertical: 16, paddingHorizontal: 20, alignItems: "center" }}>
+          <Text style={{ color: theme.textSecondary || theme.text, fontSize: 13 }}>
+            {item.label}
+          </Text>
+        </View>
+      ) : (
+        <PostItem
+          item={item}
+          onExpand={() => feedHandlersRef.current.handleExpandPost(index)}
+          onVoteUpdate={(...args) => feedHandlersRef.current.handleVoteUpdate(...args)}
+          onSaveUpdate={(...args) => feedHandlersRef.current.handleSaveUpdate(...args)}
+          navigation={navigation}
+          isActive={autoplayVideos && isFocused && item.id === activePostId}
+        />
+      ),
+    [theme, navigation, autoplayVideos, isFocused, activePostId]
+  );
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (!viewableItems) return;
@@ -2619,7 +2647,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
-    DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
+    // The only listener (SameHeader) fades its logo over the first 50px, so
+    // once past 80px both before and now there is nothing new to tell it.
+    if (offsetY < 80 || lastHomeScrollEmitRef.current < 80) {
+      DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
+    }
+    lastHomeScrollEmitRef.current = offsetY;
 
     lastScrollYRef.current = offsetY;
 
@@ -3001,7 +3034,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // Guard against non-array feed values from unexpected server responses
     const safeFeed = Array.isArray(feed) ? feed : [];
     if (blockedUsers && blockedUsers.length > 0) {
-      return safeFeed.filter((post) => !blockedUsers.includes(post.user?.username));
+      const blocked = new Set(blockedUsers);
+      return safeFeed.filter((post) => !blocked.has(post.user?.username));
     }
     return safeFeed;
   }, [feed, blockedUsers]);
@@ -3118,9 +3152,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           keyExtractor={(item, index) =>
             item.type === "divider" ? "caught-up-divider" : `post-${item.id ?? index}`
           }
-          initialNumToRender={5}
-          maxToRenderPerBatch={5}
-          windowSize={5}
+          // One screen mounted above and below the visible one: posts are
+          // tall, and everything outside is unmounted (its measured height
+          // is kept, so scrolling back up lands in the same place).
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={3}
           updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
@@ -3128,24 +3165,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             paddingBottom: 110 + insets.bottom,
             backgroundColor: "transparent",
           }}
-          renderItem={({ item, index }) => (
-            item.type === "divider" ? (
-              <View style={{ paddingVertical: 16, paddingHorizontal: 20, alignItems: "center" }}>
-                <Text style={{ color: theme.textSecondary || theme.text, fontSize: 13 }}>
-                  {item.label}
-                </Text>
-              </View>
-            ) : (
-              <PostItem
-                item={item}
-                onExpand={() => handleExpandPost(index)}
-                onVoteUpdate={handleVoteUpdate}
-                onSaveUpdate={handleSaveUpdate}
-                navigation={navigation}
-                isActive={autoplayVideos && isFocused && item.id === activePostId}
-              />
-            )
-          )}
+          renderItem={renderFeedItem}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
           onViewableItemsChanged={handleViewableItemsChanged}

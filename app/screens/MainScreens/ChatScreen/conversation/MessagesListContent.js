@@ -27,6 +27,40 @@ function setCachedMessageHeight(cacheKey, height) {
   }
 }
 
+// A run of consecutive rows that are far outside the viewport, replaced by
+// ONE empty view of their combined (measured) height - so the native view
+// count stays about the size of the window however far the history is
+// scrolled, instead of one placeholder per message. Its onLayout hands every
+// row inside it a fresh `y` (spacer y + heights above it), which keeps jump-
+// to-message / autoplay offsets right after older pages are prepended.
+const OffscreenSpacer = React.memo(
+  ({ rows, totalHeight, rowLayoutsRef, messageLayoutOffsetsRef }) => (
+    <View
+      style={{ height: totalHeight }}
+      onLayout={(e) => {
+        let y = e.nativeEvent.layout.y;
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          rowLayoutsRef.current.set(row.key, { y, height: row.height });
+          if (row.messageId != null) {
+            messageLayoutOffsetsRef.current[row.messageId] = { y, height: row.height };
+          }
+          y += row.height;
+        }
+      }}
+    />
+  ),
+  (prev, next) =>
+    prev.totalHeight === next.totalHeight &&
+    prev.rows.length === next.rows.length &&
+    prev.rows[0].key === next.rows[0].key &&
+    prev.rows[prev.rows.length - 1].key === next.rows[next.rows.length - 1].key,
+);
+
+// Newest rows are never collapsed: the bottom of the chat is where new
+// messages land and where the "seen by" avatars sit.
+const ALWAYS_MOUNTED_TAIL = 8;
+
 // One entry of the list: the wrapper that records the row's position (for
 // jump-to-message and video autoplay) and either a date / time header, a
 // system line or a MessageRow. Memoized, so when one message arrives or
@@ -59,7 +93,7 @@ const MessageListItem = React.memo(({
   messageLayoutOffsetsRef,
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
-  isOffscreen,
+  onRowLayout,
 }) => {
   const cacheKey = value.id != null ? `${conversationId || ""}:${value.type}:${value.id}` : null;
 
@@ -68,6 +102,7 @@ const MessageListItem = React.memo(({
     if (cacheKey && height > 0) {
       setCachedMessageHeight(cacheKey, height);
     }
+    onRowLayout(`${value.type}-${value.id}`, y, height);
     if (value.type === "message" && value.id != null) {
       messageLayoutOffsetsRef.current[value.id] = {
         y,
@@ -78,16 +113,6 @@ const MessageListItem = React.memo(({
       }
     }
   };
-
-  if (isOffscreen) {
-    const layout = messageLayoutOffsetsRef.current[value.id];
-    const savedHeight = layout?.height || (cacheKey ? messageHeightCache.get(cacheKey) : 0) || 0;
-    if (savedHeight > 0) {
-      // Keep onLayout attached to the placeholder so prepending older messages
-      // at the top of the ScrollView updates `y` for offscreen rows too!
-      return <View onLayout={handleLayout} style={{ height: savedHeight }} />;
-    }
-  }
 
   return (
     <View
@@ -272,32 +297,83 @@ const MessagesListContent = React.memo(({
     return undefined;
   }, [isGroupChat, lastRealMessage?.id, lastRealMessage?.is_myself, lastRealMessage?.created_at, lastRealMessage?.read_at, seenParticipants, otherUser]);
 
-  return messages.map((value, index) => {
+  // Last measured { y, height } of every row kind (message, date, time,
+  // system, call), keyed like the React key. messageLayoutOffsetsRef only
+  // covers messages, so date/time/system/call rows could never be collapsed.
+  const rowLayoutsRef = React.useRef(new Map());
+  const onRowLayout = React.useCallback((rowKey, y, height) => {
+    if (height > 0) rowLayoutsRef.current.set(rowKey, { y, height });
+  }, []);
+
+  // Both layout maps only ever grew (an entry for every row ever mounted).
+  // Drop what is no longer in the list once they are clearly larger than it.
+  React.useEffect(() => {
+    const rows = rowLayoutsRef.current;
+    if (rows.size > messages.length + 60) {
+      const alive = new Set(messages.map((m) => `${m.type}-${m.id}`));
+      for (const key of rows.keys()) if (!alive.has(key)) rows.delete(key);
+    }
+    const byId = messageLayoutOffsetsRef.current;
+    const ids = Object.keys(byId);
+    if (ids.length > messages.length + 60) {
+      const aliveIds = new Set(messages.map((m) => String(m.id)));
+      ids.forEach((id) => {
+        if (!aliveIds.has(id)) delete byId[id];
+      });
+    }
+  }, [messages, messageLayoutOffsetsRef]);
+
+  const out = [];
+  let run = null;
+  const flushRun = () => {
+    if (!run) return;
+    out.push(
+      <OffscreenSpacer
+        key={`offscreen-${run.rows[0].key}`}
+        rows={run.rows}
+        totalHeight={run.totalHeight}
+        rowLayoutsRef={rowLayoutsRef}
+        messageLayoutOffsetsRef={messageLayoutOffsetsRef}
+      />,
+    );
+    run = null;
+  };
+
+  messages.forEach((value, index) => {
+    const rowKey = `${value.type}-${value.id}`;
     const isHighlighted =
       highlightedMessageId != null && String(value.id) === String(highlightedMessageId);
-    const layout = value.type === "message" && value.id != null
-      ? messageLayoutOffsetsRef.current[value.id]
-      : null;
+    const layout = rowLayoutsRef.current.get(rowKey);
     const isOffscreen = Boolean(
       visibleViewport &&
-      value.type === "message" &&
       value.id != null &&
+      index < messages.length - ALWAYS_MOUNTED_TAIL &&
       !isHighlighted &&
       String(pendingHighlightMessageIdRef.current) !== String(value.id) &&
+      String(value.id) !== String(activeInlineVideoId) &&
       layout &&
-      typeof layout.height === "number" &&
-      layout.height > 0 &&
-      typeof layout.y === "number" &&
       (layout.y + layout.height < visibleViewport.top || layout.y > visibleViewport.bottom)
     );
 
-    return (
+    if (isOffscreen) {
+      if (!run) run = { rows: [], totalHeight: 0 };
+      run.rows.push({
+        key: rowKey,
+        height: layout.height,
+        messageId: value.type === "message" ? value.id : null,
+      });
+      run.totalHeight += layout.height;
+      return;
+    }
+    flushRun();
+
+    out.push(
       // type+id alone (no index) - "load more" pagination prepends older
       // messages, shifting every index. A key that includes index made React
       // treat every already-rendered row as brand new on each scroll-up load,
       // remounting (not just re-rendering) the entire message list every time.
       <MessageListItem
-        key={`${value.type}-${value.id}`}
+        key={rowKey}
         value={value}
         prev={prevOf[index]}
         next={nextOf[index]}
@@ -325,12 +401,14 @@ const MessagesListContent = React.memo(({
         messageLayoutOffsetsRef={messageLayoutOffsetsRef}
         pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
         attemptScrollToHighlightRef={attemptScrollToHighlightRef}
-        isOffscreen={isOffscreen}
+        onRowLayout={onRowLayout}
         conversationId={conversationId}
         otherUser={otherUser}
-      />
+      />,
     );
   });
+  flushRun();
+  return out;
 });
 
 export { MessagesListContent };
