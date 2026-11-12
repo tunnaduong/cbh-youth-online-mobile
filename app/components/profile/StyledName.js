@@ -52,7 +52,7 @@ const HAS_EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F
  * word, came out black. Text never has that problem, wraps and aligns like
  * any other name, and shows emoji as emoji.
  */
-const StyledName = ({ theme, variant = "full", style, numberOfLines, children, ...rest }) => {
+const StyledName = React.memo(({ theme, variant = "full", style, numberOfLines, children, ...rest }) => {
   const normalized = normalizeTheme(theme);
   const font = useNameFont(normalized?.name_font);
 
@@ -133,7 +133,7 @@ const StyledName = ({ theme, variant = "full", style, numberOfLines, children, .
       {children}
     </Text>
   );
-};
+});
 
 /** The name as one string, or null when the children are something else. */
 function nameText(children) {
@@ -278,6 +278,9 @@ const RING = [
   [1, 0], [-1, 0], [0, 1], [0, -1],
   [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7],
 ];
+const RING_COMPACT = [
+  [1, 0], [-1, 0], [0, 1], [0, -1],
+];
 
 /**
  * A name with a border (and optionally a hard drop shadow): the same text
@@ -287,6 +290,7 @@ const RING = [
  */
 function LayeredName({ textStyle, fontSize, fill, stroke, drop, numberOfLines, children, ...rest }) {
   const width = Math.max(1, fontSize * 0.06);
+  const ring = fontSize <= 16 ? RING_COMPACT : RING;
   const copy = (dx, dy, key) => (
     <Text
       key={key}
@@ -306,8 +310,8 @@ function LayeredName({ textStyle, fontSize, fill, stroke, drop, numberOfLines, c
 
   return (
     <View style={styles.layered} {...rest}>
-      {drop > 0 && RING.map(([x, y], index) => copy(x * width, y * width + drop, `drop-${index}`))}
-      {RING.map(([x, y], index) => copy(x * width, y * width, `ring-${index}`))}
+      {drop > 0 && ring.map(([x, y], index) => copy(x * width, y * width + drop, `drop-${index}`))}
+      {ring.map(([x, y], index) => copy(x * width, y * width, `ring-${index}`))}
       <Text
         style={[textStyle, { color: fill, textShadowColor: "transparent" }]}
         numberOfLines={numberOfLines}

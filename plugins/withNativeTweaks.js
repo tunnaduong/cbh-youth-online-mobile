@@ -8,6 +8,7 @@ const {
   withAndroidManifest,
   withAppDelegate,
   withDangerousMod,
+  withGradleProperties,
 } = require("expo/config-plugins");
 
 const POD_TARGET_MARKER = "# [withNativeTweaks] clamp pod deployment targets";
@@ -93,6 +94,9 @@ const withIncomingCallLockscreenFlags = (config) =>
     AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.WAKE_LOCK");
     AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.VIBRATE");
     AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.FOREGROUND_SERVICE");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.RECORD_AUDIO");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.MODIFY_AUDIO_SETTINGS");
+    AndroidConfig.Permissions.addPermission(cfg.modResults, "android.permission.CAMERA");
 
     return cfg;
   });
@@ -120,6 +124,9 @@ const withDirectUpdatesMetadata = (config) =>
     const mainApp = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
     const runtimeVersion = cfg.runtimeVersion || "7.4.10";
     const updateUrl = cfg.updates?.url || "https://api.chuyenbienhoa.com/v1.0/ota/manifest";
+    const requestHeadersJson = JSON.stringify(
+      cfg.updates?.requestHeaders || { "expo-channel-name": "production" }
+    );
 
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       mainApp,
@@ -133,6 +140,11 @@ const withDirectUpdatesMetadata = (config) =>
     );
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       mainApp,
+      "expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY",
+      requestHeadersJson
+    );
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      mainApp,
       "expo.modules.updates.ENABLED",
       "true"
     );
@@ -140,6 +152,139 @@ const withDirectUpdatesMetadata = (config) =>
   });
 
 const IMAGE_CLASSES_MARKER = "[withNativeTweaks] image module classes";
+const R8_PROGUARD_MARKER = "# [withNativeTweaks] R8 full-mode & native module ProGuard rules";
+
+const R8_PROGUARD_RULES = `
+${R8_PROGUARD_MARKER}
+-optimizationpasses 5
+-allowaccessmodification
+-repackageclasses 'com.fatties.youth.obf'
+-keepattributes SourceFile,LineNumberTable,*Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# React Native JSI / TurboModules / Fabric / Hermes
+-keep,allowobfuscation @interface com.facebook.proguard.annotations.DoNotStrip
+-keep,allowobfuscation @interface com.facebook.proguard.annotations.KeepGettersAndSetters
+-keep,allowobfuscation @interface com.facebook.common.internal.DoNotStrip
+-keep,allowobfuscation @interface com.facebook.jni.annotations.DoNotStrip
+-keep @com.facebook.proguard.annotations.DoNotStrip class *
+-keep @com.facebook.common.internal.DoNotStrip class *
+-keep @com.facebook.jni.annotations.DoNotStrip class *
+-keepclassmembers class * {
+    @com.facebook.proguard.annotations.DoNotStrip *;
+    @com.facebook.common.internal.DoNotStrip *;
+    @com.facebook.jni.annotations.DoNotStrip *;
+}
+-keepclassmembers @com.facebook.proguard.annotations.KeepGettersAndSetters class * {
+    void set*(***);
+    *** get*();
+}
+-keep class * extends com.facebook.jni.HybridData { *; }
+-keep class com.facebook.jni.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-keep class com.facebook.react.bridge.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+-keep class com.facebook.react.uimanager.** { *; }
+-keep class * implements com.facebook.react.bridge.JavaScriptModule { *; }
+-keep class * implements com.facebook.react.bridge.NativeModule { *; }
+-keep class * extends com.facebook.react.bridge.ReactContextBaseJavaModule { *; }
+-keep class * implements com.facebook.react.turbomodule.core.interfaces.TurboModule { *; }
+
+# Expo Modules Core
+-keep class expo.modules.** { *; }
+-keepclassmembers class * {
+    @expo.modules.core.interfaces.ExpoMethod *;
+}
+
+# Reanimated / Worklets / GestureHandler / Screens
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.swmansion.worklets.** { *; }
+-keep class com.swmansion.gesturehandler.** { *; }
+-keep class com.swmansion.rnscreens.** { *; }
+
+# Skia / Liquid Glassmorphism
+-keep class com.shopify.reactnative.skia.** { *; }
+
+# WebRTC & InCallManager
+-keep class com.oney.WebRTCModule.** { *; }
+-keep class org.webrtc.** { *; }
+-keep class com.zxcpoiu.incallmanager.** { *; }
+
+# FastImage & Glide
+-keep class com.dylanvann.fastimage.** { *; }
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep class * extends com.bumptech.glide.module.AppGlideModule {
+    <init>(...);
+}
+
+# VisionCamera & Compressor
+-keep class com.mrousavy.camera.** { *; }
+-keep class com.reactnativecompressor.** { *; }
+
+# MMKV & NitroModules
+-keep class com.margelo.nitro.** { *; }
+-keep class com.tencent.mmkv.** { *; }
+
+# Notifee & Firebase Messaging
+-keep class app.notifee.core.** { *; }
+-keep class io.invertase.notifee.** { *; }
+-dontwarn app.notifee.**
+
+# Passkeys & AndroidX Credentials
+-keep class com.reactnativepasskey.** { *; }
+-keep class androidx.credentials.** { *; }
+-dontwarn androidx.credentials.**
+
+# OkHttp / Okio / Retrofit / Gson reflection safety under R8 fullMode
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+`;
+
+const setGradleProp = (props, key, value) => {
+  const existing = props.find((item) => item.type === "property" && item.key === key);
+  if (existing) {
+    existing.value = value;
+  } else {
+    props.push({ type: "property", key, value });
+  }
+};
+
+// Enable Google's strict R8 full mode, code shrinking, and resource shrinking
+// in Android release builds while keeping JNI / JSI / TurboModule entrypoints safe.
+const withAndroidR8FullMode = (config) =>
+  withGradleProperties(config, (cfg) => {
+    const props = cfg.modResults;
+    setGradleProp(props, "android.enableR8.fullMode", "true");
+    setGradleProp(props, "android.enableProguardInReleaseBuilds", "true");
+    setGradleProp(props, "android.enableShrinkResourcesInReleaseBuilds", "true");
+    return cfg;
+  });
+
+const withAndroidProguardRules = (config) =>
+  withDangerousMod(config, [
+    "android",
+    (cfg) => {
+      const proguardFile = path.join(
+        cfg.modRequest.platformProjectRoot,
+        "app",
+        "proguard-rules.pro"
+      );
+      if (!fs.existsSync(proguardFile)) return cfg;
+
+      const contents = fs.readFileSync(proguardFile, "utf8");
+      if (!contents.includes(R8_PROGUARD_MARKER)) {
+        fs.writeFileSync(proguardFile, `${contents.trimEnd()}\n${R8_PROGUARD_RULES}`);
+      }
+      return cfg;
+    },
+  ]);
 
 // React Native's image modules ("ImageLoader", ...) are not in the class table
 // open-source builds use, so the TurboModule manager finds them by name:
@@ -183,10 +328,14 @@ const withImageModuleClasses = (config) =>
   });
 
 module.exports = (config) =>
-  withDirectUpdatesMetadata(
-    withImageModuleClasses(
-      withIncomingCallLockscreenFlags(
-        withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+  withAndroidProguardRules(
+    withAndroidR8FullMode(
+      withDirectUpdatesMetadata(
+        withImageModuleClasses(
+          withIncomingCallLockscreenFlags(
+            withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
+          )
+        )
       )
     )
   );

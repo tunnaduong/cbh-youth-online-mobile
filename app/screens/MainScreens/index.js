@@ -20,6 +20,8 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LiquidGlassView, AndroidGlassBackdrop, glassTint, androidGlassPerfProps } from "../../components/GlassModules";
 import { markAllNotificationsAsRead } from "../../services/api/Api";
+import AccountSwitcherModal from "../../components/AccountSwitcherModal";
+import { NativeEventEmitter, NativeModules } from "react-native";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -39,209 +41,257 @@ const ANDROID_ICON_MAP = {
   Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
 
+const TAB_BAR_HEIGHT = 58;
+const TAB_BAR_RADIUS = 29;
+const TAB_BAR_INSET = 5;
+const TAB_PILL_HEIGHT = TAB_BAR_HEIGHT - TAB_BAR_INSET * 2;
+const TAB_PILL_RADIUS = TAB_PILL_HEIGHT / 2;
+const TAB_ROUTES = ["Home", "Explore", "Chat", "Notifications", "Profile"];
+const IS_IOS_26_PLUS = Platform.OS === "ios" && parseInt(Platform.Version, 10) >= 26;
+
 // Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
-const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl, username }) => {
-  const { theme, isDarkMode, hideTabLabels, liquidGlassEnabled } = useTheme();
+const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, onProfileLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl, username }) => {
+  const { isDarkMode, liquidGlassEnabled } = useTheme();
   const ownTheme = useOwnProfileTheme(username);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const prevRouteRef = useRef(activeRouteName);
-  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
+  const hasMeasuredRef = useRef(false);
+  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 40);
 
-  const LEFT_ROUTES = ["Home", "Explore", "Chat", "Notifications"];
-  const leftRoutes = LEFT_ROUTES.map((name) => ({
+  const routes = TAB_ROUTES.map((name) => ({
     name,
     label: t(`navigation.${name.toLowerCase()}`),
   }));
-  const activeLeftIndex = leftRoutes.findIndex((r) => r.name === activeRouteName);
+  const activeIndex = Math.max(0, routes.findIndex((r) => r.name === activeRouteName));
 
-  const buttonWidth = pillWidth / Math.max(1, leftRoutes.length);
-  const indicatorTarget = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+  const innerTrackWidth = Math.max(0, pillWidth - TAB_BAR_INSET * 2);
+  const slotWidth = innerTrackWidth / routes.length;
+  const indicatorTarget = activeIndex * slotWidth;
 
   useEffect(() => {
-    const wasProfile = prevRouteRef.current === "Profile";
-    prevRouteRef.current = activeRouteName;
-
-    if (activeLeftIndex >= 0) {
-      if (wasProfile) {
-        // Jumping from Me ("Tôi" - separated circle) to tabs in the float bar:
-        // teleport instantly to the tab without sliding animation.
-        slideAnim.setValue(indicatorTarget);
-      } else {
-        // Switching between tabs inside the float bar: smooth slide animation.
-        Animated.timing(slideAnim, {
-          toValue: indicatorTarget,
-          duration: 180,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }).start();
-      }
+    if (!hasMeasuredRef.current) {
+      slideAnim.setValue(indicatorTarget);
+      hasMeasuredRef.current = true;
+      return;
     }
-  }, [indicatorTarget, activeLeftIndex, activeRouteName]);
+    Animated.spring(slideAnim, {
+      toValue: indicatorTarget,
+      damping: 24,
+      stiffness: 280,
+      mass: 0.8,
+      useNativeDriver: true,
+    }).start();
+  }, [indicatorTarget, slideAnim]);
 
-  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
-  const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
-  const border = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
-  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
-  const activeColor = theme.primary;
-  const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
-  const isProfileFocused = activeRouteName === "Profile";
-  const opacity = activeLeftIndex >= 0 ? 1 : 0;
+  const bottomOffset = insets.bottom > 0 ? insets.bottom + 4 : 16;
+  const surface = isDarkMode ? "rgba(22, 22, 26, 0.86)" : "rgba(255, 255, 255, 0.86)";
+  const border = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.07)";
+  const indicatorColor = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.075)";
+  const activeColor = isDarkMode ? "#FFFFFF" : "#111827";
+  const inactiveColor = isDarkMode ? "rgba(255, 255, 255, 0.72)" : "rgba(17, 24, 39, 0.78)";
 
-  // The pill's real content (sliding indicator + tab buttons, or the "Tôi"
-  // avatar/icon) must be actual React children of <LiquidGlassView> - not siblings
-  // drawn over an absoluteFill glass layer - both so the library composites
-  // them crisply on top instead of also sweeping them into its captured-and-
-  // blurred backdrop, and so `interactive` (the touch-following specular
-  // "dynamic" glass look) has real touches to react to.
+  // The pill's real content (sliding indicator + tab buttons) must be actual
+  // React children of <LiquidGlassView> - not siblings drawn over an
+  // absoluteFill glass layer - both so the library composites them crisply on
+  // top and so `interactive` (the touch-following specular iOS 26 liquid glass)
+  // has real touches to react to.
   const NavGlassWrapper = LiquidGlassView ?? View;
-  // Glass off: the wrapper becomes a plain flat View, and an elevation
-  // shadow on a View clipped by its parent shows through as a dark smudge
-  // inside the circle/pill, so no shadow in that mode.
   const flatGlass = !!LiquidGlassView && !liquidGlassEnabled;
+  const useNativeIos26Glass = IS_IOS_26_PLUS && !!LiquidGlassView && liquidGlassEnabled;
+  const tabGlassTint = useNativeIos26Glass
+    ? isDarkMode
+      ? "rgba(18, 18, 22, 0.28)"
+      : "rgba(255, 255, 255, 0.22)"
+    : glassTint(isDarkMode);
 
   return (
-    <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
-      {/* Left pill: main tabs */}
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: "absolute",
+        bottom: bottomOffset,
+        left: 20,
+        right: 20,
+        zIndex: 99,
+      }}
+    >
       <NavGlassWrapper
-        {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 24.5, ...androidGlassPerfProps } : {})}
+        {...(LiquidGlassView
+          ? {
+              variant: "regular",
+              interactive: true,
+              tintColor: tabGlassTint,
+              borderRadius: TAB_BAR_RADIUS,
+              ...androidGlassPerfProps,
+            }
+          : {})}
         renderToHardwareTextureAndroid
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
           if (w && w !== pillWidth) setPillWidth(w);
         }}
-        style={[{
-          flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
-          backgroundColor: LiquidGlassView ? "transparent" : surface,
-          borderWidth: 1, borderColor: border,
-          flexDirection: "row", alignItems: "center",
-          elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
-          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
-          overflow: "hidden",
-        },
-        // Android's `elevation` shadow always renders dark/black and ignores
-        // borderRadius clipping, poking a square corner out past this pill's
-        // rounded edge against the dark theme background.
-        (isDarkMode || flatGlass) && { elevation: 0, shadowOpacity: 0 }]}
+        style={[
+          {
+            height: TAB_BAR_HEIGHT,
+            borderRadius: TAB_BAR_RADIUS,
+            paddingHorizontal: TAB_BAR_INSET,
+            backgroundColor: LiquidGlassView ? "transparent" : surface,
+            borderWidth: useNativeIos26Glass ? 0 : 1,
+            borderColor: border,
+            flexDirection: "row",
+            alignItems: "center",
+            elevation: 10,
+            shadowColor: "#000",
+            shadowOpacity: isDarkMode ? 0.32 : 0.12,
+            shadowOffset: { width: 0, height: 6 },
+            shadowRadius: 16,
+            overflow: useNativeIos26Glass ? "visible" : "hidden",
+          },
+          // Android's `elevation` shadow always renders dark/black and ignores
+          // borderRadius clipping, poking a square corner out past this pill's
+          // rounded edge against the dark theme background.
+          ((Platform.OS === "android" && isDarkMode) || flatGlass) && {
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+        ]}
       >
-        <Animated.View
-          renderToHardwareTextureAndroid
-          style={{
-            position: "absolute", width: buttonWidth, height: 49,
-            borderRadius: 24.5, top: 0, left: 0,
-            opacity, transform: [{ translateX: slideAnim }],
-            backgroundColor: indicator,
-          }}
-        />
-        {leftRoutes.map((route) => {
+        {/* Inset sliding capsule pill behind the active tab (iOS 26 / Threads / Instagram style) */}
+        {slotWidth > 0 && (
+          <Animated.View
+            pointerEvents="none"
+            renderToHardwareTextureAndroid
+            style={{
+              position: "absolute",
+              width: slotWidth,
+              height: TAB_PILL_HEIGHT,
+              borderRadius: TAB_PILL_RADIUS,
+              top: TAB_BAR_INSET,
+              left: TAB_BAR_INSET,
+              transform: [{ translateX: slideAnim }],
+              backgroundColor: indicatorColor,
+            }}
+          />
+        )}
+
+        {routes.map((route) => {
           const focused = route.name === activeRouteName;
           const color = focused ? activeColor : inactiveColor;
+          const isProfile = route.name === "Profile";
           const icons = ANDROID_ICON_MAP[route.name];
           const iconName = focused ? icons?.focused : icons?.outline;
-          const badge = route.name === "Chat" ? chatUnreadCount : (route.name === "Notifications" ? notificationUnreadCount : 0);
-          const label = route.label;
+          const badge =
+            route.name === "Chat"
+              ? chatUnreadCount
+              : route.name === "Notifications"
+              ? notificationUnreadCount
+              : 0;
 
           return (
             <TouchableOpacity
               key={route.name}
-              style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 }}
+              style={{
+                flex: 1,
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
               onPress={() => onTabPress(route.name)}
-              onLongPress={route.name === "Home" ? onHomeLongPress : undefined}
+              onLongPress={
+                route.name === "Home"
+                  ? onHomeLongPress
+                  : isProfile
+                  ? onProfileLongPress
+                  : undefined
+              }
               delayLongPress={450}
-              activeOpacity={0.8}
+              activeOpacity={0.75}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={route.label}
             >
-              <View style={{ position: "relative" }}>
-                <Ionicons name={iconName} size={22} color={color} />
-                {badge > 0 && (
-                  <View style={{
-                    position: "absolute", top: -4, right: -8,
-                    backgroundColor: "red", borderRadius: 8,
-                    minWidth: 14, height: 14, alignItems: "center",
-                    justifyContent: "center", paddingHorizontal: 2,
-                  }}>
-                    <Text style={{ color: "white", fontSize: 9, fontWeight: "bold" }}>
-                      {badge > 99 ? "99+" : badge}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              {!hideTabLabels && (
-                <Text style={{ fontSize: 9, color, fontWeight: "bold", marginTop: 2 }}>{label}</Text>
+              {isProfile ? (
+                avatarUrl ? (
+                  <AvatarFrameWrap
+                    theme={ownTheme}
+                    size={28}
+                    style={{ alignItems: "center", justifyContent: "center" }}
+                  >
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        borderWidth: focused ? 2 : 1,
+                        borderColor: focused
+                          ? activeColor
+                          : isDarkMode
+                          ? "rgba(255, 255, 255, 0.25)"
+                          : "rgba(0, 0, 0, 0.14)",
+                        overflow: "hidden",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: surface,
+                      }}
+                    >
+                      <FastImage
+                        source={{ uri: avatarUrl }}
+                        style={{ width: 28, height: 28, borderRadius: 14 }}
+                      />
+                    </View>
+                  </AvatarFrameWrap>
+                ) : (
+                  <Ionicons
+                    name={focused ? "person" : "person-outline"}
+                    size={25}
+                    color={color}
+                  />
+                )
+              ) : (
+                <View style={{ position: "relative", alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons
+                    name={iconName}
+                    size={route.name === "Chat" ? 24 : 25}
+                    color={color}
+                  />
+                  {badge > 0 && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: -5,
+                        right: -9,
+                        backgroundColor: "#FF3B30",
+                        borderRadius: 9,
+                        minWidth: 17,
+                        height: 17,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        paddingHorizontal: 3.5,
+                        borderWidth: 1.5,
+                        borderColor: isDarkMode ? "#1E1E24" : "#FFFFFF",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          fontSize: 9.5,
+                          fontWeight: "700",
+                          lineHeight: 12,
+                        }}
+                      >
+                        {badge > 99 ? "99+" : badge}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               )}
             </TouchableOpacity>
           );
         })}
       </NavGlassWrapper>
-
-      {/* Right pill: Me ("Tôi") button */}
-      <TouchableOpacity
-        onPress={() => onTabPress("Profile")}
-        activeOpacity={0.8}
-        accessibilityRole="tab"
-        accessibilityState={{ selected: isProfileFocused }}
-        accessibilityLabel={t("navigation.profile")}
-        style={[{
-          width: 53, height: 53, borderRadius: 26.5,
-          overflow: "visible",
-        },
-        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
-      >
-        <NavGlassWrapper
-          {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 26.5, ...androidGlassPerfProps } : {})}
-          style={[{
-            width: 53, height: 53, borderRadius: 26.5,
-            backgroundColor: LiquidGlassView ? "transparent" : surface,
-            borderWidth: 1, borderColor: border,
-            alignItems: "center", justifyContent: "center",
-            elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
-            shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
-            overflow: "visible",
-          },
-          flatGlass && { elevation: 0, shadowOpacity: 0 }]}
-        >
-          {isProfileFocused && (
-            <View
-              pointerEvents="none"
-              style={[StyleSheet.absoluteFill, { backgroundColor: indicator, borderRadius: 26.5 }]}
-            />
-          )}
-          {avatarUrl ? (
-            <AvatarFrameWrap
-              theme={ownTheme}
-              size={42}
-              style={{ alignItems: "center", justifyContent: "center" }}
-            >
-              <View
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
-                  borderWidth: isProfileFocused ? 2 : 1,
-                  borderColor: isProfileFocused ? activeColor : border,
-                  overflow: "hidden",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: surface,
-                }}
-              >
-                <FastImage
-                  source={{ uri: avatarUrl }}
-                  style={{ width: 42, height: 42, borderRadius: 21 }}
-                />
-              </View>
-            </AvatarFrameWrap>
-          ) : (
-            <Ionicons
-              name={isProfileFocused ? "person-circle" : "person-circle-outline"}
-              size={42}
-              color={isProfileFocused ? activeColor : inactiveColor}
-            />
-          )}
-        </NavGlassWrapper>
-      </TouchableOpacity>
     </View>
   );
 });
@@ -272,7 +322,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // (react-navigation/UIKit's own adaptive behavior for wide layouts), so
   // iPad always gets this app's own bar to keep it floating at the bottom
   // like Android and iPhone.
-  const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
+  // CustomTabBar (built with LiquidGlassView pill) is used on Android, iPad,
+  // and iOS to guarantee long-press events (Home -> Report, Profile -> Account Switcher)
+  // and maintain a consistent liquid glass UI across all platforms.
+  const isCustomTabBar = true;
   const [currentRoute, setCurrentRoute] = useState("Home");
 
   // Opens the forum screen from the HomeScreen top-left button
@@ -281,7 +334,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
   }, [stackNavigation]);
 
   const { chatUnreadCount, notificationUnreadCount, setNotificationUnreadCount } = useUnreadCountsContext();
-  const { username, getAvatarUrl } = useContext(AuthContext);
+  const { username, userInfo, getAvatarUrl } = useContext(AuthContext);
+  const [accountSwitcherVisible, setAccountSwitcherVisible] = useState(false);
   const avatarUrl = username && getAvatarUrl ? getAvatarUrl(username) : null;
   const homeScreenScrollTriggerRef = useRef(null);
   const exploreScrollTriggerRef = useRef(null);
@@ -338,6 +392,31 @@ export default function MainScreens({ navigation: stackNavigation }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     stackNavigation.navigate("FeedbackScreen", { source: "home_long_press" });
   }, [stackNavigation]);
+
+  const openAccountSwitcher = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setAccountSwitcherVisible(true);
+  }, []);
+
+  // Native iOS 26+ tab bar long press listener from Swift native module
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    const { CBHTabBarLongPressManager } = NativeModules;
+    if (!CBHTabBarLongPressManager) return;
+
+    const eventEmitter = new NativeEventEmitter(CBHTabBarLongPressManager);
+    const subscription = eventEmitter.addListener("onTabBarLongPress", (event) => {
+      if (event?.routeName === "Home" || event?.index === 0) {
+        openFeedback();
+      } else if (event?.routeName === "Profile" || event?.index === 4) {
+        openAccountSwitcher();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [openFeedback, openAccountSwitcher]);
 
   const handleAndroidTabPress = (routeName) => {
     if (routeName === "Notifications") {
@@ -560,10 +639,17 @@ export default function MainScreens({ navigation: stackNavigation }) {
           notificationUnreadCount={notificationUnreadCount}
           onTabPress={handleAndroidTabPress}
           onHomeLongPress={openFeedback}
+          onProfileLongPress={openAccountSwitcher}
           avatarUrl={avatarUrl}
           username={username}
         />
       )}
+
+      <AccountSwitcherModal
+        visible={accountSwitcherVisible}
+        onClose={() => setAccountSwitcherVisible(false)}
+        currentUserId={userInfo?.id}
+      />
     </View>
   );
 }

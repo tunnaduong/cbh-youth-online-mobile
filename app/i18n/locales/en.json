@@ -568,6 +568,9 @@
     "copyOptionsTitle": "Copy options",
     "copyAction": "Copy",
     "copyAllAction": "All",
+    "calloutTranslate": "AI Translate",
+    "calloutOriginal": "Original",
+    "calloutTranslating": "Translating...",
     "copyTitleSuccess": "Title copied to clipboard",
     "copyCaptionSuccess": "Caption copied to clipboard",
     "copyAllSuccess": "Full post copied to clipboard",
@@ -613,7 +616,16 @@
     "reply": "Reply",
     "pendingModerationTitle": "Comment is awaiting review",
     "pendingModerationBody": "Your comment will be visible to everyone once it has been approved.",
-    "commentError": "Could not post the comment. Please try again."
+    "commentError": "Could not post the comment. Please try again.",
+    "translateByAi": "Translate with Yoyo AI",
+    "viewOriginal": "View original",
+    "viewTranslation": "View translation",
+    "translatedByAi": "Translated by Yoyo AI ({{lang}})",
+    "translating": "Translating with Yoyo AI...",
+    "translateError": "Unable to translate post right now",
+    "originalRestored": "Original post restored",
+    "translatingSubtitle": "Please wait a moment...",
+    "translateSuccess": "Translation complete"
   },
   "sharePost": {
     "title": "Share post",
@@ -663,6 +675,9 @@
     "turnOff": "Turn off",
     "enabledToastTitle": "Developer mode enabled",
     "enabledToastDesc": "A Debug Console item now appears under About.",
+    "stepsRemaining": "{{count}} more steps to open developer options",
+    "stepsRemaining_one": "{{count}} more step to open developer options",
+    "stepsRemaining_other": "{{count}} more steps to open developer options",
     "copied": "Log copied",
     "copiedAll": "Logs copied"
   },
@@ -1204,6 +1219,13 @@
     "photosRetry": "Try again",
     "loadMorePhotos": "Load more photos",
     "photoLabel": "Post photo",
+    "videosTab": "Videos",
+    "videosTabCount": "Videos ({{total}})",
+    "emptyVideos": "No videos yet",
+    "videosError": "Could not load the video gallery",
+    "videosRetry": "Try again",
+    "loadMoreVideos": "Load more videos",
+    "videoLabel": "Post video",
     "viewPost": "View post",
     "likesSummary": "{{posts}} posts · {{likes}} likes",
     "sortNewest": "Newest",
@@ -1282,7 +1304,9 @@
     "cancel": "Cancel",
     "save": "Save",
     "subtitle": "Customize the app your way",
-    "greeting": "Hello, {{name}}!"
+    "greeting": "Hello, {{name}}!",
+    "aiTranslate": "Yoyo AI translation language",
+    "aiTranslateAuto": "Auto (system)"
   },
   "security": {
     "passkeys": "Passkeys",
@@ -1818,7 +1842,8 @@
     "joinError": "Couldn't join this quiz.",
     "shareMessage": "Try this quiz with me! {{link}}",
     "restartError": "This quiz can't be retaken.",
-    "retrySame": "Retry this quiz"
+    "retrySame": "Retry this quiz",
+    "reviewQuestions": "Question details"
   },
   "customQuiz": {
     "entryTitle": "Create a custom quiz",

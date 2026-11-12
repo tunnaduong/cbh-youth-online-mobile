@@ -81,7 +81,7 @@ const FEATURE_CARDS = [
     lightBorder: "#EDE9FE",
     darkBg: "#201833",
     darkBorder: "#332552",
-    route: null,
+    route: "PrintRequestsScreen",
   },
   {
     id: "trivia",

@@ -8,6 +8,7 @@ import {
   StatusBar,
   Alert,
   Clipboard,
+  Platform,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
@@ -141,6 +142,11 @@ export default function DevConsoleScreen({ navigation }) {
             useNativeDriver: false,
           })}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24, paddingTop: 64 + insets.top }}
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === "android"}
           ListHeaderComponent={
             <View style={styles.filterRow}>
               {FILTERS.map((f) => (

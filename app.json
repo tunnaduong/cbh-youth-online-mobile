@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -43,7 +46,8 @@
         "UIApplicationSceneManifest": {
           "UIApplicationSupportsMultipleScenes": false,
           "UISceneConfigurations": {}
-        }
+        },
+        "NSMicrophoneUsageDescription": "Cho ph?p CBH Youth Online truy c?p microphone c?a b?n ?? th?c hi?n cu?c g?i tho?i v? video"
       },
       "associatedDomains": [
         "applinks:chuyenbienhoa.com",
@@ -58,7 +62,10 @@
         "USE_FULL_SCREEN_INTENT",
         "WAKE_LOCK",
         "VIBRATE",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "CAMERA"
       ],
       "intentFilters": [
         {
@@ -132,7 +139,7 @@
       "url": "https://api.chuyenbienhoa.com/v1.0/ota/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0,
-      "disableAntiBrickingMeasures": true,
+      "disableAntiBrickingMeasures": false,
       "requestHeaders": {
         "expo-channel-name": "production"
       }
@@ -199,6 +206,10 @@
           "ios": {
             "deploymentTarget": "15.1",
             "buildReactNativeFromSource": true
+          },
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
@@ -216,7 +227,27 @@
           }
         }
       ],
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./app/assets/fonts/inter/Inter_300Light.ttf",
+            "./app/assets/fonts/inter/Inter_300Light_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_400Regular.ttf",
+            "./app/assets/fonts/inter/Inter_400Regular_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_500Medium.ttf",
+            "./app/assets/fonts/inter/Inter_500Medium_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_600SemiBold.ttf",
+            "./app/assets/fonts/inter/Inter_600SemiBold_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_700Bold.ttf",
+            "./app/assets/fonts/inter/Inter_700Bold_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_800ExtraBold.ttf",
+            "./app/assets/fonts/inter/Inter_800ExtraBold_Italic.ttf",
+            "./app/assets/fonts/inter/Inter_900Black.ttf",
+            "./app/assets/fonts/inter/Inter_900Black_Italic.ttf"
+          ]
+        }
+      ],
       [
         "expo-alternate-app-icons",
         [

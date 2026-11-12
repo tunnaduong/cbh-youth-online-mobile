@@ -115,8 +115,15 @@ import { parseYouTubeShare } from "./app/utils/youtubeShare";
 import { initDevConsole } from "./app/utils/devConsole";
 import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
 import ShakeToReport from "./app/components/ShakeToReport";
-import { checkUpdateAvailable, isOtaEnabled, isStartupCheckEnabled } from "./app/services/ota/otaService";
+import {
+  checkUpdateAvailable,
+  isOtaEnabled,
+  isStartupCheckEnabled,
+  rememberSkippedStartupUpdate,
+  shouldPromptAtStartup,
+} from "./app/services/ota/otaService";
 import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
+import { useGlobalFontsLoaded } from "./app/utils/globalFont";
 
 // Patches console.log/warn/error as early as possible so nothing logged
 // during app startup is missed if dev mode is already enabled from a
@@ -344,6 +351,7 @@ const parseDeepLink = (url) => {
 // Main App component
 const App = ({ skipSplash = false }) => {
   const { theme, isDarkMode } = useTheme();
+  useGlobalFontsLoaded();
   // React Navigation was never told the app's theme, so it ran with its
   // default light one whatever the app showed. On iOS 26 the tab bar is the
   // system's and is built from this: in a dark app it came up as a light bar
@@ -436,6 +444,9 @@ const App = ({ skipSplash = false }) => {
         const res = await checkUpdateAvailable();
         if (!isMounted) return;
         console.log(`[OTA Startup] Startup check finished: status="${res.status}", isAvailable=${res.isAvailable}`);
+        if (res.updateInfo && !shouldPromptAtStartup(res.updateInfo)) {
+          return;
+        }
         if (res.isAvailable && res.updateInfo) {
           setStartupUpdateInfo(res.updateInfo);
           setShowUpdateModal(true);
@@ -1056,6 +1067,12 @@ const App = ({ skipSplash = false }) => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="PrintRequestsScreen"
+                component={WebAppScreen}
+                initialParams={{ site: "print" }}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="DepositScreen"
                 component={DepositScreen}
                 options={{ headerShown: false }}
@@ -1265,6 +1282,7 @@ const App = ({ skipSplash = false }) => {
         visible={showUpdateModal}
         updateInfo={startupUpdateInfo}
         onDismiss={() => setShowUpdateModal(false)}
+        onLater={(info) => rememberSkippedStartupUpdate(info?.id)}
       />
     </>
   );

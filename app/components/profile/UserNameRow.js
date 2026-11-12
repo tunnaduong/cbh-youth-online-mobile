@@ -29,7 +29,7 @@ import Verified from "../../assets/Verified";
  *   children       - trailing content; give each piece `flexShrink: 0`
  *   ...rest        - passed to the name (<Text> props such as onPress)
  */
-const UserNameRow = ({
+const UserNameRow = React.memo(({
   name,
   theme,
   variant = "compact",
@@ -66,7 +66,7 @@ const UserNameRow = ({
       {children}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   // minWidth 0 + flexShrink let the row itself be squeezed by its parent.

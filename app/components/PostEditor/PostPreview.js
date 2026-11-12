@@ -5,9 +5,10 @@ import RenderHTML from "react-native-render-html";
 import { MarkdownIt } from "react-native-markdown-display";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
-import { previewPostMarkdown } from "../../services/api/Api";
+import { previewPostMarkdown, isRequestCanceled } from "../../services/api/Api";
 import { linkifyMentionsInHtml } from "../../utils/mentionRender";
 import { customHTMLElementModels, YouTubeIframeRenderer } from "../PostItem";
+import { tableRenderers } from "../MarkdownTable";
 
 // Tab content for the editor's "Preview". The HTML comes from the server's
 // own Markdown pipeline (the same one that renders a published post), so what
@@ -52,6 +53,7 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
   const [loading, setLoading] = useState(!cached && markdown.trim() !== "");
   const [failed, setFailed] = useState(false);
   const requestRef = useRef(0);
+  const abortControllerRef = useRef(null);
 
   const load = useCallback(async () => {
     if (markdown.trim() === "") {
@@ -64,12 +66,21 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
       setLoading(false);
       return;
     }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const requestId = ++requestRef.current;
     setLoading(true);
     setFailed(false);
     try {
-      const response = await previewPostMarkdown(markdown, { timeout: PREVIEW_TIMEOUT_MS });
-      if (requestId !== requestRef.current) return;
+      const response = await previewPostMarkdown(markdown, {
+        timeout: PREVIEW_TIMEOUT_MS,
+        signal: controller.signal,
+      });
+      if (requestId !== requestRef.current || controller.signal.aborted) return;
       const result = {
         html: response?.data?.html ?? "",
         mentions: new Set((response?.data?.mentions ?? []).map((m) => String(m.username).toLowerCase())),
@@ -78,7 +89,7 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
       lastResult = { markdown, data: result };
       setData(result);
     } catch (error) {
-      if (requestId !== requestRef.current) return;
+      if (isRequestCanceled(error) || controller.signal.aborted || requestId !== requestRef.current) return;
       console.log("Post preview unavailable from server, rendering locally:", error?.response?.status || error?.message);
       try {
         // Not cached: once the backend has the endpoint, the next preview
@@ -88,7 +99,7 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
         setFailed(true);
       }
     } finally {
-      if (requestId === requestRef.current) setLoading(false);
+      if (requestId === requestRef.current && !controller.signal.aborted) setLoading(false);
     }
   }, [markdown]);
 
@@ -97,6 +108,9 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
     // A newer request (or unmount) invalidates whatever is still in flight.
     return () => {
       requestRef.current += 1;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [load]);
 
@@ -145,7 +159,7 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
             contentWidth={width - horizontalPadding * 2}
             source={source}
             customHTMLElementModels={customHTMLElementModels}
-            renderers={{ iframe: YouTubeIframeRenderer }}
+            renderers={{ iframe: YouTubeIframeRenderer, ...tableRenderers }}
             // It's a preview: a tapped link shouldn't whisk the author away
             // from a half-written post.
             renderersProps={{ a: { onPress: () => {} } }}

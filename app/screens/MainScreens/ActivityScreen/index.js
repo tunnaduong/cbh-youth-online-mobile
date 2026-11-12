@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getActivities } from "../../../services/api/Api";
+import { getActivities, isRequestCanceled } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -177,6 +177,8 @@ const ActivityScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const abortControllerRef = useRef(null);
+  const isFetchingRef = useRef(false);
   const headerHeight = 64 + insets.top;
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
@@ -189,8 +191,16 @@ const ActivityScreen = ({ navigation }) => {
   );
 
   const fetchActivities = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isFetchingRef.current = true;
+
     try {
-      const response = await getActivities();
+      const response = await getActivities({ signal: controller.signal });
+      if (controller.signal.aborted) return;
 
       if (!response?.data) {
         console.log("Invalid response structure:", response);
@@ -222,6 +232,7 @@ const ActivityScreen = ({ navigation }) => {
 
       setActivities(sortedActivities);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.log("Error fetching activities:", error);
       Toast.show({
         type: "error",
@@ -232,7 +243,10 @@ const ActivityScreen = ({ navigation }) => {
         topOffset: 60,
       });
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        isFetchingRef.current = false;
+        setIsLoading(false);
+      }
     }
   };
 
@@ -244,6 +258,11 @@ const ActivityScreen = ({ navigation }) => {
       setActivities(null);
       setIsLoading(false);
     }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [isLoggedIn]);
 
   const handleRefresh = async () => {
@@ -322,6 +341,7 @@ const ActivityScreen = ({ navigation }) => {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === 'android'}
           onScroll={handleScroll}
           scrollEventThrottle={16}

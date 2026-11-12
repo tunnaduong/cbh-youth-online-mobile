@@ -13,7 +13,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { getConversations, getOnlineStatus } from "../../../services/api/Api";
+import {
+  getConversations,
+  getOnlineStatus,
+  isRequestCanceled,
+} from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -44,33 +48,137 @@ const formatMessageTime = (timestamp, t) => {
   return time.isSame(now, "year") ? time.format("DD/MM") : time.format("DD/MM/YY");
 };
 
+const CHAT_ROW_HEIGHT = 86;
+
+// Persists UI state across ChatScreen unmount/remount so scroll position,
+// active filter, and online dots are restored immediately without any flash.
+const persistedChatViewState = {
+  scrollOffset: 0,
+  activeFilter: "all",
+  onlineStatuses: {},
+};
+
 export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
-  const [conversations, setConversations] = useState([]);
-  const [onlineStatuses, setOnlineStatuses] = useState({});
+  const { blockedUsers, username } = useContext(AuthContext);
+  const conversationsCacheKey = `conversations_${username}`;
+
+  const [conversations, setConversations] = useState(() => {
+    try {
+      const cached = storage.getString(conversationsCacheKey);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [onlineStatuses, setOnlineStatuses] = useState(
+    () => persistedChatViewState.onlineStatuses || {}
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all"); // 'all' | 'unread' | 'group'
+  const [activeFilter, setActiveFilter] = useState(
+    () => persistedChatViewState.activeFilter || "all"
+  ); // 'all' | 'unread' | 'group'
   const [showFilterPills, setShowFilterPills] = useState(false);
   const { t } = useTranslation();
 
   const listExtraData = useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
-  const { blockedUsers, username } = useContext(AuthContext);
 
-  const conversationsCacheKey = `conversations_${username}`;
   const { onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited } = useChatSocket();
   const flatListRef = useRef(null);
-  const scrollPositionRef = useRef(0);
+  const scrollPositionRef = useRef(persistedChatViewState.scrollOffset || 0);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
+  const isFetchingRef = useRef(false);
+  const isFocusedRef = useRef(true);
+  const abortControllerRef = useRef(null);
+  const onlineStatusAbortRef = useRef(null);
 
-  const handleScroll = (event) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    scrollPositionRef.current = Math.max(0, offsetY);
-  };
+  useEffect(() => {
+    persistedChatViewState.activeFilter = activeFilter;
+  }, [activeFilter]);
+
+  const handleScroll = useCallback((event) => {
+    const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
+    scrollPositionRef.current = offsetY;
+    persistedChatViewState.scrollOffset = offsetY;
+  }, []);
+
+  const fetchOnlineStatuses = useCallback(async (convos) => {
+    if (!isFocusedRef.current || !Array.isArray(convos)) return;
+    const usernames = [
+      ...new Set(
+        convos
+          .filter((c) => c.type === "private" && c.participants?.[0]?.username)
+          .map((c) => c.participants[0].username)
+      ),
+    ];
+    if (usernames.length === 0) return;
+
+    if (onlineStatusAbortRef.current) {
+      onlineStatusAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    onlineStatusAbortRef.current = controller;
+
+    const results = await Promise.all(
+      usernames.map((u) =>
+        getOnlineStatus(u, { signal: controller.signal })
+          .then((res) => [u, !!res.data?.is_online])
+          .catch(() => [u, undefined])
+      )
+    );
+
+    if (controller.signal.aborted) return;
+
+    setOnlineStatuses((prev) => {
+      const next = { ...prev };
+      results.forEach(([u, isOnline]) => {
+        if (isOnline !== undefined) next[u] = isOnline;
+      });
+      persistedChatViewState.onlineStatuses = next;
+      return next;
+    });
+  }, []);
+
+  const fetchConversations = useCallback(async ({ force = false, silent = false } = {}) => {
+    if (isFetchingRef.current && !force) return;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isFetchingRef.current = true;
+
+    try {
+      const response = await getConversations({ signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const list = Array.isArray(response?.data) ? response.data : [];
+      setConversations(list);
+      storage.set(conversationsCacheKey, JSON.stringify(list));
+      refreshChatCount();
+      if (isFocusedRef.current) {
+        fetchOnlineStatuses(list);
+      }
+    } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
+      console.error("Error fetching conversations:", error);
+      if (!silent) {
+        Toast.show({
+          type: "error",
+          text1: t('profile.errorTitle'),
+          text2: t('home.loadingError'),
+        });
+      }
+    } finally {
+      if (abortControllerRef.current === controller) {
+        isFetchingRef.current = false;
+      }
+    }
+  }, [conversationsCacheKey, refreshChatCount, fetchOnlineStatuses, t]);
 
   const scrollToTopOrReload = useCallback(() => {
     const now = Date.now();
@@ -84,12 +192,13 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (isAtTop) {
       isProcessingRef.current = true;
       setRefreshing(true);
-      fetchConversations().finally(() => {
+      fetchConversations({ force: true }).finally(() => {
         setTimeout(() => {
           setRefreshing(false);
           isProcessingRef.current = false;
           scrollPositionRef.current = 0;
-        }, 1000);
+          persistedChatViewState.scrollOffset = 0;
+        }, 600);
       });
     } else {
       isProcessingRef.current = true;
@@ -98,21 +207,22 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       }
       setTimeout(() => {
         scrollPositionRef.current = 0;
+        persistedChatViewState.scrollOffset = 0;
         isProcessingRef.current = false;
       }, 600);
     }
-  }, []);
+  }, [fetchConversations]);
 
   const onRefresh = useCallback(() => {
     setPullRefreshing(true);
     setRefreshing(true);
-    fetchConversations().finally(() => {
+    fetchConversations({ force: true }).finally(() => {
       setTimeout(() => {
         setPullRefreshing(false);
         setRefreshing(false);
-      }, 1000);
+      }, 600);
     });
-  }, []);
+  }, [fetchConversations]);
 
   useEffect(() => {
     if (scrollTriggerRef) {
@@ -122,64 +232,40 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   useFocusEffect(
     useCallback(() => {
-      fetchConversations();
-    }, [refreshChatCount])
+      isFocusedRef.current = true;
+      try {
+        const cached = storage.getString(conversationsCacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setConversations(parsed);
+          }
+        }
+      } catch {}
+      fetchConversations({ force: true, silent: true });
+
+      return () => {
+        isFocusedRef.current = false;
+        abortControllerRef.current?.abort();
+        onlineStatusAbortRef.current?.abort();
+        isFetchingRef.current = false;
+      };
+    }, [conversationsCacheKey, fetchConversations])
   );
 
   useEffect(() => {
-    const cached = storage.getString(conversationsCacheKey);
-    if (cached) {
-      setConversations(JSON.parse(cached));
+    if (conversations.length === 0) {
+      setRefreshing(true);
+      fetchConversations({ force: true }).finally(() => {
+        setTimeout(() => setRefreshing(false), 600);
+      });
     }
-    setRefreshing(true);
-    fetchConversations().finally(() => {
-      setTimeout(() => setRefreshing(false), 1000);
-    });
+    return () => {
+      abortControllerRef.current?.abort();
+      onlineStatusAbortRef.current?.abort();
+      isFetchingRef.current = false;
+    };
   }, []);
-
-  const fetchConversations = async () => {
-    try {
-      const response = await getConversations();
-      setConversations(response.data);
-      storage.set(conversationsCacheKey, JSON.stringify(response.data));
-      refreshChatCount();
-      fetchOnlineStatuses(response.data);
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
-      Toast.show({
-        type: "error",
-        text1: t('profile.errorTitle'),
-        text2: t('home.loadingError'),
-      });
-    }
-  };
-
-  const fetchOnlineStatuses = async (convos) => {
-    const usernames = [
-      ...new Set(
-        convos
-          .filter((c) => c.type === "private" && c.participants[0]?.username)
-          .map((c) => c.participants[0].username)
-      ),
-    ];
-    if (usernames.length === 0) return;
-
-    const results = await Promise.all(
-      usernames.map((u) =>
-        getOnlineStatus(u)
-          .then((res) => [u, !!res.data?.is_online])
-          .catch(() => [u, undefined])
-      )
-    );
-
-    setOnlineStatuses((prev) => {
-      const next = { ...prev };
-      results.forEach(([u, isOnline]) => {
-        if (isOnline !== undefined) next[u] = isOnline;
-      });
-      return next;
-    });
-  };
 
   const fetchConversationsRef = useRef(null);
   useEffect(() => {
@@ -198,7 +284,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     let refreshTimer = null;
     const refresh = () => {
       clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => fetchConversationsRef.current?.(), 400);
+      refreshTimer = setTimeout(() => fetchConversationsRef.current?.({ force: true, silent: true }), 400);
     };
     const unsubscribers = ids.flatMap((id) => {
       const numId = Number(id);
@@ -533,6 +619,16 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   const screenBg = isDarkMode ? "#121316" : "#F8FAF9";
 
+  const keyExtractor = useCallback((item) => String(item.id), []);
+  const getItemLayout = useCallback(
+    (_, index) => ({
+      length: CHAT_ROW_HEIGHT,
+      offset: CHAT_ROW_HEIGHT * index,
+      index,
+    }),
+    []
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: screenBg }]}>
       {/* Top Ambient Green Gradient */}
@@ -737,8 +833,14 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           ref={flatListRef}
           data={filteredConversations}
           extraData={listExtraData}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={keyExtractor}
           renderItem={renderItem}
+          getItemLayout={getItemLayout}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === "android"}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import { Canvas, Circle, LinearGradient, SweepGradient, vec } from "@shopify/react-native-skia";
+import Svg, { Circle as SvgCircle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -31,12 +32,14 @@ const IMAGE_SCALE = 1.25;
  *   theme - `theme`/`profile_theme` của người dùng từ API, hoặc null
  *   size  - đường kính avatar
  */
-export default function AvatarFrame({ theme, size }) {
+const AvatarFrame = React.memo(function AvatarFrame({ theme, size, staticPreview = false }) {
   const frame = getAvatarFrame(theme);
   if (!frame || !size) return null;
   if (frame.image) return <ImageFrame uri={frame.image} size={size} />;
-  return <Ring frame={frame} size={size} />;
-}
+  return <Ring frame={frame} size={size} staticPreview={staticPreview} />;
+});
+
+export default AvatarFrame;
 
 function ImageFrame({ uri, size }) {
   const outer = size * IMAGE_SCALE;
@@ -55,10 +58,14 @@ function ImageFrame({ uri, size }) {
   );
 }
 
-function Ring({ frame, size }) {
+function Ring({ frame, size, staticPreview }) {
   const reduceMotion = useReducedMotion();
   const rotation = useSharedValue(0);
-  const spin = frame.animated && !reduceMotion;
+  // Only spin on hero/medium avatars (> 52px) when not in staticPreview mode.
+  // Avoids spawning dozens of concurrent Reanimated loops + Skia GPU surfaces
+  // in chat/notification/comment/milestone lists.
+  const spin = Boolean(frame.animated && !reduceMotion && !staticPreview && size > 52);
+  const useLightweightSvg = !frame.sweep || size <= 52 || staticPreview;
 
   useEffect(() => {
     if (!spin) {
@@ -77,6 +84,45 @@ function Ring({ frame, size }) {
   const outer = size * (1 + OVERFLOW * 2);
   const center = outer / 2;
   const strokeWidth = center * THICKNESS;
+  const colors = frame.colors || ["#319527", "#4ade80"];
+
+  if (useLightweightSvg) {
+    const stopCount = Math.max(2, colors.length);
+    return (
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: -size * OVERFLOW,
+          top: -size * OVERFLOW,
+          width: outer,
+          height: outer,
+        }}
+      >
+        <Svg width={outer} height={outer}>
+          <Defs>
+            <SvgLinearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              {colors.map((c, idx) => (
+                <Stop
+                  key={idx}
+                  offset={`${Math.round((idx / (stopCount - 1)) * 100)}%`}
+                  stopColor={c}
+                />
+              ))}
+            </SvgLinearGradient>
+          </Defs>
+          <SvgCircle
+            cx={center}
+            cy={center}
+            r={Math.max(1, center - strokeWidth / 2)}
+            stroke="url(#ringGrad)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+        </Svg>
+      </View>
+    );
+  }
 
   return (
     <Animated.View
@@ -114,11 +160,11 @@ function Ring({ frame, size }) {
  *   style - style bố cục (margin...) - đặt ở đây thay vì trên avatar để
  *           khung ôm đúng avatar
  */
-export function AvatarFrameWrap({ theme, size, style, children }) {
+export const AvatarFrameWrap = React.memo(function AvatarFrameWrap({ theme, size, style, staticPreview = false, children }) {
   return (
     <View style={[{ width: size, height: size }, style]}>
       {children}
-      <AvatarFrame theme={theme} size={size} />
+      <AvatarFrame theme={theme} size={size} staticPreview={staticPreview} />
     </View>
   );
-}
+});

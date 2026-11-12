@@ -22,6 +22,7 @@ import {
   sendMessage,
   createConversation,
   markConversationAsRead,
+  markConversationAsDelivered,
   blockUser,
   reportUser,
   reactToMessage,
@@ -38,6 +39,7 @@ import {
   addGroupDeputy,
   removeGroupDeputy,
   removeGroupParticipant,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
@@ -152,19 +154,26 @@ const ConversationScreen = ({ navigation, route }) => {
   }, []);
 
   const activeConversationId = React.useRef(null);
-  const fetchMessageMentionSuggestions = React.useCallback(async (q) => {
+  const messagesAbortRef = React.useRef(null);
+  const detailsAbortRef = React.useRef(null);
+  const onlineStatusAbortRef = React.useRef(null);
+  const seenReceiptsAbortRef = React.useRef(null);
+  const settingsAbortRef = React.useRef(null);
+
+  const fetchMessageMentionSuggestions = React.useCallback(async (q, config = {}) => {
     const cid = activeConversationId.current;
     if (cid) {
       try {
-        return await getConversationMentionSuggestions(cid, q);
+        return await getConversationMentionSuggestions(cid, q, config);
       } catch (e) {
+        if (isRequestCanceled(e)) throw e;
         if (e?.response?.status === 404) {
-          return getMentionSuggestions(q);
+          return getMentionSuggestions(q, config);
         }
         throw e;
       }
     }
-    return getMentionSuggestions(q);
+    return getMentionSuggestions(q, config);
   }, []);
 
   // Android: the message bar is a KeyboardStickyView, moved by
@@ -323,6 +332,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const {
     onMessageSent,
+    onMessageDelivered,
     onMessageRead,
     onMessageDeleted,
     onMessageReacted,
@@ -391,13 +401,23 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const refreshOtherUserOnlineStatus = React.useCallback(() => {
     if (!otherUsername) return;
-    getOnlineStatus(otherUsername)
-      .then((res) => setIsOtherUserOnline(!!res.data?.is_online))
+    onlineStatusAbortRef.current?.abort();
+    const controller = new AbortController();
+    onlineStatusAbortRef.current = controller;
+    getOnlineStatus(otherUsername, { signal: controller.signal })
+      .then((res) => {
+        if (!controller.signal.aborted) {
+          setIsOtherUserOnline(!!res.data?.is_online);
+        }
+      })
       .catch(() => {});
   }, [otherUsername]);
 
   useEffect(() => {
     refreshOtherUserOnlineStatus();
+    return () => {
+      onlineStatusAbortRef.current?.abort();
+    };
   }, [refreshOtherUserOnlineStatus]);
 
   // `afterBlock` defaults to the original behavior (this screen only ever
@@ -823,20 +843,27 @@ const ConversationScreen = ({ navigation, route }) => {
   // derived. Fetch the conversation details in that case.
   useEffect(() => {
     if (!isNewConversation && !currentConversation && conversationId) {
-      getConversations()
+      detailsAbortRef.current?.abort();
+      const controller = new AbortController();
+      detailsAbortRef.current = controller;
+      getConversations({ signal: controller.signal })
         .then((response) => {
+          if (controller.signal.aborted) return;
           const found = response?.data?.find(
             (c) => String(c.id) === String(conversationId),
           );
           if (found) setCurrentConversation(found);
         })
         .catch((error) => {
+          if (isRequestCanceled(error) || controller.signal.aborted) return;
           console.log(
             "[ConversationScreen] Error fetching conversation details:",
             error?.response?.data || error?.message,
           );
         });
+      return () => controller.abort();
     }
+    return undefined;
   }, []);
 
   // Group metadata (name/avatar/participants) can change from GroupInfoScreen
@@ -847,20 +874,28 @@ const ConversationScreen = ({ navigation, route }) => {
     React.useCallback(() => {
       const activeId = currentConversationId || conversationId;
       if (isNewConversation || !activeId || currentConversation?.type !== "group") {
-        return;
+        return undefined;
       }
 
-      getConversations()
+      const controller = new AbortController();
+      getConversations({ signal: controller.signal })
         .then((response) => {
+          if (controller.signal.aborted) return;
           const found = response?.data?.find((c) => String(c.id) === String(activeId));
           if (found) setCurrentConversation(found);
         })
         .catch((error) => {
+          if (isRequestCanceled(error) || controller.signal.aborted) return;
           console.log(
             "[ConversationScreen] Error refreshing group conversation on focus:",
             error?.response?.data || error?.message,
           );
         });
+      return () => {
+        controller.abort();
+        seenReceiptsAbortRef.current?.abort();
+        onlineStatusAbortRef.current?.abort();
+      };
       // Deliberately runs once per focus, not on every currentConversation change
       // (which this itself would cause) — id/type are enough to key off.
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -889,9 +924,12 @@ const ConversationScreen = ({ navigation, route }) => {
       // Not while another screen covers the chat or the app is in the
       // background; the next tick after returning catches up.
       if (!isFocusedRef.current || AppState.currentState !== "active") return;
-      getGroupSeenReceipts(activeId)
+      seenReceiptsAbortRef.current?.abort();
+      const controller = new AbortController();
+      seenReceiptsAbortRef.current = controller;
+      getGroupSeenReceipts(activeId, { signal: controller.signal })
         .then((res) => {
-          if (cancelled) return;
+          if (cancelled || controller.signal.aborted) return;
           const next = res.data?.participants || [];
           // The 15-second poll usually returns what is already shown; keep
           // the array we have then, so the message list is left alone.
@@ -907,6 +945,7 @@ const ConversationScreen = ({ navigation, route }) => {
     return () => {
       cancelled = true;
       clearInterval(interval);
+      seenReceiptsAbortRef.current?.abort();
     };
   }, [currentConversationId, conversationId, isNewConversation, isGroupConversation, messages.length]);
 
@@ -955,6 +994,13 @@ const ConversationScreen = ({ navigation, route }) => {
         });
       }
     }
+    return () => {
+      messagesAbortRef.current?.abort();
+      detailsAbortRef.current?.abort();
+      onlineStatusAbortRef.current?.abort();
+      seenReceiptsAbortRef.current?.abort();
+      settingsAbortRef.current?.abort();
+    };
   }, []);
 
   const getCacheKey = (id) => `${CONVERSATION_CACHE_KEY}_${username}_${id}`;
@@ -989,6 +1035,11 @@ const ConversationScreen = ({ navigation, route }) => {
   const fetchMessages = async (isRefresh = false, isBackground = false) => {
     // How many messages this call brought back (0 also when it failed).
     let loadedCount = 0;
+    const controller = new AbortController();
+    if (!isBackground) {
+      messagesAbortRef.current?.abort();
+      messagesAbortRef.current = controller;
+    }
     try {
       if (isRefresh && !isBackground) {
         pageRef.current = 1;
@@ -999,10 +1050,13 @@ const ConversationScreen = ({ navigation, route }) => {
 
       if (!hasMoreRef.current && !isRefresh) return;
 
+      const targetPage = isRefresh ? 1 : pageRef.current;
       const response = await getConversationMessages(
         currentConversationId || conversationId,
-        isRefresh ? 1 : pageRef.current,
+        targetPage,
+        { signal: controller.signal },
       );
+      if (controller.signal.aborted) return;
       loadedCount = Array.isArray(response.data?.data) ? response.data.data.length : 0;
 
       const newMessages = Array.isArray(response.data?.data)
@@ -1040,7 +1094,7 @@ const ConversationScreen = ({ navigation, route }) => {
           return injectTimeHeaders([...dedupedOlder, ...existingMessages], t);
         });
         hasMoreRef.current = response.data.current_page < response.data.last_page;
-        pageRef.current = isRefresh ? 2 : pageRef.current + 1;
+        pageRef.current = isRefresh ? 2 : targetPage + 1;
         setHasMore(hasMoreRef.current);
         setPage(pageRef.current);
       } else if (JSON.stringify(newMessages) !== previousCache) {
@@ -1067,7 +1121,8 @@ const ConversationScreen = ({ navigation, route }) => {
         // newest page only, not a pagination action.
       }
     } catch (error) {
-      console.log("Error fetching messages:", error.response?.data);
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
+      console.log("Error fetching messages:", error.response?.data || error?.message);
     } finally {
       if (!isBackground) {
         setRefreshing(false);
@@ -1200,13 +1255,16 @@ const ConversationScreen = ({ navigation, route }) => {
       // send a read receipt so the sender's "seen" status keeps updating live.
       // Not when another screen covers this one or the app is in the
       // background: the user has not seen it (it is marked when they return).
-      if (isFocusedRef.current && AppState.currentState === "active")
-      markConversationAsRead(activeId).catch((error) => {
-        console.log(
-          "[ConversationScreen] Error marking conversation as read:",
-          error?.response?.data || error?.message,
-        );
-      });
+      if (isFocusedRef.current && AppState.currentState === "active") {
+        markConversationAsRead(activeId).catch((error) => {
+          console.log(
+            "[ConversationScreen] Error marking conversation as read:",
+            error?.response?.data || error?.message,
+          );
+        });
+      } else {
+        markConversationAsDelivered(activeId).catch(() => {});
+      }
       // Any incoming activity from the other user is a good moment to re-check their online dot.
       refreshOtherUserOnlineStatusRef.current();
     };
@@ -1244,16 +1302,17 @@ const ConversationScreen = ({ navigation, route }) => {
     };
     const handleRecalled = (data) => {
       if (!data?.message_id) return;
+      setReplyingTo((prev) => (String(prev?.id) === String(data.message_id) ? null : prev));
       setMessages((prev) =>
         prev.map((m) => {
-          if (m.id === data.message_id) {
+          if (String(m.id) === String(data.message_id)) {
             return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
           }
           // Any OTHER message quoting this one in its reply preview carries
           // its own denormalized snapshot of it (m.reply_to) that never gets
           // touched by the update above - without this it would keep
           // showing the pre-recall content forever.
-          if (m.reply_to?.id === data.message_id) {
+          if (String(m.reply_to?.id) === String(data.message_id)) {
             return {
               ...m,
               reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
@@ -1278,7 +1337,22 @@ const ConversationScreen = ({ navigation, route }) => {
       );
     };
 
+    const handleDelivered = (event) => {
+      const deliveredAt = event?.delivered_at || new Date().toISOString();
+      const messageIds = event?.message_ids;
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (!m || m.type !== "message" || !m.is_myself || m.read_at || m.delivered_at) return m;
+          if (!messageIds || messageIds.length === 0 || messageIds.includes(m.id)) {
+            return { ...m, delivered_at: deliveredAt };
+          }
+          return m;
+        })
+      );
+    };
+
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
+    const unsubscribeDelivered = onMessageDelivered ? onMessageDelivered(activeId, handleDelivered) : () => {};
     const unsubscribeRead = onMessageRead(activeId, refresh);
     const unsubscribeDeleted = onMessageDeleted(activeId, refresh);
     const unsubscribeTyping = onTyping(activeId, handleTyping);
@@ -1288,6 +1362,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
     return () => {
       unsubscribeSent();
+      unsubscribeDelivered();
       unsubscribeRead();
       unsubscribeDeleted();
       unsubscribeTyping();
@@ -1307,6 +1382,7 @@ const ConversationScreen = ({ navigation, route }) => {
     currentConversationId,
     conversationId,
     onMessageSent,
+    onMessageDelivered,
     onMessageRead,
     onMessageDeleted,
     onMessageReacted,
@@ -1523,15 +1599,21 @@ const ConversationScreen = ({ navigation, route }) => {
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
 
+    const prevOffsetY = scrollOffsetRef.current || 0;
+    const dy = offsetY - prevOffsetY;
     scrollOffsetRef.current = offsetY;
 
     const viewH = scrollViewHeightRef.current || 800;
-    const BUFFER = 1200;
-    if (Math.abs(offsetY - lastViewportYRef.current) > 250) {
+    // Directional lookahead buffer: when scrolling up (dy < 0), pre-mount a
+    // larger buffer above the viewport so fast reverse flings never hit
+    // unmounted rows; when scrolling down, pre-mount more below.
+    if (Math.abs(offsetY - lastViewportYRef.current) > 180) {
       lastViewportYRef.current = offsetY;
+      const topBuffer = dy < 0 ? 1600 : 800;
+      const bottomBuffer = dy < 0 ? 800 : 1600;
       setVisibleViewport({
-        top: Math.max(0, offsetY - BUFFER),
-        bottom: offsetY + viewH + BUFFER,
+        top: Math.max(0, offsetY - topBuffer),
+        bottom: offsetY + viewH + bottomBuffer,
       });
     }
 
@@ -1951,6 +2033,7 @@ const ConversationScreen = ({ navigation, route }) => {
               type: replySnapshot.type,
               file_url: replySnapshot.file_url,
               sender: replySnapshot.sender,
+              is_recalled: Boolean(replySnapshot.is_recalled),
             }
           : undefined,
       };
@@ -2242,6 +2325,7 @@ const ConversationScreen = ({ navigation, route }) => {
               type: replySnapshot.type,
               file_url: replySnapshot.file_url,
               sender: replySnapshot.sender,
+              is_recalled: Boolean(replySnapshot.is_recalled),
             }
           : undefined,
       };
@@ -2560,7 +2644,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleReplyToMessage = () => {
     const item = reactionPicker.message;
     closeReactionPicker();
-    if (!item || typeof item.id !== "number") return;
+    if (!item || typeof item.id !== "number" || item.is_recalled) return;
 
     const contentType =
       item.type === "image" || item.type === "video" || item.type === "file"
@@ -2649,12 +2733,13 @@ const ConversationScreen = ({ navigation, route }) => {
             // snapshot of this one, same as the realtime handleRecalled
             // handler does for everyone else's clients (recall broadcasts
             // via ->toOthers(), so the sender never gets their own here).
+            setReplyingTo((prev) => (String(prev?.id) === String(item.id) ? null : prev));
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.id === item.id) {
+                if (String(m.id) === String(item.id)) {
                   return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
                 }
-                if (m.reply_to?.id === item.id) {
+                if (String(m.reply_to?.id) === String(item.id)) {
                   return {
                     ...m,
                     reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
@@ -3361,6 +3446,7 @@ const ConversationScreen = ({ navigation, route }) => {
             pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
             attemptScrollToHighlightRef={attemptScrollToHighlightRef}
             seenParticipants={seenParticipants}
+            otherUser={otherUser}
           />
           <TypingIndicator typingUsers={typingUsers} participants={currentConversation?.participants} />
           <View style={{ height: isAndroid ? 82 : 24 }} />

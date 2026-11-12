@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import FastImage from "../FastImage";
 import MediaShimmer from "../MediaShimmer";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getUserPhotos } from "../../services/api/Api";
+import { getUserPhotos, isRequestCanceled } from "../../services/api/Api";
 
 /**
  * The photo gallery of a profile - the mobile side of the web's
@@ -41,36 +41,66 @@ export function useProfilePhotos(username, active) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   // Answers of an older request (another profile, a refresh that overtook
   // it) are dropped.
   const requestId = useRef(0);
+  const isFetchingRef = useRef(false);
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(false);
+  const abortControllerRef = useRef(null);
 
   const fetchPage = useCallback(
     async (nextPage) => {
       if (!username) return;
-      const id = ++requestId.current;
       const first = nextPage === 1;
-      if (first) setLoading(true);
-      else setLoadingMore(true);
-      setError(false);
+      if (!first && isFetchingRef.current) return;
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      const id = ++requestId.current;
+      isFetchingRef.current = true;
+      if (first) {
+        setLoading(true);
+        setError(false);
+      } else {
+        setLoadingMore(true);
+      }
+      setLoadMoreError(false);
 
       try {
-        const response = await getUserPhotos(username, nextPage, PAGE_SIZE);
-        if (id !== requestId.current) return;
+        const response = await getUserPhotos(username, nextPage, PAGE_SIZE, {
+          signal: controller.signal,
+        });
+        if (id !== requestId.current || controller.signal.aborted) return;
         const items = Array.isArray(response.data?.data) ? response.data.data : [];
-        setPhotos((previous) => (first ? items : [...previous, ...items]));
+        const more = Boolean(response.data?.has_more);
+        setPhotos((previous) => {
+          if (first) return items;
+          const existingKeys = new Set(previous.map((p) => `${p.post_id}-${p.id}`));
+          return [...previous, ...items.filter((p) => !existingKeys.has(`${p.post_id}-${p.id}`))];
+        });
         setTotal(Number(response.data?.total) || 0);
+        pageRef.current = nextPage;
+        hasMoreRef.current = more;
         setPage(nextPage);
-        setHasMore(Boolean(response.data?.has_more));
+        setHasMore(more);
       } catch (e) {
-        if (id !== requestId.current) return;
+        if (isRequestCanceled(e) || controller.signal.aborted || id !== requestId.current) return;
         // A failed "load more" keeps what is already on screen.
         if (first) {
           setPhotos([]);
           setError(true);
+        } else {
+          setLoadMoreError(true);
         }
       } finally {
-        if (id === requestId.current) {
+        if (id === requestId.current && !controller.signal.aborted) {
+          isFetchingRef.current = false;
           setLoading(false);
           setLoadingMore(false);
         }
@@ -80,15 +110,37 @@ export function useProfilePhotos(username, active) {
   );
 
   useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      isFetchingRef.current = false;
+    };
+  }, [username]);
+
+  useEffect(() => {
     if (active && username && page === 0 && !loading && !error) fetchPage(1);
   }, [active, username, page, loading, error, fetchPage]);
 
   const reload = useCallback(() => fetchPage(1), [fetchPage]);
   const loadMore = useCallback(() => {
-    if (!loading && !loadingMore && hasMore) fetchPage(page + 1);
-  }, [loading, loadingMore, hasMore, page, fetchPage]);
+    if (!isFetchingRef.current && hasMoreRef.current) {
+      fetchPage(pageRef.current + 1);
+    }
+  }, [fetchPage]);
 
-  return { photos, total, hasMore, loading, loadingMore, error, loaded: page > 0, reload, loadMore };
+  return {
+    photos,
+    total,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    loadMoreError,
+    loaded: page > 0,
+    reload,
+    loadMore,
+  };
 }
 
 /**

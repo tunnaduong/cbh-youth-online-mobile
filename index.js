@@ -39,12 +39,25 @@ global.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
   }
   previousHandler?.(error, isFatal);
 });
+global.RN$registerExceptionListener?.((data) => {
+  if (data?.isFatal && !__DEV__) {
+    data.preventDefault?.();
+    const err = new Error(data.message || data.originalMessage || "Fatal JS Error");
+    if (data.extraData?.rawStack) {
+      err.stack = data.extraData.rawStack;
+    }
+    showFatal(err);
+  }
+});
 
 // require, not import: imports are hoisted above the handler above, and an
 // error thrown while the app's modules load must land in this try.
 let App = null;
 try {
-  // Reanimated first: when it fails to start, libraries that load it lazily
+  // Patch global Text/TextInput first before Reanimated or any UI module
+  // captures the default Text component reference.
+  require("./app/utils/globalFont");
+  // Reanimated next: when it fails to start, libraries that load it lazily
   // (Skia's ReanimatedProxy) replace its error with "react-native-reanimated
   // is not installed!" - loading it here shows the real one.
   require("react-native-reanimated");

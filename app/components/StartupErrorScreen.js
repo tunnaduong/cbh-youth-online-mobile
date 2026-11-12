@@ -58,8 +58,11 @@ const diagnostics = () => {
     try {
       const { storage } = require("../global/storage");
       const Updates = require("expo-updates");
-      const otaBuild = storage?.getNumber?.("ota_active_build");
-      if (otaBuild) {
+      const manifestBuild = parseInt(Updates?.manifest?.metadata?.build_number, 10);
+      const otaBuild =
+        (Number.isFinite(manifestBuild) && manifestBuild > 0 ? manifestBuild : 0) ||
+        storage?.getNumber?.("ota_active_build_number");
+      if (otaBuild && !Updates?.isEmbeddedLaunch) {
         otaLabel = ` [OTA Build ${otaBuild}]`;
       } else if (Updates?.isEmbeddedLaunch) {
         otaLabel = " [Embedded]";
@@ -71,11 +74,18 @@ const diagnostics = () => {
     try {
       const Updates = require("expo-updates");
       const { storage } = require("../global/storage");
-      const otaBuild = storage?.getNumber?.("ota_active_build");
-      const channel = Updates?.channel || storage?.getString?.("ota_channel_override") || "default";
+      const manifestBuild = parseInt(Updates?.manifest?.metadata?.build_number, 10);
+      const otaBuild =
+        (Number.isFinite(manifestBuild) && manifestBuild > 0 ? manifestBuild : 0) ||
+        storage?.getNumber?.("ota_active_build_number");
+      const channel =
+        Updates?.manifest?.metadata?.channel ||
+        Updates?.channel ||
+        storage?.getString?.("ota_channel") ||
+        "default";
       const isEmbedded = Updates?.isEmbeddedLaunch;
       const updateId = Updates?.updateId || storage?.getString?.("ota_active_update_id") || "none";
-      const buildInfo = otaBuild ? `Build ${otaBuild}` : isEmbedded ? "embedded launch" : "unknown";
+      const buildInfo = isEmbedded ? "embedded launch" : otaBuild ? `Build ${otaBuild}` : "unknown";
       return `${buildInfo} (channel: ${channel}, id: ${updateId}, embedded: ${Boolean(isEmbedded)})`;
     } catch {
       try {

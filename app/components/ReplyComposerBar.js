@@ -37,7 +37,7 @@ const ReplyComposerBar = ({ replyingTo, currentUsername, onCancel }) => {
           ) : (
             icon && <Ionicons name={icon} size={13} color={theme.subText} style={styles.icon} />
           )}
-          <Text style={[styles.content, { color: theme.subText }]} numberOfLines={1}>
+          <Text style={[styles.content, { color: theme.subText }, replyingTo.is_recalled && { fontStyle: "italic" }]} numberOfLines={1}>
             {label}
           </Text>
         </View>

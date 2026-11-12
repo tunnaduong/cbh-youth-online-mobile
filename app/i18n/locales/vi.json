@@ -558,6 +558,9 @@
     "copyOptionsTitle": "Tùy chọn sao chép",
     "copyAction": "Sao chép",
     "copyAllAction": "Tất cả",
+    "calloutTranslate": "Dịch AI",
+    "calloutOriginal": "Xem gốc",
+    "calloutTranslating": "Đang dịch...",
     "copyTitleSuccess": "Đã sao chép tiêu đề",
     "copyCaptionSuccess": "Đã sao chép nội dung",
     "copyAllSuccess": "Đã sao chép toàn bộ bài viết",
@@ -603,7 +606,16 @@
     "reply": "Trả lời",
     "pendingModerationTitle": "Bình luận đang chờ kiểm duyệt",
     "pendingModerationBody": "Bình luận của bạn sẽ hiển thị với mọi người sau khi được duyệt.",
-    "commentError": "Không thể gửi bình luận. Vui lòng thử lại."
+    "commentError": "Không thể gửi bình luận. Vui lòng thử lại.",
+    "translateByAi": "Dịch bằng Yoyo AI",
+    "viewOriginal": "Xem bản gốc",
+    "viewTranslation": "Xem bản dịch",
+    "translatedByAi": "Dịch bởi Yoyo AI ({{lang}})",
+    "translating": "Đang dịch bằng Yoyo AI...",
+    "translateError": "Không thể dịch bài viết lúc này",
+    "originalRestored": "Đã chuyển về bài viết gốc",
+    "translatingSubtitle": "Vui lòng đợi trong giây lát...",
+    "translateSuccess": "Dịch thành công"
   },
   "sharePost": {
     "title": "Chia sẻ bài viết",
@@ -653,6 +665,7 @@
     "turnOff": "Tắt",
     "enabledToastTitle": "Đã bật chế độ nhà phát triển",
     "enabledToastDesc": "Mục Bảng debug giờ đã xuất hiện trong phần Giới thiệu.",
+    "stepsRemaining": "Còn {{count}} bước nữa để bật chế độ nhà phát triển",
     "copied": "Đã sao chép log",
     "copiedAll": "Đã sao chép toàn bộ log"
   },
@@ -1193,6 +1206,13 @@
     "photosRetry": "Thử lại",
     "loadMorePhotos": "Xem thêm ảnh",
     "photoLabel": "Ảnh bài viết",
+    "videosTab": "Video",
+    "videosTabCount": "Video ({{total}})",
+    "emptyVideos": "Chưa có video nào",
+    "videosError": "Không tải được thư viện video",
+    "videosRetry": "Thử lại",
+    "loadMoreVideos": "Xem thêm video",
+    "videoLabel": "Video bài viết",
     "viewPost": "Xem bài viết",
     "likesSummary": "{{posts}} bài viết · {{likes}} lượt thích",
     "sortNewest": "Mới nhất",
@@ -1271,7 +1291,9 @@
     "cancel": "Hủy",
     "save": "Lưu",
     "subtitle": "Tuỳ chỉnh theo sở thích của bạn",
-    "greeting": "Xin chào, {{name}}!"
+    "greeting": "Xin chào, {{name}}!",
+    "aiTranslate": "Ngôn ngữ dịch Yoyo AI",
+    "aiTranslateAuto": "Tự động (theo máy)"
   },
   "security": {
     "passkeys": "Passkey",
@@ -1806,7 +1828,8 @@
     "joinError": "Không thể tham gia bài đố vui này.",
     "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}",
     "restartError": "Không thể làm lại bài đố vui này.",
-    "retrySame": "Làm lại bài này"
+    "retrySame": "Làm lại bài này",
+    "reviewQuestions": "Chi tiết câu hỏi"
   },
   "customQuiz": {
     "entryTitle": "Tạo bộ đề tùy chỉnh",

@@ -175,6 +175,15 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (
+      axios.isCancel(error) ||
+      error?.code === "ERR_CANCELED" ||
+      error?.name === "CanceledError" ||
+      error?.name === "AbortError"
+    ) {
+      return Promise.reject(error);
+    }
+
     try {
       const cfg = error?.config || {};
       const url = cfg.url || "";

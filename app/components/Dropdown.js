@@ -200,8 +200,6 @@ const Dropdown = ({
   const isFitContent = flattenedStyle.alignSelf === "flex-start";
   const isRightAligned = flattenedTextStyle.textAlign === "right";
 
-  const SheetSurface = LiquidGlassView || View;
-
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
@@ -293,22 +291,18 @@ const Dropdown = ({
             onPress={closeModal}
           />
 
-          {/* Liquid Glass Bottom Sheet */}
-          <SheetSurface
-            tintColor={glassTint(isDarkMode)}
-            borderRadius={28}
+          {/* Bottom Sheet Surface */}
+          <View
             style={[
               styles.sheet,
               {
                 borderColor: isDarkMode
-                  ? "rgba(255, 255, 255, 0.14)"
+                  ? "rgba(255, 255, 255, 0.12)"
                   : "rgba(0, 0, 0, 0.08)",
-                backgroundColor: isDarkMode
-                  ? "rgba(22, 22, 24, 0.94)"
-                  : "rgba(252, 252, 254, 0.94)",
+                backgroundColor: isDarkMode ? "#16181F" : "#FFFFFF",
               },
+              isDarkMode && Platform.OS === "android" && { elevation: 0, shadowOpacity: 0 },
             ]}
-            {...androidGlassPerfProps}
           >
             {/* Drag Handle */}
             <View style={styles.dragHandleContainer}>
@@ -424,7 +418,7 @@ const Dropdown = ({
                 </Text>
               </TouchableOpacity>
             </View>
-          </SheetSurface>
+          </View>
         </View>
       </Modal>
     </View>

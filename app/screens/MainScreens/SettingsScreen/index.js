@@ -26,6 +26,7 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 import { getRunningUpdateInfo } from "../../../services/ota/otaService";
+import { getAiTranslatePreference, setAiTranslatePreference } from "../../../utils/aiTranslation";
 
 const SettingItem = ({
   icon,
@@ -94,7 +95,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const runningUpdate = getRunningUpdateInfo();
+  const [runningUpdate, setRunningUpdate] = React.useState(() => getRunningUpdateInfo());
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -102,6 +103,7 @@ export default function SettingsScreen({ navigation }) {
   // Tapping the version text 5 times within 3s toggles on the hidden
   // developer debug console (persistent - re-checked whenever this screen
   // gains focus, since it can also be turned off from inside that screen).
+  const DEV_MODE_TAPS = 5;
   const [devMode, setDevMode] = React.useState(false);
   const versionTapCountRef = useRef(0);
   const versionTapTimerRef = useRef(null);
@@ -109,36 +111,56 @@ export default function SettingsScreen({ navigation }) {
   useFocusEffect(
     React.useCallback(() => {
       setDevMode(isDevModeEnabled());
+      setRunningUpdate(getRunningUpdateInfo());
     }, [])
   );
 
   const handleVersionTap = () => {
+    if (isDevModeEnabled()) return;
+
     versionTapCountRef.current += 1;
     clearTimeout(versionTapTimerRef.current);
     versionTapTimerRef.current = setTimeout(() => {
       versionTapCountRef.current = 0;
     }, 3000);
 
-    if (versionTapCountRef.current >= 5) {
+    const count = versionTapCountRef.current;
+    if (count >= DEV_MODE_TAPS) {
       versionTapCountRef.current = 0;
       clearTimeout(versionTapTimerRef.current);
-      if (!isDevModeEnabled()) {
-        setDevModeEnabled(true).then(() => {
-          setDevMode(true);
-          Toast.show({
-            type: "success",
-            text1: t("devConsole.enabledToastTitle"),
-            text2: t("devConsole.enabledToastDesc"),
-            visibilityTime: 3000,
-          });
+      setDevModeEnabled(true).then(() => {
+        setDevMode(true);
+        Toast.show({
+          type: "success",
+          text1: t("devConsole.enabledToastTitle"),
+          text2: t("devConsole.enabledToastDesc"),
+          visibilityTime: 3000,
         });
-      }
+      });
+    } else if (count >= DEV_MODE_TAPS - 2) {
+      const remaining = DEV_MODE_TAPS - count;
+      Toast.show({
+        type: "info",
+        text1: t("devConsole.stepsRemaining", { count: remaining }),
+        visibilityTime: 1800,
+      });
     }
   };
 
   if (!userInfo) return null;
 
   const languageCode = i18n.language?.split("-")[0] || "vi";
+  const [aiTranslatePref, setAiTranslatePref] = React.useState(() => getAiTranslatePreference());
+
+  const aiTranslateOptions = [
+    { label: `✨ ${t("settings.aiTranslateAuto", "Tự động")}`, value: "auto" },
+    { label: "🇻🇳 Tiếng Việt", value: "vi" },
+    { label: "🇬🇧 English", value: "en" },
+    { label: "🇷🇺 Русский", value: "ru" },
+    { label: "🇨🇳 简体中文", value: "zh" },
+  ];
+
+  const currentAiTranslateOption = aiTranslateOptions.find((o) => o.value === aiTranslatePref) || aiTranslateOptions[0];
   const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
 
   const currentThemeIcon = useSystemTheme ? (
@@ -332,6 +354,36 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
 
+          {/* AI Translation Language dropdown */}
+          <View style={[styles.dropdownRow, { borderBottomColor: theme.border, justifyContent: "space-between" }]}>
+            <View style={[styles.settingItemLeft, { minWidth: 0, marginRight: 8 }]}>
+              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
+              </View>
+              <Text style={[styles.settingItemText, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+                {t("settings.aiTranslate")}
+              </Text>
+            </View>
+            <Dropdown
+              options={aiTranslateOptions}
+              selectedValue={currentAiTranslateOption}
+              onValueChange={(item) => {
+                setAiTranslatePref(item.value);
+                setAiTranslatePreference(item.value);
+                Toast.show({
+                  type: "success",
+                  text1: t("settings.aiTranslate"),
+                  text2: item.label,
+                  visibilityTime: 2000,
+                });
+              }}
+              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent", maxWidth: "100%" }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end", flexShrink: 1, maxWidth: "52%" }}
+              textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
+              modalTitle={t("settings.aiTranslate")}
+            />
+          </View>
+
           <SettingItem
             icon="play-circle-outline"
             title={t("settings.autoplayVideos")}
@@ -393,32 +445,7 @@ export default function SettingsScreen({ navigation }) {
         {/* Version & Social */}
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => {
-            handleVersionTap();
-            const lines = [
-              "Diễn đàn hs Chuyên Biên Hòa là sân chơi của chuyên Nga :)))",
-              "1 trong 2 người tạo ra là chuyên Nga K60",
-              "Quản lý page chính Nga K67",
-              "Developer chăm chỉ Nga K67 :))",
-              "Phát triển Discord Nga K68",
-              "Thank you Dương Tùng Anh",
-              "Mãi mãi là chuyên Nga!!",
-              "Em yêu chuyên Nga",
-              "Cảm ơn bạn đã dùng app",
-              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ",
-              "Chúc bạn có một ngày vui vẻ!",
-              "Cảm ơn bạn đã sử dụng app",
-              "Test app là 1 cách để đóng góp cho dự án",
-              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3",
-              "Mãi yêu a Tùng Anh",
-            ];
-            Toast.show({
-              type: "success",
-              text1: "Lời nhắn từ nhà phát triển app",
-              text2: lines[Math.floor(Math.random() * lines.length)],
-              visibilityTime: 3000,
-            });
-          }}
+          onPress={handleVersionTap}
         >
           <Text style={[styles.versionText, { color: theme.subText }]}>
             {t("settings.version", {

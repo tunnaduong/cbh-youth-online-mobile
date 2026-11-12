@@ -4,12 +4,16 @@ import LottieView from "lottie-react-native";
 import * as NativeSplashScreen from "expo-splash-screen";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useGlobalFontsLoaded } from "../utils/globalFont";
 
 // This is our Splash Screen component
 const SplashScreen = ({ onFinish }) => {
   const animation = useRef(null);
   const { theme } = useTheme();
   const { t } = useTranslation();
+  // Hide the title until Inter is ready so it never flashes in the system font
+  // (instant on binaries that embed Inter natively).
+  const fontsReady = useGlobalFontsLoaded();
 
   useEffect(() => {
     // Hide native splash screen immediately when JS splash mounts
@@ -52,8 +56,10 @@ const SplashScreen = ({ onFinish }) => {
             autoPlay={false}
             loop={false}
           />
-          <Text style={styles.appName.subheading}>{t('app.subtitle')}</Text>
-          <Text style={styles.appName.heading}>{t('app.name')}</Text>
+          <View style={{ alignItems: "center", opacity: fontsReady ? 1 : 0 }}>
+            <Text style={styles.appName.subheading}>{t('app.subtitle')}</Text>
+            <Text style={styles.appName.heading}>{t('app.name')}</Text>
+          </View>
         </View>
         <Image
           source={require("../assets/fatties.png")}

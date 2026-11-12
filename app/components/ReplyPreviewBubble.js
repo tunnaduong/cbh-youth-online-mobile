@@ -125,6 +125,7 @@ const ReplyPreviewBubble = ({ item, currentUsername, onPress }) => {
           style={[
             styles.contentText,
             { color: isMyself ? (isDarkMode ? "#ecfdf5" : "#FFFFFF") : theme.text },
+            replyTo?.is_recalled && { fontStyle: "italic", opacity: 0.8 },
           ]}
         >
           {label}

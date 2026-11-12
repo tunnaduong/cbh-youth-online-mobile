@@ -14,6 +14,7 @@ export default function ThemeSheet({ visible, title, onClose, onApply, scroll = 
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  if (!visible) return null;
   const Body = scroll ? ScrollView : View;
 
   return (

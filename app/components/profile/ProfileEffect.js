@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Canvas, Circle, RadialGradient, vec } from "@shopify/react-native-skia";
 import Animated, {
   Easing,
@@ -31,24 +31,142 @@ const PLAY_MS = 6000;
  * khoảng 6 giây rồi mờ dần; đổi `replayKey` để chạy lại (trình chỉnh sửa dùng
  * khi đổi hiệu ứng). Tắt hẳn khi bật Giảm chuyển động trong cài đặt máy.
  */
-export default function ProfileEffect({ theme, replayKey }) {
+const ProfileEffect = React.memo(function ProfileEffect({ theme, replayKey, staticPreview = false }) {
   const normalized = normalizeTheme(theme);
   const effect = normalized?.profile_effect || "none";
   const reduceMotion = useReducedMotion();
   const [size, setSize] = useState(null);
+  const [finished, setFinished] = useState(false);
   const opacity = useSharedValue(1);
 
   useEffect(() => {
+    if (effect === "none" || reduceMotion || staticPreview) {
+      setFinished(false);
+      cancelAnimation(opacity);
+      opacity.value = 1;
+      return undefined;
+    }
+    setFinished(false);
     opacity.value = 1;
     opacity.value = withDelay(PLAY_MS, withTiming(0, { duration: 1000 }));
-    return () => cancelAnimation(opacity);
-  }, [effect, replayKey, opacity]);
+    const timer = setTimeout(() => {
+      setFinished(true);
+    }, PLAY_MS + 1050);
+    return () => {
+      clearTimeout(timer);
+      cancelAnimation(opacity);
+    };
+  }, [effect, replayKey, reduceMotion, staticPreview, opacity]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
-  if (effect === "none" || reduceMotion) return null;
+  if (effect === "none" || reduceMotion || finished) return null;
 
   const [primary, accent] = themeColors(normalized);
+
+  if (staticPreview) {
+    return (
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.clip]}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setSize((prev) => (prev && prev.width === width && prev.height === height ? prev : { width, height }));
+        }}
+      >
+        {size ? (
+          <View style={StyleSheet.absoluteFill}>
+            {effect === "sparkles" &&
+              SPOTS.slice(0, 8).map(([x, y], i) => (
+                <Text
+                  key={i}
+                  style={[
+                    styles.particle,
+                    {
+                      left: (x / 100) * size.width,
+                      top: (y / 100) * size.height,
+                      color: i % 3 === 0 ? "#fde68a" : "#ffffff",
+                      fontSize: 10 + (i % 3) * 3,
+                      opacity: 0.85,
+                    },
+                  ]}
+                >
+                  ✦
+                </Text>
+              ))}
+            {effect === "hearts" &&
+              SPOTS.slice(0, 7).map(([x, y], i) => (
+                <Text
+                  key={i}
+                  style={[
+                    styles.particle,
+                    {
+                      left: (x / 100) * size.width,
+                      top: (y / 100) * size.height,
+                      color: i % 2 ? "#f472b6" : "#fb7185",
+                      fontSize: 11 + (i % 3) * 3,
+                      opacity: 0.85,
+                    },
+                  ]}
+                >
+                  ♥
+                </Text>
+              ))}
+            {effect === "snow" &&
+              SPOTS.slice(0, 9).map(([x, y], i) => {
+                const s = 3 + (i % 3) * 2;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.particle,
+                      {
+                        left: (x / 100) * size.width,
+                        top: (y / 100) * size.height,
+                        width: s,
+                        height: s,
+                        borderRadius: s / 2,
+                        backgroundColor: "#ffffff",
+                        opacity: 0.85,
+                      },
+                    ]}
+                  />
+                );
+              })}
+            {effect === "aurora" && (
+              <>
+                <View
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: size.height * 0.65,
+                    backgroundColor: primary,
+                    opacity: 0.38,
+                    borderBottomLeftRadius: size.width * 0.4,
+                    borderBottomRightRadius: size.width * 0.4,
+                  }}
+                />
+                <View
+                  style={{
+                    position: "absolute",
+                    left: size.width * 0.15,
+                    right: 0,
+                    top: size.height * 0.1,
+                    height: size.height * 0.55,
+                    backgroundColor: accent,
+                    opacity: 0.35,
+                    borderBottomLeftRadius: size.width * 0.4,
+                  }}
+                />
+              </>
+            )}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <Animated.View
@@ -118,7 +236,7 @@ export default function ProfileEffect({ theme, replayKey }) {
       ) : null}
     </Animated.View>
   );
-}
+});
 
 function Sparkle({ left, top, delay, color, fontSize }) {
   const progress = useSharedValue(0);
@@ -251,6 +369,7 @@ function AuroraBand({ size, color, top, heightRatio, opacity, reverse }) {
 const styles = StyleSheet.create({
   clip: { overflow: "hidden" },
   glyph: { position: "absolute" },
+  particle: { position: "absolute" },
   snow: {
     position: "absolute",
     top: -12,
@@ -261,3 +380,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
 });
+
+export default ProfileEffect;

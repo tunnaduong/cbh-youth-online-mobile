@@ -6,8 +6,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppState, DeviceEventEmitter } from "react-native";
-import * as Notifications from "expo-notifications";
+import { AppState, DeviceEventEmitter, Platform, PermissionsAndroid } from "react-native";
+import { Camera } from "expo-camera";
 import { AuthContext } from "./AuthContext";
 import { getEcho } from "../services/echo/echo";
 import {
@@ -41,10 +41,29 @@ export const useCall = () => {
   return context;
 };
 
+async function ensureNativeCallPermissions(type = "audio") {
+  try {
+    if (Platform.OS === "android") {
+      const perms = [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO];
+      if (type === "video") {
+        perms.push(PermissionsAndroid.PERMISSIONS.CAMERA);
+      }
+      await PermissionsAndroid.requestMultiple(perms);
+    } else {
+      await Camera.requestMicrophonePermissionsAsync();
+      if (type === "video") {
+        await Camera.requestCameraPermissionsAsync();
+      }
+    }
+  } catch (err) {
+    console.warn("[CallContext] Native permission request warning:", err?.message);
+  }
+}
+
 export const CallProvider = ({ children }) => {
   const { isLoggedIn, userInfo } = useContext(AuthContext);
 
-  const [callStatus, setCallStatus] = useState("idle"); // 'idle' | 'calling' | 'ringing' | 'connected' | 'ended'
+  const [callStatus, setCallStatus] = useState("idle"); // 'idle' | 'calling' | 'ringing' | 'ringingOutward' | 'connected' | 'ended'
   const [callType, setCallType] = useState("audio"); // 'audio' | 'video'
   const [activeCall, setActiveCall] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -53,6 +72,8 @@ export const CallProvider = ({ children }) => {
   const [callDuration, setCallDuration] = useState(0);
 
   const bridgeRef = useRef(null);
+  // Whether the bridge's peer connection is up (slows the HTTP poll down)
+  const transportConnectedRef = useRef(false);
   const timerRef = useRef(null);
   const activeCallRef = useRef(null);
   const conversationChannelRef = useRef(null);
@@ -60,6 +81,13 @@ export const CallProvider = ({ children }) => {
   const callStatusRef = useRef("idle");
   const ringingTimeoutRef = useRef(null);
   const connectingTimeoutRef = useRef(null);
+  const ringingRetryTimersRef = useRef([]);
+  const ringingAckReceivedRef = useRef(false);
+  const offerStartedForCallRef = useRef(null);
+  const sdpChunksBufferRef = useRef({});
+  const processedSignalSeqRef = useRef(0);
+  const processedAudioSeqRef = useRef(0);
+  const processedCandidatesSetRef = useRef(new Set());
   const callTypeRef = useRef("audio");
 
   useEffect(() => {
@@ -82,6 +110,11 @@ export const CallProvider = ({ children }) => {
       clearTimeout(ringingTimeoutRef.current);
       ringingTimeoutRef.current = null;
     }
+  }, []);
+
+  const clearRingingRetryTimers = useCallback(() => {
+    ringingRetryTimersRef.current.forEach((t) => clearTimeout(t));
+    ringingRetryTimersRef.current = [];
   }, []);
 
   useEffect(() => {
@@ -122,6 +155,13 @@ export const CallProvider = ({ children }) => {
   const cleanupCallState = useCallback(() => {
     clearConnectingTimeout();
     clearRingingTimeout();
+    clearRingingRetryTimers();
+    ringingAckReceivedRef.current = false;
+    offerStartedForCallRef.current = null;
+    sdpChunksBufferRef.current = {};
+    processedSignalSeqRef.current = 0;
+    processedAudioSeqRef.current = 0;
+    processedCandidatesSetRef.current = new Set();
     bridgeRef.current?.sendMessage("STOP_RINGING");
     pendingRemoteOfferRef.current = null;
     stopTimer();
@@ -129,21 +169,429 @@ export const CallProvider = ({ children }) => {
     bridgeRef.current?.sendMessage("END_CALL");
     if (conversationChannelRef.current) {
       try {
-        const echo = getEcho();
-        if (echo && activeCallRef.current?.conversation_id) {
-          echo.leave(`chat.${activeCallRef.current.conversation_id}`);
-        }
+        conversationChannelRef.current
+          .stopListening(".call.answered")
+          .stopListening(".call.rejected")
+          .stopListening(".call.ended")
+          .stopListening(".call.signaled");
       } catch (e) {}
       conversationChannelRef.current = null;
     }
+    activeCallRef.current = null;
     setActiveCall(null);
+    callStatusRef.current = "idle";
     setCallStatus("idle");
     setIsMuted(false);
     setIsSpeakerOn(false);
     setIsMinimized(false);
-  }, [stopTimer]);
+  }, [
+    clearConnectingTimeout,
+    clearRingingTimeout,
+    clearRingingRetryTimers,
+    stopTimer,
+  ]);
 
-  // Subscribe to user private channel to receive incoming calls
+  const endCall = useCallback(async () => {
+    try {
+      stopRingtoneVibration();
+      playCallEndedHaptic();
+      const call = activeCallRef.current;
+      cleanupCallState();
+      if (call?.id) {
+        await endCallApi(call.id);
+      }
+    } catch (err) {
+      console.warn("[CallContext] endCall error:", err);
+    }
+  }, [cleanupCallState]);
+
+  const startOutgoingRingingPhase = useCallback(() => {
+    clearConnectingTimeout();
+    if (callStatusRef.current === "calling") {
+      callStatusRef.current = "ringingOutward";
+      setCallStatus("ringingOutward");
+      bridgeRef.current?.sendMessage("START_OUTGOING_RING");
+
+      clearRingingTimeout();
+      ringingTimeoutRef.current = setTimeout(() => {
+        if (
+          activeCallRef.current &&
+          (callStatusRef.current === "calling" ||
+            callStatusRef.current === "ringing" ||
+            callStatusRef.current === "ringingOutward")
+        ) {
+          console.log(
+            "[CallContext] 60s ringing timeout without answer -> auto end call"
+          );
+          Toast.show({
+            type: "info",
+            text1: "Người nhận không trả lời",
+            visibilityTime: 2500,
+          });
+          endCall();
+        }
+      }, 60000);
+    }
+  }, [clearConnectingTimeout, clearRingingTimeout, endCall]);
+
+  // Shared event handlers for both user private channel, conversation presence channel, and HTTP sync
+  const handleCallAnsweredEvent = useCallback(
+    (data) => {
+      const callData = data?.call || data;
+      const current = activeCallRef.current;
+      if (!current) return;
+      if (
+        current.id &&
+        callData?.id &&
+        String(current.id) !== String(callData.id)
+      ) {
+        return;
+      }
+
+      clearConnectingTimeout();
+      clearRingingTimeout();
+      clearRingingRetryTimers();
+      stopRingtoneVibration();
+      bridgeRef.current?.sendMessage("STOP_RINGING");
+
+      const isCaller =
+        Boolean(
+          userInfo?.id &&
+            (String(current.caller?.id) === String(userInfo.id) ||
+              String(current.caller_id) === String(userInfo.id) ||
+              String(callData?.caller?.id) === String(userInfo.id))
+        ) || Boolean(!current.caller && current.receiver);
+
+      if (isCaller) {
+        const callId = callData?.id || current.id;
+        if (callId && offerStartedForCallRef.current !== String(callId)) {
+          offerStartedForCallRef.current = String(callId);
+          bridgeRef.current?.sendMessage("START_OUTGOING_CALL", {
+            callId,
+            callType: callTypeRef.current,
+          });
+        }
+      }
+
+      if (callStatusRef.current !== "connected") {
+        playCallConnectedHaptic();
+        callStatusRef.current = "connected";
+        setCallStatus("connected");
+        startTimer();
+      }
+    },
+    [
+      userInfo?.id,
+      clearConnectingTimeout,
+      clearRingingTimeout,
+      clearRingingRetryTimers,
+      startTimer,
+    ]
+  );
+
+  const handleCallRejectedEvent = useCallback(
+    (data) => {
+      const current = activeCallRef.current;
+      if (!current) return;
+      if (
+        current.id &&
+        data?.call_id &&
+        String(current.id) !== String(data.call_id)
+      ) {
+        return;
+      }
+      stopRingtoneVibration();
+      playCallEndedHaptic();
+      Toast.show({
+        type: "info",
+        text1:
+          data?.reason === "busy"
+            ? "Người nhận hiện đang bận"
+            : "Cuộc gọi đã bị từ chối",
+        visibilityTime: 2500,
+      });
+      cleanupCallState();
+    },
+    [cleanupCallState]
+  );
+
+  const handleCallEndedEvent = useCallback(
+    (data) => {
+      const callData = data?.call;
+      const current = activeCallRef.current;
+      if (!current) return;
+      if (
+        current.id &&
+        callData?.id &&
+        String(current.id) !== String(callData.id)
+      ) {
+        return;
+      }
+      stopRingtoneVibration();
+      playCallEndedHaptic();
+      cleanupCallState();
+    },
+    [cleanupCallState]
+  );
+
+  const handleCallSignaledEvent = useCallback(
+    (data) => {
+      const current = activeCallRef.current;
+      if (!current) return;
+      if (
+        current.id &&
+        data?.call_id &&
+        String(current.id) !== String(data.call_id)
+      ) {
+        return;
+      }
+      if (
+        data?.conversation_id &&
+        current.conversation_id &&
+        String(data.conversation_id) !== String(current.conversation_id)
+      ) {
+        return;
+      }
+      if (
+        userInfo?.id &&
+        data?.sender_id &&
+        String(data.sender_id) === String(userInfo.id)
+      ) {
+        return;
+      }
+
+      let type = data?.type;
+      let payload = data?.payload;
+
+      if (type === "sdp_chunk" && payload) {
+        const {
+          chunk_group_id,
+          chunk_index,
+          total_chunks,
+          original_type,
+          chunk,
+        } = payload;
+        if (!chunk_group_id || typeof chunk_index !== "number") return;
+        if (!sdpChunksBufferRef.current[chunk_group_id]) {
+          sdpChunksBufferRef.current[chunk_group_id] = {
+            total: total_chunks,
+            parts: {},
+          };
+        }
+        sdpChunksBufferRef.current[chunk_group_id].parts[chunk_index] = chunk;
+        const group = sdpChunksBufferRef.current[chunk_group_id];
+        if (Object.keys(group.parts).length < group.total) {
+          return;
+        }
+        try {
+          let fullJson = "";
+          for (let i = 0; i < group.total; i++) {
+            fullJson += group.parts[i] || "";
+          }
+          delete sdpChunksBufferRef.current[chunk_group_id];
+          type = original_type;
+          payload = JSON.parse(fullJson);
+        } catch (e) {
+          return;
+        }
+      }
+
+      if (type === "ringing") {
+        console.log("[CallContext] Callee received call and started ringing.");
+        ringingAckReceivedRef.current = true;
+        if (callStatusRef.current === "calling") {
+          startOutgoingRingingPhase();
+        }
+        return;
+      } else if (type === "candidate") {
+        if (!payload || !payload.candidate) return;
+        const candKey = payload.candidate;
+        if (processedCandidatesSetRef.current.has(candKey)) return;
+        processedCandidatesSetRef.current.add(candKey);
+        bridgeRef.current?.sendMessage("ADD_ICE_CANDIDATE", {
+          candidate: payload,
+        });
+      } else if (type === "offer") {
+        pendingRemoteOfferRef.current = payload;
+        bridgeRef.current?.sendMessage("SET_REMOTE_SDP", {
+          sdp: payload,
+          callId: data?.call_id || current.id,
+          callType: callTypeRef.current,
+        });
+      } else if (type === "answer") {
+        bridgeRef.current?.sendMessage("STOP_RINGING");
+        bridgeRef.current?.sendMessage("SET_REMOTE_SDP", {
+          sdp: payload,
+          callId: data?.call_id || current.id,
+          callType: callTypeRef.current,
+        });
+      } else if (type === "audio_chunk" && payload) {
+        bridgeRef.current?.sendMessage("PLAY_AUDIO_CHUNK", payload);
+      }
+    },
+    [userInfo?.id, startOutgoingRingingPhase]
+  );
+
+  // Continuous HTTP signal & call state sync while a call is active
+  // (guarantees 100% signal delivery even if WebSocket drops or SDP exceeds Reverb limits)
+  useEffect(() => {
+    if (!isLoggedIn || callStatus === "idle") return;
+
+    let cancelled = false;
+    const syncCallSignals = async () => {
+      const cur = activeCallRef.current;
+      if (!cur?.id || cancelled) return;
+
+      try {
+        const res = await getActiveCallApi(cur.id);
+        if (cancelled) return;
+        const remoteCall = res?.data?.call;
+        const signals = res?.data?.signals;
+        const audioChunks = res?.data?.audio_chunks;
+
+        if (Array.isArray(signals)) {
+          for (const sig of signals) {
+            if (sig.seq && sig.seq > processedSignalSeqRef.current) {
+              processedSignalSeqRef.current = sig.seq;
+            }
+            if (String(sig.sender_id) !== String(userInfo?.id)) {
+              handleCallSignaledEvent(sig);
+            }
+          }
+        }
+
+        if (Array.isArray(audioChunks)) {
+          for (const chunk of audioChunks) {
+            if (chunk.aseq && chunk.aseq <= processedAudioSeqRef.current) {
+              continue;
+            }
+            if (chunk.aseq) {
+              processedAudioSeqRef.current = chunk.aseq;
+            }
+            if (String(chunk.sender_id) !== String(userInfo?.id) && chunk.payload) {
+              // aseq lets the bridge drop a chunk it already played from the socket
+              bridgeRef.current?.sendMessage(
+                "PLAY_AUDIO_CHUNK",
+                typeof chunk.payload === "object"
+                  ? { ...chunk.payload, aseq: chunk.aseq }
+                  : chunk.payload
+              );
+            }
+          }
+        }
+
+        if (remoteCall && String(remoteCall.id) === String(cur.id)) {
+          if (
+            remoteCall.status === "accepted" &&
+            String(remoteCall.caller?.id) === String(userInfo?.id)
+          ) {
+            handleCallAnsweredEvent({ call: remoteCall });
+          } else if (
+            remoteCall.status === "rejected" ||
+            remoteCall.status === "busy"
+          ) {
+            handleCallRejectedEvent({
+              call_id: remoteCall.id,
+              reason: remoteCall.end_reason || remoteCall.status,
+            });
+          } else if (
+            remoteCall.status === "ended" ||
+            remoteCall.status === "cancelled" ||
+            remoteCall.status === "missed"
+          ) {
+            handleCallEndedEvent({ call: remoteCall });
+          }
+        }
+      } catch {}
+    };
+
+    // Poll fast while the call is being set up or runs on the relay; once the
+    // direct connection is up the poll only watches for the call ending, so it
+    // slows down and stops competing with the audio for the connection.
+    let timer = null;
+    const loop = async () => {
+      await syncCallSignals();
+      if (cancelled) return;
+      const settled =
+        callStatusRef.current === "connected" && transportConnectedRef.current;
+      timer = setTimeout(loop, settled ? 5000 : 1200);
+    };
+    loop();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [
+    isLoggedIn,
+    callStatus,
+    activeCall?.id,
+    userInfo?.id,
+    handleCallSignaledEvent,
+    handleCallAnsweredEvent,
+    handleCallRejectedEvent,
+    handleCallEndedEvent,
+  ]);
+
+  // Join chat presence channel for call signals & status changes
+  const joinConversationPresence = useCallback(
+    (conversationId) => {
+      const echo = getEcho();
+      if (!echo || !conversationId) return;
+
+      const channel = echo.join(`chat.${conversationId}`);
+      conversationChannelRef.current = channel;
+
+      try {
+        channel
+          .stopListening(".call.answered")
+          .stopListening(".call.rejected")
+          .stopListening(".call.ended")
+          .stopListening(".call.signaled");
+      } catch (e) {}
+
+      channel
+        .listen(".call.answered", handleCallAnsweredEvent)
+        .listen(".call.rejected", handleCallRejectedEvent)
+        .listen(".call.ended", handleCallEndedEvent)
+        .listen(".call.signaled", handleCallSignaledEvent);
+    },
+    [
+      handleCallAnsweredEvent,
+      handleCallRejectedEvent,
+      handleCallEndedEvent,
+      handleCallSignaledEvent,
+    ]
+  );
+
+  const scheduleRingingRetries = useCallback(
+    (callId) => {
+      if (!callId) return;
+      sendCallSignalApi(callId, "ringing", {}).catch(() => {});
+      clearRingingRetryTimers();
+      ringingRetryTimersRef.current = [
+        setTimeout(() => {
+          if (
+            callStatusRef.current === "ringing" &&
+            String(activeCallRef.current?.id) === String(callId)
+          ) {
+            sendCallSignalApi(callId, "ringing", {}).catch(() => {});
+          }
+        }, 1500),
+        setTimeout(() => {
+          if (
+            callStatusRef.current === "ringing" &&
+            String(activeCallRef.current?.id) === String(callId)
+          ) {
+            sendCallSignalApi(callId, "ringing", {}).catch(() => {});
+          }
+        }, 3500),
+      ];
+    },
+    [clearRingingRetryTimers]
+  );
+
+  // Subscribe to user private channel to receive incoming calls and direct signaling
   useEffect(() => {
     if (!isLoggedIn || !userInfo?.id) return;
 
@@ -152,157 +600,315 @@ export const CallProvider = ({ children }) => {
 
     const userChannel = echo.private(`App.Models.User.${userInfo.id}`);
 
-    userChannel.listen(".call.initiated", (data) => {
+    const handleIncoming = (data) => {
       const call = data?.call || data?.callData || data;
-      if (!call || activeCallRef.current) return;
-
-      // In prod/demo mode, do NOT auto-popup dialog while user is doing anything or surfing in app.
-      // incoming call dialog only shows if user explicitly taps the push notification.
-      if (!CALL_FEATURES_ENABLED) {
-        console.log("[CallContext] In demo/prod mode: suppressing incoming call auto-popup from socket broadcast.");
+      if (!call) return;
+      if (
+        userInfo?.id &&
+        (String(call.caller?.id) === String(userInfo.id) ||
+          String(call.caller_id) === String(userInfo.id))
+      ) {
+        return;
+      }
+      if (activeCallRef.current) {
+        if (String(activeCallRef.current?.id) !== String(call.id)) {
+          rejectCallApi(call.id, "busy").catch(() => {});
+        }
         return;
       }
 
+      if (!CALL_FEATURES_ENABLED) {
+        console.log(
+          "[CallContext] In demo/prod mode: suppressing incoming call auto-popup from socket broadcast."
+        );
+        return;
+      }
+
+      processedSignalSeqRef.current = 0;
+      activeCallRef.current = call;
       setActiveCall(call);
+      callTypeRef.current = call.type || "audio";
       setCallType(call.type || "audio");
+      callStatusRef.current = "ringing";
       setCallStatus("ringing");
       startRingtoneVibration();
       bridgeRef.current?.sendMessage("START_INCOMING_RING");
-      sendCallSignalApi(call.id, "ringing", {}).catch(() => {});
+      scheduleRingingRetries(call.id);
 
-      // Auto-disconnect callee after 45s if not answered
+      // Auto-disconnect callee after 60s if not answered
       clearRingingTimeout();
       ringingTimeoutRef.current = setTimeout(() => {
         if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log("[CallContext] Callee 45s timeout without answer -> stop ringing");
+          console.log(
+            "[CallContext] Callee 60s timeout without answer -> stop ringing"
+          );
           cleanupCallState();
         }
-      }, 45000);
+      }, 60000);
 
       // Join conversation presence channel to listen for call progression
       if (call.conversation_id) {
         joinConversationPresence(call.conversation_id, call.id);
       }
-    });
+    };
+
+    userChannel
+      .listen(".call.initiated", handleIncoming)
+      .listen(".call.answered", handleCallAnsweredEvent)
+      .listen(".call.rejected", handleCallRejectedEvent)
+      .listen(".call.ended", handleCallEndedEvent)
+      .listen(".call.signaled", handleCallSignaledEvent);
 
     return () => {
       try {
-        echo.leave(`App.Models.User.${userInfo.id}`);
+        userChannel
+          .stopListening(".call.initiated")
+          .stopListening(".call.answered")
+          .stopListening(".call.rejected")
+          .stopListening(".call.ended")
+          .stopListening(".call.signaled");
       } catch (e) {}
     };
-  }, [isLoggedIn, userInfo?.id]);
+  }, [
+    isLoggedIn,
+    userInfo?.id,
+    scheduleRingingRetries,
+    clearRingingTimeout,
+    cleanupCallState,
+    joinConversationPresence,
+    handleCallAnsweredEvent,
+    handleCallRejectedEvent,
+    handleCallEndedEvent,
+    handleCallSignaledEvent,
+  ]);
 
-  // Join chat presence channel for call signals & status changes
-  const joinConversationPresence = useCallback((conversationId, callId) => {
-    const echo = getEcho();
-    if (!echo || !conversationId) return;
+  // Actions
+  const startCall = useCallback(
+    async (conversationId, type = "audio", participant = null) => {
+      if (!CALL_FEATURES_ENABLED) {
+        Toast.show({
+          type: "info",
+          text1: "Tính năng gọi đang trong giai đoạn thử nghiệm",
+          visibilityTime: 2500,
+        });
+        return;
+      }
+      try {
+        if (!conversationId) return;
 
-    const channel = echo.join(`chat.${conversationId}`);
-    conversationChannelRef.current = channel;
+        await ensureNativeCallPermissions(type);
 
-    channel.listen(".call.answered", (data) => {
-      clearRingingTimeout();
-      stopRingtoneVibration();
-      bridgeRef.current?.sendMessage("STOP_RINGING");
-      playCallConnectedHaptic();
+        ringingAckReceivedRef.current = false;
+        offerStartedForCallRef.current = null;
+        processedSignalSeqRef.current = 0;
+        callTypeRef.current = type;
+        setCallType(type);
+        callStatusRef.current = "calling";
+        setCallStatus("calling");
+
+        // Synthesize temporary activeCall object for immediate UI response
+        const placeholderCall = {
+          conversation_id: conversationId,
+          type,
+          caller: userInfo
+            ? {
+                id: userInfo.id,
+                username: userInfo.username,
+                profile_name: userInfo.profile_name || userInfo.username,
+              }
+            : null,
+          receiver: participant,
+        };
+        activeCallRef.current = placeholderCall;
+        setActiveCall(placeholderCall);
+        joinConversationPresence(conversationId);
+
+        // 10s connection timeout: If backend/server or callee cannot connect within 10s
+        clearConnectingTimeout();
+        clearRingingTimeout();
+        connectingTimeoutRef.current = setTimeout(() => {
+          if (callStatusRef.current === "calling") {
+            console.log(
+              "[CallContext] Callee unreachable / server connect timeout after 10s."
+            );
+            Toast.show({
+              type: "info",
+              text1: "Không thể kết nối đến người kia",
+              visibilityTime: 3000,
+            });
+            endCall();
+          }
+        }, 10000);
+
+        const res = await initiateCallApi(conversationId, type);
+        const callData = res?.data?.call || res?.data;
+        const callId = callData?.id;
+
+        if (callId) {
+          const updatedCall = {
+            ...callData,
+            receiver: participant || callData.receiver,
+          };
+          activeCallRef.current = updatedCall;
+          setActiveCall(updatedCall);
+          joinConversationPresence(conversationId, callId);
+
+          if (ringingAckReceivedRef.current) {
+            startOutgoingRingingPhase();
+          }
+        }
+      } catch (err) {
+        console.error("[CallContext] initiateCall error:", err);
+        Toast.show({
+          type: "error",
+          text1: "Không thể bắt đầu cuộc gọi",
+          text2:
+            err?.response?.data?.message ||
+            err?.message ||
+            "Vui lòng thử lại sau.",
+        });
+        cleanupCallState();
+      }
+    },
+    [
+      userInfo,
+      clearConnectingTimeout,
+      clearRingingTimeout,
+      joinConversationPresence,
+      startOutgoingRingingPhase,
+      endCall,
+      cleanupCallState,
+    ]
+  );
+
+  const answerCall = useCallback(async () => {
+    clearRingingTimeout();
+    clearRingingRetryTimers();
+    bridgeRef.current?.sendMessage("STOP_RINGING");
+    stopRingtoneVibration();
+
+    if (!CALL_FEATURES_ENABLED) {
+      playCallEndedHaptic();
+      const call = activeCallRef.current;
+      cleanupCallState();
+      if (call?.id) {
+        try {
+          await answerCallApi(call.id);
+          await endCallApi(call.id);
+        } catch {}
+      }
+      return;
+    }
+
+    try {
+      const call = activeCallRef.current;
+      if (!call?.id) return;
+
+      await ensureNativeCallPermissions(call.type || callTypeRef.current);
+
+      callStatusRef.current = "connected";
       setCallStatus("connected");
       startTimer();
-    });
+      playCallConnectedHaptic();
 
-    channel.listen(".call.rejected", () => {
-      stopRingtoneVibration();
-      playCallEndedHaptic();
-      Toast.show({
-        type: "info",
-        text1: "Cuộc gọi đã bị từ chối",
-        visibilityTime: 2500,
+      bridgeRef.current?.sendMessage("ANSWER_INCOMING_CALL", {
+        callId: call.id,
+        callType: call.type || callTypeRef.current,
+        remoteOffer: pendingRemoteOfferRef.current,
       });
-      cleanupCallState();
-    });
 
-    channel.listen(".call.ended", () => {
+      await answerCallApi(call.id);
+    } catch (err) {
+      console.error("[CallContext] answerCall error:", err);
+      cleanupCallState();
+    }
+  }, [
+    clearRingingTimeout,
+    clearRingingRetryTimers,
+    cleanupCallState,
+    startTimer,
+  ]);
+
+  const rejectCall = useCallback(async () => {
+    clearRingingTimeout();
+    clearRingingRetryTimers();
+    bridgeRef.current?.sendMessage("STOP_RINGING");
+    try {
       stopRingtoneVibration();
       playCallEndedHaptic();
+      const call = activeCallRef.current;
       cleanupCallState();
-    });
-
-    channel.listen(".call.signaled", (data) => {
-      if (data?.type === "ringing") {
-        console.log("[CallContext] Callee received call and started ringing.");
-        clearConnectingTimeout();
-        if (callStatusRef.current === "calling") {
-          setCallStatus("ringing");
-          bridgeRef.current?.sendMessage("START_OUTGOING_CALL", {
-            callId: activeCallRef.current?.id,
-            callType: callTypeRef.current,
-          });
-
-          clearRingingTimeout();
-          ringingTimeoutRef.current = setTimeout(() => {
-            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing" || callStatusRef.current === "ringingOutward")) {
-              console.log("[CallContext] 45s ringing timeout without answer -> auto end call");
-              Toast.show({
-                type: "info",
-                text1: "Người nhận không trả lời",
-                visibilityTime: 2500,
-              });
-              endCall();
-            }
-          }, 45000);
-        }
-        return;
-      } else if (data?.type === "candidate") {
-        bridgeRef.current?.sendMessage("ADD_ICE_CANDIDATE", { candidate: data.payload });
-      } else if (data?.type === "offer") {
-        pendingRemoteOfferRef.current = data.payload;
-        bridgeRef.current?.sendMessage("SET_REMOTE_SDP", { sdp: data.payload });
-      } else if (data?.type === "answer") {
-        bridgeRef.current?.sendMessage("STOP_RINGING");
-        bridgeRef.current?.sendMessage("SET_REMOTE_SDP", { sdp: data.payload });
+      if (call?.id) {
+        await rejectCallApi(call.id, "rejected");
       }
-    });
-  }, [cleanupCallState, startTimer]);
+    } catch (err) {
+      console.warn("[CallContext] rejectCall error:", err);
+    }
+  }, [clearRingingTimeout, clearRingingRetryTimers, cleanupCallState]);
 
   // Listen for incoming call push events (from foreground/background push notification tap)
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener("INCOMING_CALL_PUSH", (pushData) => {
-      const call = pushData?.call || pushData;
-      if (!call || activeCallRef.current) return;
+    const sub = DeviceEventEmitter.addListener(
+      "INCOMING_CALL_PUSH",
+      (pushData) => {
+        const call = pushData?.call || pushData;
+        if (!call || activeCallRef.current) return;
 
-      setActiveCall(call);
-      setCallType(call.type || "audio");
-      setCallStatus("ringing");
-      startRingtoneVibration();
-      bridgeRef.current?.sendMessage("START_INCOMING_RING");
+        processedSignalSeqRef.current = 0;
+        activeCallRef.current = call;
+        setActiveCall(call);
+        callTypeRef.current = call.type || "audio";
+        setCallType(call.type || "audio");
+        callStatusRef.current = "ringing";
+        setCallStatus("ringing");
+        startRingtoneVibration();
+        bridgeRef.current?.sendMessage("START_INCOMING_RING");
+        scheduleRingingRetries(call.id);
 
-      // Auto-disconnect callee after 45s if not answered
-      clearRingingTimeout();
-      ringingTimeoutRef.current = setTimeout(() => {
-        if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log("[CallContext] Callee 45s timeout without answer -> stop ringing");
-          cleanupCallState();
+        // Auto-disconnect callee after 60s if not answered
+        clearRingingTimeout();
+        ringingTimeoutRef.current = setTimeout(() => {
+          if (activeCallRef.current && callStatusRef.current === "ringing") {
+            console.log(
+              "[CallContext] Callee 60s timeout without answer -> stop ringing"
+            );
+            cleanupCallState();
+          }
+        }, 60000);
+
+        if (call.conversation_id) {
+          joinConversationPresence(call.conversation_id, call.id);
         }
-      }, 45000);
-
-      if (call.conversation_id) {
-        joinConversationPresence(call.conversation_id, call.id);
       }
-    });
+    );
 
-    const subAnswer = DeviceEventEmitter.addListener("INCOMING_CALL_ANSWER_ACTION", () => {
-      answerCall();
-    });
+    const subAnswer = DeviceEventEmitter.addListener(
+      "INCOMING_CALL_ANSWER_ACTION",
+      () => {
+        answerCall();
+      }
+    );
 
-    const subDecline = DeviceEventEmitter.addListener("INCOMING_CALL_DECLINE_ACTION", () => {
-      rejectCall();
-    });
+    const subDecline = DeviceEventEmitter.addListener(
+      "INCOMING_CALL_DECLINE_ACTION",
+      () => {
+        rejectCall();
+      }
+    );
 
     return () => {
       sub.remove();
       subAnswer.remove();
       subDecline.remove();
     };
-  }, [answerCall, joinConversationPresence, rejectCall]);
+  }, [
+    answerCall,
+    joinConversationPresence,
+    rejectCall,
+    scheduleRingingRetries,
+    clearRingingTimeout,
+    cleanupCallState,
+  ]);
 
   // Check active calls when app resumes or logs in
   useEffect(() => {
@@ -314,25 +920,33 @@ export const CallProvider = ({ children }) => {
         if (activeCallRef.current) return;
         const res = await getActiveCallApi();
         const call = res?.data?.call;
-        if (call && (call.status === "ringing" || call.status === "accepted") && !activeCallRef.current) {
+        if (
+          call &&
+          call.status === "ringing" &&
+          !activeCallRef.current &&
+          String(call.caller?.id) !== String(userInfo?.id)
+        ) {
+          processedSignalSeqRef.current = 0;
+          activeCallRef.current = call;
           setActiveCall(call);
+          callTypeRef.current = call.type || "audio";
           setCallType(call.type || "audio");
-          setCallStatus(call.status === "accepted" ? "connected" : "ringing");
-          if (call.status === "ringing") {
-            startRingtoneVibration();
-            bridgeRef.current?.sendMessage("START_INCOMING_RING");
+          callStatusRef.current = "ringing";
+          setCallStatus("ringing");
+          startRingtoneVibration();
+          bridgeRef.current?.sendMessage("START_INCOMING_RING");
+          scheduleRingingRetries(call.id);
 
-      // Auto-disconnect callee after 45s if not answered
-      clearRingingTimeout();
-      ringingTimeoutRef.current = setTimeout(() => {
-        if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log("[CallContext] Callee 45s timeout without answer -> stop ringing");
-          cleanupCallState();
-        }
-      }, 45000);
-          } else {
-            startTimer();
-          }
+          clearRingingTimeout();
+          ringingTimeoutRef.current = setTimeout(() => {
+            if (activeCallRef.current && callStatusRef.current === "ringing") {
+              console.log(
+                "[CallContext] Callee 60s timeout without answer -> stop ringing"
+              );
+              cleanupCallState();
+            }
+          }, 60000);
+
           if (call.conversation_id) {
             joinConversationPresence(call.conversation_id, call.id);
           }
@@ -360,157 +974,21 @@ export const CallProvider = ({ children }) => {
 
     return () => {
       if (echo?.connector?.pusher?.connection) {
-        echo.connector.pusher.connection.unbind("connected", handleEchoConnected);
+        echo.connector.pusher.connection.unbind(
+          "connected",
+          handleEchoConnected
+        );
       }
       sub.remove();
     };
-  }, [isLoggedIn, joinConversationPresence, startTimer]);
-
-  // Actions
-  const startCall = useCallback(
-    async (conversationId, type = "audio", participant = null) => {
-      if (!CALL_FEATURES_ENABLED) {
-        Toast.show({
-          type: "info",
-          text1: "Tính năng gọi đang trong giai đoạn thử nghiệm",
-          visibilityTime: 2500,
-        });
-        return;
-      }
-      try {
-        if (!conversationId) return;
-        setCallType(type);
-        setCallStatus("calling");
-
-        // Synthesize temporary activeCall object for immediate UI response
-        const placeholderCall = {
-          conversation_id: conversationId,
-          type,
-          receiver: participant,
-        };
-        setActiveCall(placeholderCall);
-
-        // 10s connection timeout: If backend/server cannot initiate or connect within 10s
-        clearConnectingTimeout();
-        clearRingingTimeout();
-        connectingTimeoutRef.current = setTimeout(() => {
-          if (callStatusRef.current === "calling") {
-            console.log("[CallContext] Callee unreachable / server connect timeout after 10s.");
-            Toast.show({
-              type: "info",
-              text1: "Không thể kết nối đến người kia",
-              visibilityTime: 3000,
-            });
-            endCall();
-          }
-        }, 10000);
-
-        const res = await initiateCallApi(conversationId, type);
-        const callData = res?.data?.call || res?.data;
-        const callId = callData?.id;
-
-        if (callId) {
-          const updatedCall = { ...callData, receiver: participant || callData.receiver };
-          setActiveCall(updatedCall);
-          setCallStatus("ringingOutward");
-          joinConversationPresence(conversationId, callId);
-          // 45s ringing timeout for outgoing call
-          clearConnectingTimeout();
-          clearRingingTimeout();
-          ringingTimeoutRef.current = setTimeout(() => {
-            if (activeCallRef.current && (callStatusRef.current === "calling" || callStatusRef.current === "ringing" || callStatusRef.current === "ringingOutward")) {
-              console.log("[CallContext] 45s ringing timeout without answer -> auto end call");
-              Toast.show({
-                type: "info",
-                text1: "Người nhận không trả lời",
-                visibilityTime: 2500,
-              });
-              endCall();
-            }
-          }, 45000);
-        }
-      } catch (err) {
-        console.error("[CallContext] initiateCall error:", err);
-        Toast.show({
-          type: "error",
-          text1: "Không thể bắt đầu cuộc gọi",
-          text2: err?.response?.data?.message || err?.message || "Vui lòng thử lại sau.",
-        });
-        cleanupCallState();
-      }
-    },
-    [cleanupCallState, joinConversationPresence]
-  );
-
-  const answerCall = useCallback(async () => {
-    clearRingingTimeout();
-    bridgeRef.current?.sendMessage("STOP_RINGING");
-    stopRingtoneVibration();
-
-    if (!CALL_FEATURES_ENABLED) {
-      // Loophole mode: incoming call UI and ringtone play, but pressing call/answer exits
-      playCallEndedHaptic();
-      const call = activeCallRef.current;
-      cleanupCallState();
-      if (call?.id) {
-        try {
-          await answerCallApi(call.id);
-          await endCallApi(call.id);
-        } catch {}
-      }
-      return;
-    }
-
-    try {
-      const call = activeCallRef.current;
-      if (!call?.id) return;
-
-      setCallStatus("connected");
-      startTimer();
-      playCallConnectedHaptic();
-
-      bridgeRef.current?.sendMessage("ANSWER_INCOMING_CALL", {
-        callId: call.id,
-        callType,
-        remoteOffer: pendingRemoteOfferRef.current,
-      });
-
-      await answerCallApi(call.id);
-    } catch (err) {
-      console.error("[CallContext] answerCall error:", err);
-      cleanupCallState();
-    }
-  }, [callType, cleanupCallState, startTimer]);
-
-  const rejectCall = useCallback(async () => {
-    clearRingingTimeout();
-    bridgeRef.current?.sendMessage("STOP_RINGING");
-    try {
-      stopRingtoneVibration();
-      playCallEndedHaptic();
-      const call = activeCallRef.current;
-      cleanupCallState();
-      if (call?.id) {
-        await rejectCallApi(call.id, "rejected");
-      }
-    } catch (err) {
-      console.warn("[CallContext] rejectCall error:", err);
-    }
-  }, [cleanupCallState]);
-
-  const endCall = useCallback(async () => {
-    try {
-      stopRingtoneVibration();
-      playCallEndedHaptic();
-      const call = activeCallRef.current;
-      cleanupCallState();
-      if (call?.id) {
-        await endCallApi(call.id);
-      }
-    } catch (err) {
-      console.warn("[CallContext] endCall error:", err);
-    }
-  }, [cleanupCallState]);
+  }, [
+    isLoggedIn,
+    userInfo?.id,
+    scheduleRingingRetries,
+    clearRingingTimeout,
+    cleanupCallState,
+    joinConversationPresence,
+  ]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
@@ -521,7 +999,11 @@ export const CallProvider = ({ children }) => {
   }, []);
 
   const toggleSpeaker = useCallback(() => {
-    setIsSpeakerOn((prev) => !prev);
+    setIsSpeakerOn((prev) => {
+      const next = !prev;
+      bridgeRef.current?.sendMessage("SET_SPEAKER", { enabled: next });
+      return next;
+    });
   }, []);
 
   const toggleMinimize = useCallback(() => {
@@ -531,15 +1013,28 @@ export const CallProvider = ({ children }) => {
   // Handle messages received from WebRtcBridge (WebView)
   const handleBridgeMessage = useCallback(
     (data) => {
-      const callId = activeCallRef.current?.id;
-      if (!callId && data.type !== "ERROR") return;
+      const callId = data?.callId || activeCallRef.current?.id;
+      if (!callId && data.type !== "ERROR" && data.type !== "MEDIA_WARNING") {
+        return;
+      }
 
       if (data.type === "OFFER_CREATED" || data.type === "ANSWER_CREATED") {
-        sendCallSignalApi(callId, data.type === "OFFER_CREATED" ? "offer" : "answer", data.sdp).catch(() => {});
+        sendCallSignalApi(
+          callId,
+          data.type === "OFFER_CREATED" ? "offer" : "answer",
+          data.sdp
+        ).catch(() => {});
       } else if (data.type === "ICE_CANDIDATE" && data.candidate) {
         sendCallSignalApi(callId, "candidate", data.candidate).catch(() => {});
+      } else if (data.type === "AUDIO_CHUNK" && data.chunk) {
+        sendCallSignalApi(callId, "audio_chunk", {
+          d: data.chunk,
+          sr: data.sampleRate || 8000,
+        }).catch(() => {});
       } else if (data.type === "CONNECTION_STATE_CHANGE") {
+        transportConnectedRef.current = data.state === "connected";
         if (data.state === "connected") {
+          callStatusRef.current = "connected";
           setCallStatus("connected");
           startTimer();
         } else if (data.state === "failed" || data.state === "disconnected") {
@@ -584,7 +1079,11 @@ export const CallProvider = ({ children }) => {
 
       {/* Active Call Full-Screen / Minimized Pill Overlay */}
       <ActiveCallModal
-        visible={callStatus === "calling" || callStatus === "ringingOutward" || callStatus === "connected"}
+        visible={
+          callStatus === "calling" ||
+          callStatus === "ringingOutward" ||
+          callStatus === "connected"
+        }
         call={activeCall}
         callStatus={callStatus}
         callDuration={callDuration}

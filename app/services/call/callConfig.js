@@ -7,4 +7,4 @@
  *   and stop the ringtone immediately without attempting WebRTC media streaming.
  * Toggle to `true` to fully enable real WebRTC calling app-wide.
  */
-export const CALL_FEATURES_ENABLED = false;
+export const CALL_FEATURES_ENABLED = true;

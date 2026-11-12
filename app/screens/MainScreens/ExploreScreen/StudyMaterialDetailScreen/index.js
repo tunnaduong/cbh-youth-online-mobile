@@ -36,6 +36,7 @@ import {
   purchaseMaterial,
   rateMaterial,
   viewMaterial,
+  isRequestCanceled,
 } from "../../../../services/api/Api";
 
 const StudyMaterialDetailScreen = ({ route, navigation }) => {
@@ -48,6 +49,9 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   const [material, setMaterial] = useState(null);
   const [ratings, setRatings] = useState([]);
+  const [ratingsPage, setRatingsPage] = useState(1);
+  const [ratingsHasMore, setRatingsHasMore] = useState(false);
+  const [loadingMoreRatings, setLoadingMoreRatings] = useState(false);
   const [userRating, setUserRating] = useState(null);
   const [ratingValue, setRatingValue] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
@@ -58,11 +62,22 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const [currentBalance, setCurrentBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const detailAbortRef = useRef(null);
+  const ratingsAbortRef = useRef(null);
+  const balanceAbortRef = useRef(null);
+  const isFetchingRatingsRef = useRef(false);
 
   const loadMaterial = async () => {
+    if (detailAbortRef.current) {
+      detailAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    detailAbortRef.current = controller;
+
     try {
       setLoading(true);
-      const response = await getStudyMaterial(materialId);
+      const response = await getStudyMaterial(materialId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       const detail = response?.data || null;
       setMaterial(detail);
       setUserRating(detail?.user_rating || null);
@@ -70,19 +85,67 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       setRatingComment(detail?.user_rating?.comment || "");
       viewMaterial(materialId).catch(() => null);
       try {
-        const ratingsResponse = await getMaterialRatings(materialId);
-        setRatings(ratingsResponse?.data?.data || []);
+        const ratingsResponse = await getMaterialRatings(materialId, 1, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        const ratingsList = ratingsResponse?.data?.data || [];
+        const currentPage = Number(ratingsResponse?.data?.current_page) || 1;
+        const lastPage = Number(ratingsResponse?.data?.last_page) || 1;
+        setRatings(ratingsList);
+        setRatingsPage(currentPage);
+        setRatingsHasMore(Boolean(ratingsResponse?.data?.next_page_url || currentPage < lastPage));
       } catch (ratingsError) {
-        console.warn("Unable to load ratings", ratingsError);
+        if (!isRequestCanceled(ratingsError)) {
+          console.warn("Unable to load ratings", ratingsError);
+        }
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       Toast.show({
         type: "error",
         text1: t("studyMaterial.loadDetailError"),
         text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const loadMoreRatings = async () => {
+    if (isFetchingRatingsRef.current || !ratingsHasMore || !materialId) return;
+    if (ratingsAbortRef.current) {
+      ratingsAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    ratingsAbortRef.current = controller;
+    isFetchingRatingsRef.current = true;
+    setLoadingMoreRatings(true);
+
+    try {
+      const nextPage = ratingsPage + 1;
+      const ratingsResponse = await getMaterialRatings(materialId, nextPage, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      const newRatings = ratingsResponse?.data?.data || [];
+      const currentPage = Number(ratingsResponse?.data?.current_page) || nextPage;
+      const lastPage = Number(ratingsResponse?.data?.last_page) || currentPage;
+      setRatings((prev) => {
+        const existingIds = new Set(prev.map((r) => r.id));
+        return [...prev, ...newRatings.filter((r) => !existingIds.has(r.id))];
+      });
+      setRatingsPage(currentPage);
+      setRatingsHasMore(Boolean(ratingsResponse?.data?.next_page_url || currentPage < lastPage));
+    } catch (error) {
+      if (!isRequestCanceled(error) && !controller.signal.aborted) {
+        console.warn("Unable to load more ratings", error);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        isFetchingRatingsRef.current = false;
+        setLoadingMoreRatings(false);
+      }
     }
   };
 
@@ -90,6 +153,11 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
     if (materialId) {
       loadMaterial();
     }
+    return () => {
+      if (detailAbortRef.current) detailAbortRef.current.abort();
+      if (ratingsAbortRef.current) ratingsAbortRef.current.abort();
+      if (balanceAbortRef.current) balanceAbortRef.current.abort();
+    };
   }, [materialId]);
 
   useEffect(() => {
@@ -659,6 +727,21 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                   </View>
                 );
               })}
+              {ratingsHasMore ? (
+                <TouchableOpacity
+                  onPress={loadMoreRatings}
+                  disabled={loadingMoreRatings}
+                  style={{ paddingVertical: 12, alignItems: "center" }}
+                >
+                  {loadingMoreRatings ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 13 }}>
+                      {t("profile.loadMorePosts", "Tải thêm")}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : null}
         </Animated.ScrollView>

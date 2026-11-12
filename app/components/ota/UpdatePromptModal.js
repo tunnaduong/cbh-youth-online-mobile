@@ -32,6 +32,7 @@ export default function UpdatePromptModal({
   visible,
   updateInfo,
   onDismiss,
+  onLater,
 }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -43,9 +44,29 @@ export default function UpdatePromptModal({
   const progressAnim = useRef(new Animated.Value(0)).current;
   const progressSimTimer = useRef(null);
   const updatesSubRef = useRef(null);
+  const reloadTimerRef = useRef(null);
+  const hasTriggeredReloadRef = useRef(false);
+
+  const triggerSafeReload = async () => {
+    if (hasTriggeredReloadRef.current) {
+      return;
+    }
+    hasTriggeredReloadRef.current = true;
+    if (reloadTimerRef.current) {
+      clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = null;
+    }
+    try {
+      onDismiss?.();
+      await reloadApp();
+    } catch (e) {
+      console.error("[OTA Modal] reloadApp error:", e?.message || e);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
+      hasTriggeredReloadRef.current = false;
       if (updateInfo?.isBaseOutdated) {
         setStatus(STATUS.BASE_OUTDATED);
       } else {
@@ -63,6 +84,10 @@ export default function UpdatePromptModal({
         updatesSubRef.current.remove?.();
         updatesSubRef.current = null;
       }
+      if (reloadTimerRef.current) {
+        clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = null;
+      }
     }
   }, [visible, updateInfo, progressAnim]);
 
@@ -74,6 +99,9 @@ export default function UpdatePromptModal({
       }
       if (updatesSubRef.current) {
         updatesSubRef.current.remove?.();
+      }
+      if (reloadTimerRef.current) {
+        clearTimeout(reloadTimerRef.current);
       }
     };
   }, []);
@@ -165,23 +193,15 @@ export default function UpdatePromptModal({
           [
             {
               text: t("common.ok", "OK"),
-              onPress: async () => {
-                onDismiss?.();
-                await reloadApp();
-              },
+              onPress: triggerSafeReload,
             },
           ],
           { cancelable: false }
         );
 
         // Fallback auto reload after 4s if user doesn't press OK
-        setTimeout(async () => {
-          try {
-            onDismiss?.();
-            await reloadApp();
-          } catch (e) {
-            console.error("[OTA Modal] reloadApp error:", e?.message || e);
-          }
+        reloadTimerRef.current = setTimeout(() => {
+          triggerSafeReload();
         }, 4000);
       } else if (res.status === "up_to_date") {
         console.log("[OTA Modal] Client is already at latest version. Closing modal cleanly.");
@@ -207,6 +227,9 @@ export default function UpdatePromptModal({
   const handleClose = () => {
     if (status === STATUS.DOWNLOADING || status === STATUS.RESTARTING) {
       return;
+    }
+    if (status === STATUS.PROMPT) {
+      onLater?.(updateInfo);
     }
     setStatus(STATUS.PROMPT);
     onDismiss?.();

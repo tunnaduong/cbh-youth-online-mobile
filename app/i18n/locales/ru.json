@@ -578,6 +578,9 @@
     "copyOptionsTitle": "Параметры копирования",
     "copyAction": "Скопировать",
     "copyAllAction": "Всё",
+    "calloutTranslate": "Перевод ИИ",
+    "calloutOriginal": "Оригинал",
+    "calloutTranslating": "Перевод...",
     "copyTitleSuccess": "Заголовок скопирован",
     "copyCaptionSuccess": "Текст скопирован",
     "copyAllSuccess": "Публикация скопирована",
@@ -623,7 +626,16 @@
     "reply": "Ответить",
     "pendingModerationTitle": "Комментарий ожидает проверки",
     "pendingModerationBody": "Ваш комментарий станет виден всем после одобрения.",
-    "commentError": "Не удалось отправить комментарий. Попробуйте ещё раз."
+    "commentError": "Не удалось отправить комментарий. Попробуйте ещё раз.",
+    "translateByAi": "Перевести с Yoyo AI",
+    "viewOriginal": "Показать оригинал",
+    "viewTranslation": "Показать перевод",
+    "translatedByAi": "Переведено с Yoyo AI ({{lang}})",
+    "translating": "Перевод с Yoyo AI...",
+    "translateError": "Не удалось перевести пост",
+    "originalRestored": "Оригинальный пост восстановлен",
+    "translatingSubtitle": "Пожалуйста, подождите...",
+    "translateSuccess": "Перевод завершен"
   },
   "sharePost": {
     "title": "Поделиться записью",
@@ -673,6 +685,10 @@
     "turnOff": "Выключить",
     "enabledToastTitle": "Режим разработчика включён",
     "enabledToastDesc": "Пункт «Консоль отладки» теперь отображается в разделе «О приложении».",
+    "stepsRemaining": "Осталось ещё {{count}} шага для включения режима разработчика",
+    "stepsRemaining_one": "Остался ещё {{count}} шаг для включения режима разработчика",
+    "stepsRemaining_few": "Осталось ещё {{count}} шага для включения режима разработчика",
+    "stepsRemaining_many": "Осталось ещё {{count}} шагов для включения режима разработчика",
     "copied": "Лог скопирован",
     "copiedAll": "Логи скопированы"
   },
@@ -1216,6 +1232,13 @@
     "photosRetry": "Повторить",
     "loadMorePhotos": "Показать ещё фото",
     "photoLabel": "Фото из поста",
+    "videosTab": "Видео",
+    "videosTabCount": "Видео ({{total}})",
+    "emptyVideos": "Видео пока нет",
+    "videosError": "Не удалось загрузить видеогалерею",
+    "videosRetry": "Повторить",
+    "loadMoreVideos": "Загрузить ещё видео",
+    "videoLabel": "Видео из поста",
     "viewPost": "Открыть пост",
     "likesSummary": "{{posts}} постов · {{likes}} лайков",
     "sortNewest": "Сначала новые",
@@ -1294,7 +1317,9 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "subtitle": "Настройте приложение под себя",
-    "greeting": "Привет, {{name}}!"
+    "greeting": "Привет, {{name}}!",
+    "aiTranslate": "Язык перевода Yoyo AI",
+    "aiTranslateAuto": "Авто (система)"
   },
   "security": {
     "passkeys": "Passkey",
@@ -1836,7 +1861,8 @@
     "joinError": "Не удалось присоединиться к этой викторине.",
     "shareMessage": "Попробуй эту викторину вместе со мной! {{link}}",
     "restartError": "Эту викторину нельзя пройти заново.",
-    "retrySame": "Пройти заново"
+    "retrySame": "Пройти заново",
+    "reviewQuestions": "Подробности вопросов"
   },
   "customQuiz": {
     "entryTitle": "Создать свою викторину",

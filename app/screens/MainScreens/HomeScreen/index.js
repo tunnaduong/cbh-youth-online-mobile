@@ -51,6 +51,7 @@ import {
   deleteStory,
   markStoryAsViewed,
   unfollowUser,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import { STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import ReportModal from "../../../components/ReportModal";
@@ -998,11 +999,47 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       useNativeDriver: true,
     }).start();
   }, [refreshing]);
-  const [hasMore, setHasMore] = React.useState(true);
-  const [currentPage, setCurrentPage] = React.useState(2);
-  const [latestPage, setLatestPage] = React.useState(1);
-  const [followingPage, setFollowingPage] = React.useState(1);
-  const [newsPage, setNewsPage] = React.useState(1);
+  const [hasMore, setHasMoreState] = React.useState(true);
+  const [currentPage, setCurrentPageState] = React.useState(2);
+  const [latestPage, setLatestPageState] = React.useState(1);
+  const [followingPage, setFollowingPageState] = React.useState(1);
+  const [newsPage, setNewsPageState] = React.useState(1);
+  const [loadingMoreState, setLoadingMoreState] = React.useState(false);
+  const [loadMoreError, setLoadMoreError] = React.useState(false);
+  const hasMoreRef = useRef(true);
+  const currentPageRef = useRef(2);
+  const latestPageRef = useRef(1);
+  const followingPageRef = useRef(1);
+  const newsPageRef = useRef(1);
+  const feedAbortRef = useRef(null);
+  const paginationAbortRef = useRef(null);
+  const storiesAbortRef = useRef(null);
+
+  const setHasMore = useCallback((val) => {
+    const next = typeof val === "function" ? val(hasMoreRef.current) : val;
+    hasMoreRef.current = next;
+    setHasMoreState(next);
+  }, []);
+  const setCurrentPage = useCallback((val) => {
+    const next = typeof val === "function" ? val(currentPageRef.current) : val;
+    currentPageRef.current = next;
+    setCurrentPageState(next);
+  }, []);
+  const setLatestPage = useCallback((val) => {
+    const next = typeof val === "function" ? val(latestPageRef.current) : val;
+    latestPageRef.current = next;
+    setLatestPageState(next);
+  }, []);
+  const setFollowingPage = useCallback((val) => {
+    const next = typeof val === "function" ? val(followingPageRef.current) : val;
+    followingPageRef.current = next;
+    setFollowingPageState(next);
+  }, []);
+  const setNewsPage = useCallback((val) => {
+    const next = typeof val === "function" ? val(newsPageRef.current) : val;
+    newsPageRef.current = next;
+    setNewsPageState(next);
+  }, []);
   const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
   const [activePostId, setActivePostId] = React.useState(null);
@@ -1222,6 +1259,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleFetchFeed = async (page = 1) => {
     const loadId = ++feedLoadIdRef.current;
+    feedAbortRef.current?.abort();
+    paginationAbortRef.current?.abort();
+    loadingMoreRef.current = false;
+    setLoadingMoreState(false);
+    setLoadMoreError(false);
+    const controller = new AbortController();
+    feedAbortRef.current = controller;
+
     try {
       if (page === 1) {
         const cachedStr = storage.getString("cached_feed");
@@ -1236,8 +1281,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         setRefreshing(true);
       }
 
-      const response = await getPersonalizedFeed(page);
-      if (loadId !== feedLoadIdRef.current) return;
+      const response = await getPersonalizedFeed(page, { signal: controller.signal });
+      if (controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
       const posts = response?.data?.data;
       const validPosts = Array.isArray(posts) ? posts : [];
       setFeed(validPosts);
@@ -1247,8 +1292,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         storage.set("cached_feed", JSON.stringify(validPosts));
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
       console.log("Error fetching newsfeed:", error);
-      if (loadId !== feedLoadIdRef.current) return;
       setFeed((prev) => prev ?? []);
       Toast.show({
         type: "error",
@@ -1259,10 +1304,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         topOffset: 60,
       });
     } finally {
-      if (page === 1) {
+      if (page === 1 && !controller.signal.aborted) {
         setTimeout(() => {
           setRefreshing(false);
-        }, 1000);
+        }, 600);
       }
     }
   };
@@ -1270,6 +1315,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   // First page of a tab other than "For you" (which is handleFetchFeed).
   const loadModeFeed = (mode) => {
     const loadId = ++feedLoadIdRef.current;
+    feedAbortRef.current?.abort();
+    paginationAbortRef.current?.abort();
+    loadingMoreRef.current = false;
+    setLoadingMoreState(false);
+    setLoadMoreError(false);
+    const controller = new AbortController();
+    feedAbortRef.current = controller;
+
     deliveredIdsRef.current = new Set();
     setHasMore(true);
     if (mode === "latest") {
@@ -1280,10 +1333,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       setFollowingPage(2);
     }
     const request =
-      mode === "latest" ? getLatestFeed(1) : mode === "youth-news" ? getNewsFeed(1) : getFollowingFeed(1);
+      mode === "latest"
+        ? getLatestFeed(1, { signal: controller.signal })
+        : mode === "youth-news"
+        ? getNewsFeed(1, { signal: controller.signal })
+        : getFollowingFeed(1, { signal: controller.signal });
     request
       .then((response) => {
-        if (loadId !== feedLoadIdRef.current) return;
+        if (controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
         // An API older than the youth-news tab ignores the mode and answers
         // with the ordinary feed: show nothing rather than the wrong posts.
         const posts =
@@ -1291,10 +1348,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         const validPosts = Array.isArray(posts) ? posts : [];
         validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
         setFeed(validPosts);
-        if (mode === "youth-news" && validPosts.length === 0) setHasMore(false);
+        if (validPosts.length === 0) setHasMore(false);
       })
-      .catch(() => {
-        if (loadId !== feedLoadIdRef.current) return;
+      .catch((error) => {
+        if (isRequestCanceled(error) || controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
         setFeed([]);
       });
   };
@@ -1307,11 +1364,22 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     } else {
       loadModeFeed(feedMode);
     }
+    return () => {
+      feedAbortRef.current?.abort();
+      paginationAbortRef.current?.abort();
+      storiesAbortRef.current?.abort();
+      loadingMoreRef.current = false;
+    };
   }, []);
 
   // Manual tab switch: reset feed state and reload from the chosen mode.
   const switchFeedMode = React.useCallback((mode) => {
     if (mode === feedMode) return;
+    feedAbortRef.current?.abort();
+    paginationAbortRef.current?.abort();
+    loadingMoreRef.current = false;
+    setLoadingMoreState(false);
+    setLoadMoreError(false);
     setFeed(null);
     setHasMore(true);
     deliveredIdsRef.current = new Set();
@@ -1322,7 +1390,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     } else {
       loadModeFeed(mode);
     }
-  }, [feedMode]);
+  }, [feedMode, setCurrentPage, setFeed, setFeedMode, setHasMore]);
 
   // One load-more at a time, and keep paging until something new shows up:
   // a page whose posts were all delivered already used to add nothing, so the
@@ -1331,60 +1399,85 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const loadingMoreRef = React.useRef(false);
   const MAX_EMPTY_PAGES = 5;
 
-  const loadMorePages = async (fetchPage, startPage, advancePage) => {
+  const loadMorePages = useCallback(async (fetchPage, startPage, advancePage, loadId, signal) => {
     let page = startPage;
-    try {
-      for (let i = 0; i < MAX_EMPTY_PAGES; i++) {
-        const response = await fetchPage(page);
-        const newPosts = response?.data?.data;
-        if (!Array.isArray(newPosts) || newPosts.length === 0) {
-          setHasMore(false);
-          return;
-        }
-        page += 1;
-        advancePage(page);
-        const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
-        freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
-        if (freshPosts.length > 0) {
-          setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
-          return;
-        }
+    for (let i = 0; i < MAX_EMPTY_PAGES; i++) {
+      if (signal?.aborted || loadId !== feedLoadIdRef.current) return;
+      const response = await fetchPage(page, { signal });
+      if (signal?.aborted || loadId !== feedLoadIdRef.current) return;
+      const newPosts = response?.data?.data;
+      if (!Array.isArray(newPosts) || newPosts.length === 0) {
+        setHasMore(false);
+        return;
       }
-    } catch (error) {
-      console.error("Error loading more posts:", error);
+      page += 1;
+      advancePage(page);
+      const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
+      freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+      if (freshPosts.length > 0) {
+        setFeed((prevData) => {
+          if (!Array.isArray(prevData)) return freshPosts;
+          const existingIds = new Set(prevData.map((p) => p?.id).filter(Boolean));
+          const deduped = freshPosts.filter((p) => p?.id == null || !existingIds.has(p.id));
+          return [...prevData, ...deduped];
+        });
+        return;
+      }
     }
-  };
+  }, [setFeed, setHasMore]);
 
-  const onEndReached = () => {
-    if (!hasMore || loadingMoreRef.current) return;
+  const onEndReached = useCallback(() => {
+    if (!hasMoreRef.current || loadingMoreRef.current || refreshing) return;
+
+    const loadId = feedLoadIdRef.current;
+    paginationAbortRef.current?.abort();
+    const controller = new AbortController();
+    paginationAbortRef.current = controller;
+    loadingMoreRef.current = true;
+    setLoadingMoreState(true);
+    setLoadMoreError(false);
 
     if (feedMode === "latest" || feedMode === "following" || feedMode === "youth-news") {
       const [fetchPage, startPage, advancePage] =
         feedMode === "latest"
-          ? [getLatestFeed, latestPage, setLatestPage]
+          ? [getLatestFeed, latestPageRef.current, setLatestPage]
           : feedMode === "youth-news"
-          ? [getNewsFeed, newsPage, setNewsPage]
-          : [getFollowingFeed, followingPage, setFollowingPage];
-      loadingMoreRef.current = true;
-      loadMorePages(fetchPage, startPage, advancePage).finally(() => {
-        loadingMoreRef.current = false;
-      });
+          ? [getNewsFeed, newsPageRef.current, setNewsPage]
+          : [getFollowingFeed, followingPageRef.current, setFollowingPage];
+      loadMorePages(fetchPage, startPage, advancePage, loadId, controller.signal)
+        .catch((error) => {
+          if (isRequestCanceled(error) || controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
+          console.error("Error loading more posts:", error);
+          setLoadMoreError(true);
+        })
+        .finally(() => {
+          if (paginationAbortRef.current === controller) {
+            loadingMoreRef.current = false;
+            setLoadingMoreState(false);
+          }
+        });
       return;
     }
 
-    loadingMoreRef.current = true;
-    getPersonalizedFeed(currentPage)
+    const pageToFetch = currentPageRef.current;
+    getPersonalizedFeed(pageToFetch, { signal: controller.signal })
       .then(async (response) => {
+        if (controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
         const newPosts = response?.data?.data;
         const exhausted = response?.data?.exhausted || !Array.isArray(newPosts) || newPosts.length === 0;
 
         if (Array.isArray(newPosts) && newPosts.length > 0) {
-          newPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
-          setFeed((prevData) => {
-            if (!Array.isArray(prevData)) return newPosts;
-            return [...prevData, ...newPosts];
-          });
-          setCurrentPage((prevPage) => prevPage + 1);
+          const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
+          freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          if (freshPosts.length > 0) {
+            setFeed((prevData) => {
+              if (!Array.isArray(prevData)) return freshPosts;
+              const existingIds = new Set(prevData.map((p) => p?.id).filter(Boolean));
+              const deduped = freshPosts.filter((p) => p?.id == null || !existingIds.has(p.id));
+              return [...prevData, ...deduped];
+            });
+          }
+          setCurrentPage(pageToFetch + 1);
         }
 
         if (exhausted) {
@@ -1396,28 +1489,46 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               type: "divider",
               label: t("home.feedExhaustedDivider"),
             };
-            return Array.isArray(prevData) ? [...prevData, divider] : [divider];
+            const list = Array.isArray(prevData) ? prevData : [];
+            if (list.some((item) => item?.type === "divider")) return list;
+            return [...list, divider];
           });
           // The divider alone does not make the list fire onEndReached again,
           // so start the latest posts here.
-          await loadMorePages(getLatestFeed, 1, setLatestPage);
+          await loadMorePages(getLatestFeed, 1, setLatestPage, loadId, controller.signal);
         }
       })
       .catch((error) => {
+        if (isRequestCanceled(error) || controller.signal.aborted || loadId !== feedLoadIdRef.current) return;
         console.error("Error loading more posts:", error);
+        setLoadMoreError(true);
       })
       .finally(() => {
-        loadingMoreRef.current = false;
+        if (paginationAbortRef.current === controller) {
+          loadingMoreRef.current = false;
+          setLoadingMoreState(false);
+        }
       });
-  };
+  }, [
+    feedMode,
+    loadMorePages,
+    refreshing,
+    setCurrentPage,
+    setFeed,
+    setFeedMode,
+    setFollowingPage,
+    setLatestPage,
+    setNewsPage,
+    t,
+  ]);
 
   const ListEndLoader = () => {
-    if (hasMore) {
+    if (loadingMoreState) {
       return (
         <View
           style={{
             marginTop: 20,
-            flex: 1,
+            paddingBottom: 16,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -1426,6 +1537,24 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         </View>
       );
     }
+    if (loadMoreError && hasMore) {
+      return (
+        <TouchableOpacity
+          onPress={onEndReached}
+          style={{
+            marginTop: 16,
+            paddingVertical: 12,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 14 }}>
+            {t("common.retry", "Chạm để thử lại")}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+    return null;
   };
 
   // One object per real change: a new one on every render made the list
@@ -1464,30 +1593,39 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
   };
 
-  const handleViewableItemsChanged = ({ viewableItems }) => {
+  const handleViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (!viewableItems) return;
 
-    // Facebook-style autoplay: only one post's video plays at a time. The
-    // viewability config below (itemVisiblePercentThreshold: 50) means
-    // viewableItems is already just the post(s) crossing that threshold, in
-    // list order, so the first one is the best candidate to autoplay.
+    // Facebook-style autoplay: only one post's video plays at a time. Only
+    // pick a post that actually contains a video so scrolling past text/image
+    // posts does not trigger activePostId state updates and list re-renders.
     let activeItem = null;
 
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
       if (viewableItem.item.type === "divider") return;
-      const postId = viewableItem.item.id;
+      const item = viewableItem.item;
+      const postId = item.id;
 
       if (postId != null && !viewedPosts.current.has(postId)) {
         viewedPosts.current.add(postId); // Mark as viewed
         increasePostView(postId); // Call API
       }
 
-      if (!activeItem) activeItem = viewableItem.item;
+      if (
+        !activeItem &&
+        ((Array.isArray(item.video_urls) && item.video_urls.length > 0) ||
+          (typeof item.video_urls === "string" && item.video_urls.trim()) ||
+          item.video_url ||
+          item.video)
+      ) {
+        activeItem = item;
+      }
     });
 
-    setActivePostId(activeItem ? activeItem.id : null);
-  };
+    const nextId = activeItem ? activeItem.id : null;
+    setActivePostId((prev) => (prev === nextId ? prev : nextId));
+  }, []);
 
   const increasePostView = async (postId) => {
     try {
@@ -1683,9 +1821,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const fetchStories = async () => {
+    storiesAbortRef.current?.abort();
+    const controller = new AbortController();
+    storiesAbortRef.current = controller;
     try {
       console.log("HomeScreen fetching stories. BlockedUsers:", blockedUsers);
-      const response = await getStories();
+      const response = await getStories({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       if (response?.data) {
         console.log("Stories fetched:", response.data.data?.length);
         const formattedStories = transformStoriesData(response);
@@ -1711,6 +1853,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         }
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("Error fetching stories:", error);
     }
   };
@@ -2972,10 +3115,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
           extraData={feedExtraData}
-          keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
+          keyExtractor={(item, index) =>
+            item.type === "divider" ? "caught-up-divider" : `post-${item.id ?? index}`
+          }
           initialNumToRender={5}
           maxToRenderPerBatch={5}
           windowSize={5}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
             paddingTop: 0,

@@ -12,11 +12,29 @@ const isRealMessage = (m) =>
   m.content_type !== "system" &&
   !isCallMessage(m);
 
+// Module-level height cache (`${conversationId}:${id}` -> height) so measured
+// message heights survive component remounts and prevent layout jumps when
+// scrolling rapidly through long chat histories.
+const messageHeightCache = new Map();
+const MAX_MESSAGE_HEIGHT_CACHE = 2000;
+function setCachedMessageHeight(cacheKey, height) {
+  if (!cacheKey || !(height > 0)) return;
+  if (messageHeightCache.has(cacheKey)) messageHeightCache.delete(cacheKey);
+  messageHeightCache.set(cacheKey, height);
+  if (messageHeightCache.size > MAX_MESSAGE_HEIGHT_CACHE) {
+    const oldest = messageHeightCache.keys().next().value;
+    messageHeightCache.delete(oldest);
+  }
+}
+
 // One entry of the list: the wrapper that records the row's position (for
 // jump-to-message and video autoplay) and either a date / time header, a
 // system line or a MessageRow. Memoized, so when one message arrives or
 // changes only the rows whose own props changed re-render - the list used to
 // rebuild every wrapper (with a fresh onLayout and style) for each change.
+// Crucially, `isOffscreen` is passed as a primitive boolean (not the changing
+// `visibleViewport` object), so scrolling only re-renders the 2-4 rows
+// crossing the viewport boundary in O(1).
 const MessageListItem = React.memo(({
   value,
   prev,
@@ -33,6 +51,7 @@ const MessageListItem = React.memo(({
   messageHandlersRef,
   onImageError,
   seenAvatars,
+  otherUser,
   conversationId,
   activeInlineVideoId,
   autoplayVideos,
@@ -40,13 +59,19 @@ const MessageListItem = React.memo(({
   messageLayoutOffsetsRef,
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
-  visibleViewport,
+  isOffscreen,
 }) => {
+  const cacheKey = value.id != null ? `${conversationId || ""}:${value.type}:${value.id}` : null;
+
   const handleLayout = (e) => {
+    const { y, height } = e.nativeEvent.layout;
+    if (cacheKey && height > 0) {
+      setCachedMessageHeight(cacheKey, height);
+    }
     if (value.type === "message" && value.id != null) {
       messageLayoutOffsetsRef.current[value.id] = {
-        y: e.nativeEvent.layout.y,
-        height: e.nativeEvent.layout.height,
+        y,
+        height: height > 0 ? height : (messageLayoutOffsetsRef.current[value.id]?.height || 0),
       };
       if (String(pendingHighlightMessageIdRef.current) === String(value.id)) {
         attemptScrollToHighlightRef.current();
@@ -54,21 +79,14 @@ const MessageListItem = React.memo(({
     }
   };
 
-  const layout = messageLayoutOffsetsRef.current[value.id];
-  const isOffscreen =
-    Boolean(visibleViewport) &&
-    value.type === "message" &&
-    value.id != null &&
-    !isHighlighted &&
-    String(pendingHighlightMessageIdRef.current) !== String(value.id) &&
-    layout &&
-    typeof layout.height === "number" &&
-    layout.height > 0 &&
-    typeof layout.y === "number" &&
-    (layout.y + layout.height < visibleViewport.top || layout.y > visibleViewport.bottom);
-
   if (isOffscreen) {
-    return <View style={{ height: layout.height }} />;
+    const layout = messageLayoutOffsetsRef.current[value.id];
+    const savedHeight = layout?.height || (cacheKey ? messageHeightCache.get(cacheKey) : 0) || 0;
+    if (savedHeight > 0) {
+      // Keep onLayout attached to the placeholder so prepending older messages
+      // at the top of the ScrollView updates `y` for offscreen rows too!
+      return <View onLayout={handleLayout} style={{ height: savedHeight }} />;
+    }
   }
 
   return (
@@ -168,6 +186,7 @@ const MessageListItem = React.memo(({
           handlersRef={messageHandlersRef}
           onImageError={onImageError}
           seenAvatars={seenAvatars}
+          otherUser={otherUser}
           activeInlineVideoId={activeInlineVideoId}
           autoplayVideos={autoplayVideos}
           bubbleMaxWidth={bubbleMaxWidth}
@@ -201,6 +220,7 @@ const MessagesListContent = React.memo(({
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
   seenParticipants,
+  otherUser,
   visibleViewport,
   conversationId,
 }) => {
@@ -239,52 +259,78 @@ const MessagesListContent = React.memo(({
   // Messenger - never under someone else's message (if they sent the last
   // message, nothing shows inline at all), and never scattered across
   // earlier messages of yours (use the "Lượt xem" menu action on those).
-  let inlineSeenAvatars = [];
-  if (isGroupChat && lastRealMessage?.is_myself && seenParticipants?.length > 0) {
-    const createdAt = new Date(lastRealMessage.created_at).getTime();
-    inlineSeenAvatars = seenParticipants.filter(
-      (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
-    );
-  }
+  const inlineSeenAvatars = React.useMemo(() => {
+    if (isGroupChat && lastRealMessage?.is_myself && seenParticipants?.length > 0) {
+      const createdAt = new Date(lastRealMessage.created_at).getTime();
+      return seenParticipants.filter(
+        (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
+      );
+    }
+    if (!isGroupChat && lastRealMessage?.is_myself && lastRealMessage?.read_at && otherUser) {
+      return [otherUser];
+    }
+    return undefined;
+  }, [isGroupChat, lastRealMessage?.id, lastRealMessage?.is_myself, lastRealMessage?.created_at, lastRealMessage?.read_at, seenParticipants, otherUser]);
 
-  return messages.map((value, index) => (
-    // type+id alone (no index) - "load more" pagination prepends older
-    // messages, shifting every index. A key that includes index made React
-    // treat every already-rendered row as brand new on each scroll-up load,
-    // remounting (not just re-rendering) the entire message list every time.
-    <MessageListItem
-      key={`${value.type}-${value.id}`}
-      value={value}
-      prev={prevOf[index]}
-      next={nextOf[index]}
-      // String(): an id that came with a notification is a string.
-      isHighlighted={highlightedMessageId != null && String(value.id) === String(highlightedMessageId)}
-      isGroupChat={isGroupChat}
-      theme={theme}
-      isDarkMode={isDarkMode}
-      t={t}
-      username={username}
-      navigation={navigation}
-      mediaLoadError={mediaLoadErrors[value.id]}
-      isDownloadingThis={downloadingFileId === value.id}
-      messageHandlersRef={messageHandlersRef}
-      onImageError={onImageError}
-      seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
-      // Only the row that IS the active video is given the id; every other
-      // row gets null, so a video starting or stopping mid-scroll does not
-      // change a prop of every message.
-      activeInlineVideoId={
-        String(value.id) === String(activeInlineVideoId) ? activeInlineVideoId : null
-      }
-      autoplayVideos={autoplayVideos}
-      bubbleMaxWidth={bubbleMaxWidth}
-      messageLayoutOffsetsRef={messageLayoutOffsetsRef}
-      pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
-      attemptScrollToHighlightRef={attemptScrollToHighlightRef}
-      visibleViewport={visibleViewport}
-      conversationId={conversationId}
-    />
-  ));
+  return messages.map((value, index) => {
+    const isHighlighted =
+      highlightedMessageId != null && String(value.id) === String(highlightedMessageId);
+    const layout = value.type === "message" && value.id != null
+      ? messageLayoutOffsetsRef.current[value.id]
+      : null;
+    const isOffscreen = Boolean(
+      visibleViewport &&
+      value.type === "message" &&
+      value.id != null &&
+      !isHighlighted &&
+      String(pendingHighlightMessageIdRef.current) !== String(value.id) &&
+      layout &&
+      typeof layout.height === "number" &&
+      layout.height > 0 &&
+      typeof layout.y === "number" &&
+      (layout.y + layout.height < visibleViewport.top || layout.y > visibleViewport.bottom)
+    );
+
+    return (
+      // type+id alone (no index) - "load more" pagination prepends older
+      // messages, shifting every index. A key that includes index made React
+      // treat every already-rendered row as brand new on each scroll-up load,
+      // remounting (not just re-rendering) the entire message list every time.
+      <MessageListItem
+        key={`${value.type}-${value.id}`}
+        value={value}
+        prev={prevOf[index]}
+        next={nextOf[index]}
+        // String(): an id that came with a notification is a string.
+        isHighlighted={isHighlighted}
+        isGroupChat={isGroupChat}
+        theme={theme}
+        isDarkMode={isDarkMode}
+        t={t}
+        username={username}
+        navigation={navigation}
+        mediaLoadError={mediaLoadErrors[value.id]}
+        isDownloadingThis={downloadingFileId === value.id}
+        messageHandlersRef={messageHandlersRef}
+        onImageError={onImageError}
+        seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
+        // Only the row that IS the active video is given the id; every other
+        // row gets null, so a video starting or stopping mid-scroll does not
+        // change a prop of every message.
+        activeInlineVideoId={
+          String(value.id) === String(activeInlineVideoId) ? activeInlineVideoId : null
+        }
+        autoplayVideos={autoplayVideos}
+        bubbleMaxWidth={bubbleMaxWidth}
+        messageLayoutOffsetsRef={messageLayoutOffsetsRef}
+        pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
+        attemptScrollToHighlightRef={attemptScrollToHighlightRef}
+        isOffscreen={isOffscreen}
+        conversationId={conversationId}
+        otherUser={otherUser}
+      />
+    );
+  });
 });
 
 export { MessagesListContent };

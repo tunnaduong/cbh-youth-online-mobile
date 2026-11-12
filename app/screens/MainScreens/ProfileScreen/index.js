@@ -33,6 +33,7 @@ import {
   blockUser,
   reportUser,
   getConversations,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -56,6 +57,12 @@ import {
   photoRows,
   useProfilePhotos,
 } from "../../../components/profile/ProfilePhotoGallery";
+import {
+  ProfileVideoViewer,
+  VideoGridRow,
+  videoRows,
+  useProfileVideos,
+} from "../../../components/profile/ProfileVideoGallery";
 
 const LIKED_SORT_OPTIONS = [
   { value: "newest", labelKey: "profile.sortNewest" },
@@ -69,6 +76,14 @@ const LIKED_SORT_OPTIONS = [
 // instance whose posts are in it right now - see fetchUserData.
 let profilePostsOwner = null;
 
+const postHasVideo = (item) =>
+  Boolean(
+    (Array.isArray(item?.video_urls) && item.video_urls.length > 0) ||
+      (typeof item?.video_urls === "string" && item.video_urls.trim()) ||
+      item?.video_url ||
+      item?.video
+  );
+
 const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) => {
   const instanceToken = useRef({}).current;
   const flatListRef = useRef(null);
@@ -77,16 +92,16 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   // Facebook-style autoplay: only one post's video should ever be playing
-  // at once. This used to just pass the raw autoplayVideos boolean as
-  // isActive to *every* post, so with more than one video post loaded they
-  // all tried to autoplay (and grab audio) simultaneously - multiple
-  // concurrent expo-video players contending for the same audio session,
-  // which is exactly the kind of thing that leaves one of them silent.
-  // Mirrors HomeScreen's activePostId/viewability tracking.
+  // at once. Only update activePostId when a post that actually contains a
+  // video enters/leaves viewability — avoids re-rendering ProfileScreen on
+  // every text/image post scrolled past.
   const [activePostId, setActivePostId] = useState(null);
   const handleViewableItemsChanged = useRef(({ viewableItems }) => {
-    const activeItem = viewableItems?.find((v) => v?.item && v.item.id != null)?.item;
-    setActivePostId(activeItem ? activeItem.id : null);
+    const activeItem = viewableItems?.find(
+      (v) => v?.item && v.item.id != null && postHasVideo(v.item)
+    )?.item;
+    const nextId = activeItem ? activeItem.id : null;
+    setActivePostId((prev) => (prev === nextId ? prev : nextId));
   }).current;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
   const [loading, setLoading] = useState(true);
@@ -112,17 +127,30 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   // the first time it is opened.
   const photoGallery = useProfilePhotos(userId, activeTab === "photos");
   const [photoViewer, setPhotoViewer] = useState({ visible: false, index: 0 });
+  const videoGallery = useProfileVideos(userId, activeTab === "videos");
+  const [videoViewer, setVideoViewer] = useState({ visible: false, index: 0 });
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [postsLoadMoreError, setPostsLoadMoreError] = useState(false);
   // "Likes" tab: the posts that add up to the profile's like total.
   const [likedPosts, setLikedPosts] = useState([]);
   const [likedSort, setLikedSort] = useState("newest");
   const [likedPage, setLikedPage] = useState(1);
   const [likedHasMore, setLikedHasMore] = useState(false);
   const [loadingLiked, setLoadingLiked] = useState(false);
+  const [likedLoadMoreError, setLikedLoadMoreError] = useState(false);
   const [likedTotal, setLikedTotal] = useState(0);
   const [likedTotalLikes, setLikedTotalLikes] = useState(0);
+  const loadingMorePostsRef = useRef(false);
+  const loadingLikedRef = useRef(false);
+  const postsPageRef = useRef(1);
+  const likedPageRef = useRef(1);
+  const postsHasMoreRef = useRef(true);
+  const likedHasMoreRef = useRef(false);
+  const profileAbortRef = useRef(null);
+  const postsAbortRef = useRef(null);
+  const likedAbortRef = useRef(null);
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
@@ -158,8 +186,19 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
       // Fetch updated data for the profile when the screen comes into focus.
       // The pages of posts already loaded are kept (see fetchUserData).
       fetchUserData(userId, { keepLoadedPosts: true });
+      return () => {
+        if (profileAbortRef.current) profileAbortRef.current.abort();
+      };
     }, [userId])
   );
+
+  useEffect(() => {
+    return () => {
+      if (profileAbortRef.current) profileAbortRef.current.abort();
+      if (postsAbortRef.current) postsAbortRef.current.abort();
+      if (likedAbortRef.current) likedAbortRef.current.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (userData?.followers) {
@@ -407,13 +446,16 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
     if (activeTab === "photos") {
       photoGallery.reload();
     }
+    if (activeTab === "videos") {
+      videoGallery.reload();
+    }
 
     fetchUserData(userId).finally(() => {
       setTimeout(() => {
         setRefreshing(false);
       }, 1000);
     });
-  }, [activeTab, likedSort, photoGallery, userId]);
+  }, [activeTab, likedSort, photoGallery, videoGallery, userId]);
 
   const scrollToTopOrReload = useCallback(() => {
     const now = Date.now();
@@ -441,8 +483,15 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   // got focus again (back from a post, a profile, the editor...), so the
   // reader was thrown back up to posts they had already passed.
   const fetchUserData = async (userId, { keepLoadedPosts = false } = {}) => {
+    if (profileAbortRef.current) {
+      profileAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    profileAbortRef.current = controller;
+
     try {
-      const response = await getProfile(userId);
+      const response = await getProfile(userId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       setUserData(response.data);
       setNotFound(false);
       // Check if the current user is in the followers list
@@ -451,6 +500,7 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
       );
       setFollowed(!isFollowed);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       if (error?.response?.status === 404) {
         setNotFound(true);
         setLoading(false);
@@ -458,17 +508,21 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
       }
       console.error("Error fetching user data:", error);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
 
     // getProfile()'s recent_posts is capped to 5 as a preview - fetch the
     // real, fully-paginated list separately so older posts beyond those 5
     // actually show up on the profile's Posts tab.
     try {
-      const postsResponse = await getUserPosts(userId, 1, 10);
+      const postsResponse = await getUserPosts(userId, 1, 10, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       const visiblePosts = (postsResponse.data?.data || []).filter(
         (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
       );
+      const more = Boolean(postsResponse.data?.has_more);
       // Only when the list in the context is still this screen's: another
       // profile opened on top of this one has put its own posts there.
       if (keepLoadedPosts && profilePostsOwner === instanceToken) {
@@ -481,67 +535,156 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
         // Page and "has more" still describe the pages that were kept;
         // with nothing beyond the first page they are that page's.
         if ((recentPostsRef.current?.length || 0) <= visiblePosts.length) {
+          postsPageRef.current = 1;
+          postsHasMoreRef.current = more;
           setPostsPage(1);
-          setPostsHasMore(Boolean(postsResponse.data?.has_more));
+          setPostsHasMore(more);
         }
         return;
       }
       profilePostsOwner = instanceToken;
       setRecentPostsProfile(visiblePosts);
+      postsPageRef.current = 1;
+      postsHasMoreRef.current = more;
       setPostsPage(1);
-      setPostsHasMore(Boolean(postsResponse.data?.has_more));
+      setPostsHasMore(more);
+      setPostsLoadMoreError(false);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("Error fetching user posts:", error);
     }
   };
 
   // The "Likes" tab is fetched on demand (first open / sort change) rather
   // than with the profile, since most visits never open it.
-  const fetchLikedPosts = async (page = 1, sort = likedSort) => {
+  const fetchLikedPosts = useCallback(async (page = 1, sort = likedSort) => {
+    if (page > 1 && loadingLikedRef.current) return;
+    if (likedAbortRef.current) {
+      likedAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    likedAbortRef.current = controller;
+
+    loadingLikedRef.current = true;
     setLoadingLiked(true);
+    setLikedLoadMoreError(false);
     try {
-      const response = await getUserLikedPosts(userId, page, 10, sort);
+      const response = await getUserLikedPosts(userId, page, 10, sort, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
       const items = response.data?.data || [];
-      setLikedPosts((prev) => (page === 1 ? items : [...(prev || []), ...items]));
+      const more = Boolean(response.data?.has_more);
+      setLikedPosts((prev) => {
+        if (page === 1) return items;
+        const existingIds = new Set((prev || []).map((p) => p.id));
+        return [...(prev || []), ...items.filter((p) => !existingIds.has(p.id))];
+      });
+      likedPageRef.current = page;
+      likedHasMoreRef.current = more;
       setLikedPage(page);
-      setLikedHasMore(Boolean(response.data?.has_more));
+      setLikedHasMore(more);
       setLikedTotal(response.data?.total || 0);
       setLikedTotalLikes(response.data?.total_likes || 0);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
+      if (page > 1) {
+        setLikedLoadMoreError(true);
+      }
       console.error("Error fetching liked posts:", error);
     } finally {
-      setLoadingLiked(false);
+      if (!controller.signal.aborted) {
+        loadingLikedRef.current = false;
+        setLoadingLiked(false);
+      }
     }
-  };
+  }, [userId, likedSort]);
 
   useEffect(() => {
     if (activeTab !== "likes") return;
     fetchLikedPosts(1, likedSort);
-  }, [activeTab, likedSort, userId]);
+  }, [activeTab, likedSort, userId, fetchLikedPosts]);
 
-  const loadMoreLikedPosts = () => {
-    if (loadingLiked || !likedHasMore) return;
-    fetchLikedPosts(likedPage + 1, likedSort);
-  };
+  const loadMoreLikedPosts = useCallback(() => {
+    if (loadingLikedRef.current || !likedHasMoreRef.current) return;
+    fetchLikedPosts(likedPageRef.current + 1, likedSort);
+  }, [fetchLikedPosts, likedSort]);
 
-  const loadMoreProfilePosts = async () => {
-    if (loadingMorePosts || !postsHasMore) return;
+  const loadMoreProfilePosts = useCallback(async () => {
+    if (loadingMorePostsRef.current || !postsHasMoreRef.current) return;
+    if (postsAbortRef.current) {
+      postsAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    postsAbortRef.current = controller;
+
+    loadingMorePostsRef.current = true;
     setLoadingMorePosts(true);
+    setPostsLoadMoreError(false);
     try {
-      const nextPage = postsPage + 1;
-      const postsResponse = await getUserPosts(userId, nextPage, 10);
+      const nextPage = postsPageRef.current + 1;
+      const postsResponse = await getUserPosts(userId, nextPage, 10, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
       const visiblePosts = (postsResponse.data?.data || []).filter(
         (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
       );
-      setRecentPostsProfile((prev) => [...(prev || []), ...visiblePosts]);
+      const more = Boolean(postsResponse.data?.has_more);
+      setRecentPostsProfile((prev) => {
+        const existingIds = new Set((prev || []).map((p) => p.id));
+        return [...(prev || []), ...visiblePosts.filter((p) => !existingIds.has(p.id))];
+      });
+      postsPageRef.current = nextPage;
+      postsHasMoreRef.current = more;
       setPostsPage(nextPage);
-      setPostsHasMore(Boolean(postsResponse.data?.has_more));
+      setPostsHasMore(more);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
+      setPostsLoadMoreError(true);
       console.error("Error loading more posts:", error);
     } finally {
-      setLoadingMorePosts(false);
+      if (!controller.signal.aborted) {
+        loadingMorePostsRef.current = false;
+        setLoadingMorePosts(false);
+      }
     }
-  };
+  }, [userId, isCurrentUser, setRecentPostsProfile]);
+
+  const handleEndReached = useCallback(() => {
+    if (activeTab === "posts") {
+      if (!postsLoadMoreError) loadMoreProfilePosts();
+    } else if (activeTab === "likes") {
+      if (!likedLoadMoreError) loadMoreLikedPosts();
+    } else if (activeTab === "photos") {
+      if (!photoGallery.loadMoreError) photoGallery.loadMore();
+    } else if (activeTab === "videos") {
+      if (!videoGallery.loadMoreError) videoGallery.loadMore();
+    }
+  }, [
+    activeTab,
+    postsLoadMoreError,
+    loadMoreProfilePosts,
+    likedLoadMoreError,
+    loadMoreLikedPosts,
+    photoGallery,
+    videoGallery,
+  ]);
+
+    // Pre-stamp is_owner on current user's posts once via useMemo so renderListItem
+  // never creates a fresh `{ ...item, is_owner: true }` object on every render
+  // (which previously defeated React.memo on PostItem during scrolling).
+  const normalizedRecentPosts = React.useMemo(() => {
+    if (!recentPostsProfile) return [];
+    if (!isCurrentUser) return recentPostsProfile;
+    return recentPostsProfile.map((p) => (p.is_owner === true ? p : { ...p, is_owner: true }));
+  }, [recentPostsProfile, isCurrentUser]);
+
+  const normalizedLikedPosts = React.useMemo(() => {
+    if (!likedPosts) return [];
+    if (!isCurrentUser) return likedPosts;
+    return likedPosts.map((p) => (p.is_owner === true ? p : { ...p, is_owner: true }));
+  }, [likedPosts, isCurrentUser]);
 
   if (loading) {
     return (
@@ -665,15 +808,20 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   // with virtualized rows instead of the old flat list of JSX children.
   const listData =
     activeTab === "posts"
-      ? recentPostsProfile || []
+      ? normalizedRecentPosts
       : activeTab === "photos"
       ? photoRows(
           photoGallery.photos,
           // Placeholders from the moment the tab opens until the first answer.
           photoGallery.loading || (!photoGallery.loaded && !photoGallery.error)
         )
+      : activeTab === "videos"
+      ? videoRows(
+          videoGallery.videos,
+          videoGallery.loading || (!videoGallery.loaded && !videoGallery.error)
+        )
       : activeTab === "likes"
-      ? likedPosts || []
+      ? normalizedLikedPosts
       : activeTab === "following"
       ? userData?.following || []
       : userData?.followers || [];
@@ -681,7 +829,11 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   const isPostTab = activeTab === "posts" || activeTab === "likes";
 
   const listKeyExtractor = (item) =>
-    isPostTab ? `post-${item.id}` : activeTab === "photos" ? String(item.id) : `user-${item.id}`;
+    isPostTab
+      ? `post-${item.id}`
+      : activeTab === "photos" || activeTab === "videos"
+      ? String(item.id)
+      : `user-${item.id}`;
 
   const renderListItem = ({ item }) => {
     if (activeTab === "photos") {
@@ -689,10 +841,15 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
         <PhotoGridRow row={item} onPress={(index) => setPhotoViewer({ visible: true, index })} />
       );
     }
+    if (activeTab === "videos") {
+      return (
+        <VideoGridRow row={item} onPress={(index) => setVideoViewer({ visible: true, index })} />
+      );
+    }
     if (isPostTab) {
       return (
         <PostItem
-          item={isCurrentUser ? { ...item, is_owner: true } : item}
+          item={item}
           navigation={navigation}
           onVoteUpdate={handleVoteUpdate}
           onSaveUpdate={handleSaveUpdate}
@@ -737,6 +894,29 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           </Text>
         </View>
       )
+    ) : activeTab === "videos" ? (
+      videoGallery.error ? (
+        <View style={{ alignItems: "center", paddingHorizontal: 16 }}>
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 24 }}>
+            {t("profile.videosError")}
+          </Text>
+          <TouchableOpacity
+            onPress={videoGallery.reload}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={{ marginTop: 12, borderWidth: 1, borderColor: theme.primary, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}
+          >
+            <Text style={{ color: theme.primary, fontWeight: "700" }}>{t("profile.videosRetry")}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ alignItems: "center", marginTop: 20, paddingHorizontal: 16 }}>
+          <Ionicons name="videocam-outline" size={50} color={theme.subText} />
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 10 }}>
+            {t("profile.emptyVideos")}
+          </Text>
+        </View>
+      )
     ) :
     activeTab === "likes" && loadingLiked ? null :
     <View>
@@ -763,6 +943,21 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           ) : (
             <Text style={{ color: theme.primary, fontWeight: "600" }}>
               {t('profile.loadMorePhotos')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
+      {activeTab === "videos" && videoGallery.hasMore && (
+        <TouchableOpacity
+          onPress={videoGallery.loadMore}
+          disabled={videoGallery.loadingMore}
+          style={{ alignItems: "center", paddingVertical: 16 }}
+        >
+          {videoGallery.loadingMore ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Text style={{ color: theme.primary, fontWeight: "600" }}>
+              {t('profile.loadMoreVideos')}
             </Text>
           )}
         </TouchableOpacity>
@@ -1062,7 +1257,7 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                (activeTab === "posts" || activeTab === "photos") && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
+                (activeTab === "posts" || activeTab === "photos" || activeTab === "videos") && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("posts")}
             >
@@ -1122,12 +1317,12 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
             </TouchableOpacity>
           </View>
 
-          {/* Posts tab: the posts themselves, or every photo in them. */}
-          {(activeTab === "posts" || activeTab === "photos") && (
+          {/* Posts tab: the posts themselves, or every photo/video in them. */}
+          {(activeTab === "posts" || activeTab === "photos" || activeTab === "videos") && (
             <View
               style={{
                 marginTop: 16,
-                marginBottom: activeTab === "photos" ? 12 : 0,
+                marginBottom: activeTab === "photos" || activeTab === "videos" ? 12 : 0,
                 alignSelf: "center",
                 flexDirection: "row",
                 backgroundColor: theme.iconBackground,
@@ -1143,6 +1338,13 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
                     photoGallery.loaded && photoGallery.total > 0
                       ? t("profile.photosTabCount", { total: photoGallery.total })
                       : t("profile.photosTab"),
+                },
+                {
+                  value: "videos",
+                  label:
+                    videoGallery.loaded && videoGallery.total > 0
+                      ? t("profile.videosTabCount", { total: videoGallery.total })
+                      : t("profile.videosTab"),
                 },
               ].map((segment) => {
                 const selected = activeTab === segment.value;
@@ -1367,6 +1569,17 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           }}
         />
 
+        <ProfileVideoViewer
+          videos={videoGallery.videos}
+          index={videoViewer.index}
+          visible={videoViewer.visible}
+          onClose={() => setVideoViewer((current) => ({ ...current, visible: false }))}
+          onOpenPost={(video) => {
+            setVideoViewer((current) => ({ ...current, visible: false }));
+            navigation.push("PostScreen", { postId: video.post_id });
+          }}
+        />
+
         <ReportModal
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}
@@ -1387,6 +1600,22 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
           data={listData}
           keyExtractor={listKeyExtractor}
           renderItem={renderListItem}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === "android"}
+          getItemLayout={
+            activeTab === "following" || activeTab === "followers"
+              ? (_data, index) => ({
+                  length: 75,
+                  offset: 75 * index,
+                  index,
+                })
+              : undefined
+          }
           // Elements too, for the same reason: as functions the footer (the
           // "load more" button and the activity section) was unmounted and
           // mounted again on every render - and the list re-renders each

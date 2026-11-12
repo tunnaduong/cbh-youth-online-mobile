@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   searchChatUsername,
   createConversation,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
@@ -55,21 +56,25 @@ const NewConversationScreen = ({ navigation }) => {
       return;
     }
 
+    const controller = new AbortController();
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await searchChatUsername(query);
-        if (latestQueryRef.current !== query) return;
+        const response = await searchChatUsername(query, { signal: controller.signal });
+        if (latestQueryRef.current !== query || controller.signal.aborted) return;
         setSearchResult(response.data);
       } catch (error) {
-        if (latestQueryRef.current !== query) return;
+        if (isRequestCanceled(error) || controller.signal.aborted || latestQueryRef.current !== query) return;
         setSearchResult(null);
       } finally {
-        if (latestQueryRef.current === query) setLoading(false);
+        if (latestQueryRef.current === query && !controller.signal.aborted) setLoading(false);
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [searchQuery]);
 
   const startConversation = async (selectedUser, existingConversationId) => {

@@ -161,7 +161,7 @@ export async function createPasskey(password) {
   return response.data;
 }
 
-export const getPasskeys = () => Api.getRequest("/v1.0/passkeys").then((res) => res.data);
+export const getPasskeys = (config = {}) => Api.getRequest("/v1.0/passkeys", config).then((res) => res.data);
 
 export const deletePasskey = (id) =>
   Api.deleteRequest(`/v1.0/passkeys/${id}`).then((res) => res.data);

@@ -49,6 +49,14 @@ const SITES = {
     hosts: ["chuyenbienhoa.com", "www.chuyenbienhoa.com"],
     lockToSite: false,
   },
+  // Document printing requests, opened from Explore (/explore/print-requests
+  // on the website, see its Explore sidebar).
+  print: {
+    titleKey: "exploreScreen.printing",
+    homeUrl: "https://www.chuyenbienhoa.com/explore/print-requests?app=true",
+    hosts: ["chuyenbienhoa.com", "www.chuyenbienhoa.com"],
+    lockToSite: false,
+  },
 };
 
 export default function WebAppScreen({ navigation, route }) {

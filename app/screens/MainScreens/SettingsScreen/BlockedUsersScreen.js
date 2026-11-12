@@ -28,6 +28,7 @@ import {
   changePassword,
   getBlockedUsers,
   unblockUser,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -117,16 +118,25 @@ export default function BlockedUsersScreen({ navigation }) {
     extrapolate: "clamp",
   });
   const [refreshing, setRefreshing] = useState(false);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     fetchBlockedUsers();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, []);
 
   const fetchBlockedUsers = async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
-      const response = await getBlockedUsers();
+      const response = await getBlockedUsers({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       setBlockedUsers(response.data || []);
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error(error);
       Toast.show({
         type: "error",
@@ -134,8 +144,10 @@ export default function BlockedUsersScreen({ navigation }) {
         text2: t("blockedUsers.loadError"),
       });
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -239,8 +251,10 @@ export default function BlockedUsersScreen({ navigation }) {
         </View>
       ) : (
         <AndroidGlassBackdrop providerId="BlockedUsersScreen" style={{ flex: 1 }}>
-        <Animated.ScrollView
+        <Animated.FlatList
           style={styles.content}
+          data={blockedUsers}
+          keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -248,9 +262,18 @@ export default function BlockedUsersScreen({ navigation }) {
             { useNativeDriver: false }
           )}
           contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
-        >
-          {blockedUsers.map((user) => (
-            <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === "android"}
+          getItemLayout={(_, index) => ({
+            length: 83,
+            offset: 83 * index,
+            index,
+          })}
+          renderItem={({ item: user }) => (
+            <View style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: 12 }}>
                 <FastImage
                   source={{ uri: user.profile?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}
@@ -280,8 +303,8 @@ export default function BlockedUsersScreen({ navigation }) {
                 <Text style={[styles.unblockText, { color: theme.primary }]}>{t('blockedUsers.unblockAction')}</Text>
               </TouchableOpacity>
             </View>
-          ))}
-        </Animated.ScrollView>
+          )}
+        />
         </AndroidGlassBackdrop>
       )}
       <AppToast topOffset={60} />

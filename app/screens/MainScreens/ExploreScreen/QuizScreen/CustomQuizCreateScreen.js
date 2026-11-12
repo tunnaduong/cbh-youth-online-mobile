@@ -21,12 +21,14 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
+import SegmentedControl from "../../../../components/SegmentedControl";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import { createCustomQuiz } from "../../../../services/api/Api";
 import { apiErrorMessage } from "../../../../utils/apiMessage";
 
 const DIFFICULTIES = ["easy", "medium", "hard"];
 const MAX_TITLE_LENGTH = 150;
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB, must match backend QuizController::custom max:10240
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXTENSIONS = ["docx", "txt", "pdf"];
 
 const getExtension = (name = "") => {
@@ -34,10 +36,6 @@ const getExtension = (name = "") => {
   return parts.length > 1 ? parts[parts.length - 1] : "";
 };
 
-// Highlights **text** live as the user types, matching the exact marker
-// LocalQuizContentParser/CustomQuizController::htmlToMarkup already look for
-// server-side to detect the correct option - so what's bold on screen is
-// always what the backend will parse as the answer.
 function quizAnswerMarkParser(input) {
   "worklet";
   const ranges = [];
@@ -54,11 +52,11 @@ function quizAnswerMarkParser(input) {
 const CustomQuizCreateScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const contentInputRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // step: "form" -> "success"
   const [step, setStep] = useState("form");
   const [mode, setMode] = useState("text"); // "text" | "file"
   const [title, setTitle] = useState("");
@@ -67,11 +65,8 @@ const CustomQuizCreateScreen = ({ navigation }) => {
   const [difficulty, setDifficulty] = useState("medium");
   const [selectedFile, setSelectedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [createdQuiz, setCreatedQuiz] = useState(null); // { quiz_set_id, topic, difficulty, question_count }
+  const [createdQuiz, setCreatedQuiz] = useState(null);
 
-  // Wraps the currently selected text in the "**correct answer**" marker
-  // (or inserts an empty pair at the cursor if nothing is selected, so the
-  // user can just start typing the option there).
   const markSelectionAsCorrect = () => {
     const { start, end } = contentSelection;
     const before = content.slice(0, start);
@@ -84,16 +79,11 @@ const CustomQuizCreateScreen = ({ navigation }) => {
     contentInputRef.current?.focus();
   };
 
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [1, 0],
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
-  const handleScroll = (e) => {
-    scrollY.setValue(Math.max(0, e.nativeEvent.contentOffset.y));
-  };
-
-  const headerHeight = 58 + insets.top;
 
   const pickDocument = async () => {
     try {
@@ -143,7 +133,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
         }),
       });
     } catch (error) {
-      // Silent - sharing is best-effort.
+      // Silent
     }
   };
 
@@ -200,27 +190,50 @@ const CustomQuizCreateScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating Transparent Header */}
       <View
-        style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
         pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}
       >
-        <LiquidButton
-          providerId="CustomQuizCreateScreen"
-          size={44}
-          scrollY={scrollY}
-          onPress={() => navigation.goBack()}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+            paddingTop: insets.top,
+            height: 64 + insets.top,
+          }}
         >
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
-          numberOfLines={1}
-        >
-          {t("customQuiz.title", "Tạo bộ đề tùy chỉnh")}
-        </Animated.Text>
-        <View style={{ width: 44 }} />
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: "600",
+              color: theme.primary,
+              opacity: headerTitleOpacity,
+            }}
+          >
+            {t("customQuiz.title", "Tạo bộ đề tùy chỉnh")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
+      {/* Atmospheric Top Gradient */}
       <LinearGradient
         colors={
           isDarkMode
@@ -233,78 +246,44 @@ const CustomQuizCreateScreen = ({ navigation }) => {
         pointerEvents="none"
       />
 
-      <AndroidGlassBackdrop providerId="CustomQuizCreateScreen" style={{ flex: 1 }}>
+      <AndroidGlassBackdrop style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior="padding"
-          keyboardVerticalOffset={headerHeight}
+          keyboardVerticalOffset={64 + insets.top}
         >
-          <ScrollView
+          <Animated.ScrollView
             contentContainerStyle={{
-              paddingTop: headerHeight + 12,
-              paddingHorizontal: 16,
-              paddingBottom: 40 + insets.bottom,
+              padding: 16,
+              paddingTop: 64 + insets.top,
+              paddingBottom: insets.bottom + 32,
             }}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
             scrollEventThrottle={16}
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+              useNativeDriver: false,
+            })}
             keyboardShouldPersistTaps="handled"
           >
             {step === "form" && (
               <>
-                <Text style={[styles.subtitle, { color: theme.subText }]}>
+                <Text style={[styles.description, { color: theme.subText }]}>
                   {t("customQuiz.subtitle")}
                 </Text>
 
-                <View style={styles.chipRow}>
-                  <TouchableOpacity
-                    onPress={() => setMode("text")}
-                    style={[
-                      styles.modeChip,
-                      { backgroundColor: mode === "text" ? theme.primary : theme.iconBackground },
+                <View style={{ marginBottom: 16 }}>
+                  <SegmentedControl
+                    value={mode}
+                    onChange={setMode}
+                    segments={[
+                      { key: "text", label: t("customQuiz.modeText", "Nhập văn bản") },
+                      { key: "file", label: t("customQuiz.modeFile", "Tải file lên") },
                     ]}
-                  >
-                    <Ionicons
-                      name="create-outline"
-                      size={16}
-                      color={mode === "text" ? "#fff" : theme.text}
-                    />
-                    <Text
-                      style={{
-                        color: mode === "text" ? "#fff" : theme.text,
-                        fontWeight: "600",
-                        fontSize: 13,
-                      }}
-                    >
-                      {t("customQuiz.modeText", "Nhập văn bản")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setMode("file")}
-                    style={[
-                      styles.modeChip,
-                      { backgroundColor: mode === "file" ? theme.primary : theme.iconBackground },
-                    ]}
-                  >
-                    <Ionicons
-                      name="document-attach-outline"
-                      size={16}
-                      color={mode === "file" ? "#fff" : theme.text}
-                    />
-                    <Text
-                      style={{
-                        color: mode === "file" ? "#fff" : theme.text,
-                        fontWeight: "600",
-                        fontSize: 13,
-                      }}
-                    >
-                      {t("customQuiz.modeFile", "Tải file lên")}
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 </View>
 
-                <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
-                  <Text style={[styles.cardLabel, { color: theme.text }]}>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.text }]}>
                     {t("customQuiz.titleLabel", "Tiêu đề")}
                   </Text>
                   <TextInput
@@ -313,38 +292,30 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                     placeholder={t("customQuiz.titlePlaceholder", "Tiêu đề (không bắt buộc)")}
                     placeholderTextColor={theme.subText}
                     maxLength={MAX_TITLE_LENGTH}
-                    style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                    style={[
+                      styles.input,
+                      { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+                    ]}
                   />
 
-                  <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
                     {t("quiz.difficulty", "Độ khó")}
                   </Text>
-                  <View style={styles.chipRow}>
-                    {DIFFICULTIES.map((d) => {
-                      const active = difficulty === d;
-                      return (
-                        <TouchableOpacity
-                          key={d}
-                          onPress={() => setDifficulty(d)}
-                          style={[
-                            styles.chip,
-                            { backgroundColor: active ? theme.primary : theme.iconBackground },
-                          ]}
-                        >
-                          <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
-                            {t(
-                              `quiz.difficulty_${d}`,
-                              d === "easy" ? "Dễ" : d === "medium" ? "Trung bình" : "Khó"
-                            )}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+                  <SegmentedControl
+                    value={difficulty}
+                    onChange={setDifficulty}
+                    segments={DIFFICULTIES.map((d) => ({
+                      key: d,
+                      label: t(
+                        `quiz.difficulty_${d}`,
+                        d === "easy" ? "Dễ" : d === "medium" ? "Trung bình" : "Khó"
+                      ),
+                    }))}
+                  />
 
                   {mode === "text" ? (
                     <>
-                      <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
+                      <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
                         {t("customQuiz.contentLabel", "Nội dung câu hỏi")}
                       </Text>
                       <Text style={[styles.helpText, { color: theme.subText }]}>
@@ -356,6 +327,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                           <TouchableOpacity
                             onPress={markSelectionAsCorrect}
                             style={styles.markCorrectButton}
+                            activeOpacity={0.7}
                           >
                             <Ionicons name="checkmark-circle-outline" size={16} color={theme.primary} />
                             <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 13 }}>
@@ -375,22 +347,23 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                           placeholderTextColor={theme.subText}
                           multiline
                           textAlignVertical="top"
-                          style={[styles.editorInput, { color: theme.text }]}
+                          style={[styles.editorInput, { color: theme.text, backgroundColor: theme.background }]}
                         />
                       </View>
                     </>
                   ) : (
                     <>
-                      <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
+                      <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
                         {t("customQuiz.fileLabel", "File câu hỏi")}
                       </Text>
                       <TouchableOpacity
                         onPress={pickDocument}
-                        style={[styles.uploadBox, { borderColor: theme.border }]}
+                        activeOpacity={0.8}
+                        style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.background }]}
                       >
                         <Ionicons
                           name={selectedFile ? "checkmark-circle-outline" : "cloud-upload-outline"}
-                          size={22}
+                          size={24}
                           color={theme.primary}
                         />
                         <Text style={[styles.uploadText, { color: theme.text }]} numberOfLines={1}>
@@ -404,16 +377,17 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                   )}
 
                   <TouchableOpacity
-                    style={[styles.startButton, { backgroundColor: theme.primary }]}
+                    style={[styles.primaryButton, { backgroundColor: theme.primary, marginTop: 20 }]}
                     onPress={handleSubmit}
                     disabled={submitting}
+                    activeOpacity={0.85}
                   >
                     {submitting ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <Ionicons name="sparkles" size={18} color="#fff" />
                     )}
-                    <Text style={styles.startButtonText}>
+                    <Text style={styles.primaryButtonText}>
                       {submitting
                         ? t("customQuiz.creating", "Đang tạo bộ đề...")
                         : t("customQuiz.create", "Tạo bộ đề")}
@@ -424,8 +398,14 @@ const CustomQuizCreateScreen = ({ navigation }) => {
             )}
 
             {step === "success" && createdQuiz && (
-              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
-                <Ionicons name="checkmark-circle" size={40} color={theme.primary} />
+              <View
+                style={[
+                  styles.card,
+                  styles.resultCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={44} color={theme.primary} />
                 <Text style={[styles.resultTitle, { color: theme.text }]}>
                   {t("customQuiz.successTitle", "Đã tạo bộ đề thành công!")}
                 </Text>
@@ -444,24 +424,30 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                 </Text>
 
                 <TouchableOpacity
-                  style={[styles.startButton, { backgroundColor: theme.primary, marginTop: 20 }]}
+                  style={[styles.primaryButton, { backgroundColor: theme.primary, width: "100%", marginTop: 24 }]}
                   onPress={handlePlay}
+                  activeOpacity={0.85}
                 >
                   <Ionicons name="play" size={18} color="#fff" />
-                  <Text style={styles.startButtonText}>{t("customQuiz.playNow", "Chơi ngay")}</Text>
+                  <Text style={styles.primaryButtonText}>{t("customQuiz.playNow", "Chơi ngay")}</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={[styles.shareButton, { borderColor: theme.border }]}
+                  style={[
+                    styles.secondaryButton,
+                    { borderColor: theme.border, width: "100%", backgroundColor: theme.background },
+                  ]}
                   onPress={() => handleShare(createdQuiz.quiz_set_id)}
+                  activeOpacity={0.8}
                 >
                   <Ionicons name="share-outline" size={18} color={theme.text} />
-                  <Text style={[styles.shareButtonText, { color: theme.text }]}>
+                  <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
                     {t("customQuiz.shareQuiz", "Chia sẻ bộ đề")}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
-          </ScrollView>
+          </Animated.ScrollView>
         </KeyboardAvoidingView>
       </AndroidGlassBackdrop>
     </View>
@@ -470,78 +456,69 @@ const CustomQuizCreateScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+    marginHorizontal: 4,
   },
-  headerTitle: { fontSize: 17, fontWeight: "700" },
-  subtitle: { fontSize: 13, marginBottom: 16 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  modeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
-  card: { borderRadius: 16, padding: 16, marginBottom: 20 },
-  cardLabel: { fontSize: 14, fontWeight: "700", marginBottom: 10 },
+  fieldLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
   input: {
+    height: 44,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
     fontSize: 14,
   },
-  helpText: { fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 },
+  helpText: { fontSize: 13, lineHeight: 18, marginTop: 6, marginBottom: 12 },
   editorWrapper: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
-  toolbar: { borderTopLeftRadius: 12, borderTopRightRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  toolbar: { paddingHorizontal: 12, paddingVertical: 10 },
   markCorrectButton: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
-  editorInput: { minHeight: 220, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  editorInput: { minHeight: 200, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, lineHeight: 20 },
   uploadBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: "dashed",
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
   uploadText: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
-  startButton: {
+  primaryButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 999,
-    paddingVertical: 12,
-    marginTop: 20,
+    borderRadius: 12,
+    padding: 14,
   },
-  startButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  shareButton: {
+  primaryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+  secondaryButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 999,
-    paddingVertical: 12,
-    marginTop: 12,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 10,
     borderWidth: 1,
   },
-  shareButtonText: { fontWeight: "700", fontSize: 14 },
-  resultCard: { alignItems: "center" },
-  resultTitle: { fontSize: 17, fontWeight: "800", marginTop: 10 },
-  resultTopic: { fontSize: 14, fontWeight: "600", marginTop: 6 },
+  secondaryButtonText: { fontWeight: "bold", fontSize: 15 },
+  resultCard: { alignItems: "center", paddingVertical: 24 },
+  resultTitle: { fontSize: 18, fontWeight: "800", marginTop: 12 },
+  resultTopic: { fontSize: 15, fontWeight: "600", marginTop: 6 },
   resultMeta: { fontSize: 13, marginTop: 4 },
 });
 

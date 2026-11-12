@@ -40,6 +40,7 @@ import {
   deleteComment,
   getMentionSuggestions,
   reportUser,
+  isRequestCanceled,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import Toast from "react-native-toast-message";
@@ -53,8 +54,9 @@ import MentionSuggestions, { useMentionInput } from "../../../components/Mention
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
-import { FeedContext } from "../../../contexts/FeedContext";
+import { FeedActionsContext } from "../../../contexts/FeedContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
+import { tableRenderers } from "../../../components/MarkdownTable";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -168,7 +170,7 @@ const Comment = React.memo(React.forwardRef(
                     contentWidth={contentWidth - 90 - level * 20}
                     source={{ html: linkifyMentionsInHtml(contentHtml, validMentions, { allowBroadcastMention: true }) }}
                     customHTMLElementModels={customHTMLElementModels}
-                    renderers={{ iframe: YouTubeIframeRenderer }}
+                    renderers={{ iframe: YouTubeIframeRenderer, ...tableRenderers }}
                     renderersProps={{
                       a: {
                         onPress: (event, href) => {
@@ -327,7 +329,7 @@ const PostScreen = ({ route, navigation }) => {
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
   const [highlightedCommentId, setHighlightedCommentId] = useState(null);
-  const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const { setFeed, setRecentPostsProfile } = useContext(FeedActionsContext);
   const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
   const [imageViewer, setImageViewer] = useState({ visible: false, images: [], index: 0 });
   const insets = useSafeAreaInsets();
@@ -388,6 +390,11 @@ const PostScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     fetchData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -400,11 +407,19 @@ const PostScreen = ({ route, navigation }) => {
   // the feed, profile, archive and this page, so an option added or changed
   // there shows up everywhere.
   const postOptionsRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const fetchData = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoadingPost(true);
-      const response = await getPostDetail(postId); // Fetch post data from API
+      const response = await getPostDetail(postId, { signal: controller.signal }); // Fetch post data from API
+      if (controller.signal.aborted) return;
       const { post: topic, comments } = response.data;
 
       if (!item && !post) {
@@ -425,9 +440,12 @@ const PostScreen = ({ route, navigation }) => {
         }, 600);
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("Error fetching data:", error);
     } finally {
-      setLoadingPost(false);
+      if (!controller.signal.aborted) {
+        setLoadingPost(false);
+      }
     }
   };
   // Mirror for stable callbacks (see commentsRef above) that need to trigger
@@ -495,7 +513,7 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleVote = async (newVotes) => {
+  const handleVote = React.useCallback(async (newVotes) => {
     // Update UI instantly
     setVotes(newVotes);
 
@@ -517,9 +535,9 @@ const PostScreen = ({ route, navigation }) => {
       ...prevPost,
       votes: newVotes,
     }));
-  };
+  }, [postId, screenName, setFeed, setRecentPostsProfile]);
 
-  const handleSavePost = async (newSavedStatus) => {
+  const handleSavePost = React.useCallback(async (newSavedStatus) => {
     setIsSaved(newSavedStatus); // Update UI instantly
 
     // Update the FeedContext
@@ -540,7 +558,41 @@ const PostScreen = ({ route, navigation }) => {
       ...prevPost,
       saved: newSavedStatus,
     }));
-  };
+  }, [postId, screenName, setFeed, setRecentPostsProfile]);
+
+  const listHeaderComponent = React.useMemo(
+    () =>
+      post ? (
+        <>
+          <PostItem
+            navigation={navigation}
+            item={post}
+            single={true}
+            votes={votes}
+            saved={isSaved}
+            onVote={handleVote}
+            onSave={handleSavePost}
+            screenName={screenName}
+            isActive={autoplayVideos}
+            optionsOpenerRef={postOptionsRef}
+          />
+          {/* comment section */}
+          <View style={{ paddingHorizontal: 15 }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: 20,
+                marginVertical: 16,
+                color: theme.text,
+              }}
+            >
+              {t("post.commentsTitle")}
+            </Text>
+          </View>
+        </>
+      ) : null,
+    [post, navigation, votes, isSaved, handleVote, handleSavePost, screenName, autoplayVideos, theme.text, t]
+  );
 
   const findParentIdForReply = (comments, targetId, currentParentId = null) => {
     for (const comment of comments) {
@@ -1383,38 +1435,11 @@ const PostScreen = ({ route, navigation }) => {
           initialNumToRender={15}
           maxToRenderPerBatch={10}
           windowSize={7}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === "android"}
           data={comments}
           keyExtractor={(comment) => String(comment.id)}
-          ListHeaderComponent={
-            <>
-              <PostItem
-                navigation={navigation}
-                item={post}
-                single={true}
-                votes={votes}
-                saved={isSaved}
-                onVote={handleVote}
-                onSave={handleSavePost}
-                screenName={screenName}
-                isActive={autoplayVideos}
-                optionsOpenerRef={postOptionsRef}
-              />
-              {/* comment section */}
-              <View style={{ paddingHorizontal: 15 }}>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: 20,
-                    marginVertical: 16,
-                    color: theme.text,
-                  }}
-                >
-                  {t("post.commentsTitle")}
-                </Text>
-              </View>
-            </>
-          }
+          ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={
             <View style={{ paddingHorizontal: 15 }}>
               <Text style={{ color: theme.subText }}>

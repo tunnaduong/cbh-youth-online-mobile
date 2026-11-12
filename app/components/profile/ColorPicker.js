@@ -189,6 +189,8 @@ export function ColorPickerSheet({ visible, title, value, onApply, onClose }) {
     if (visible) setDraft(value);
   }, [visible, value]);
 
+  if (!visible) return null;
+
   return (
     <ThemeSheet
       visible={visible}

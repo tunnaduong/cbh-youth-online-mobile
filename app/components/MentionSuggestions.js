@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
+import { isRequestCanceled } from "../services/api/Api";
 
 // Inline suggestion list rendered above the input bar.
 // Props:
@@ -52,6 +53,14 @@ const MentionSuggestions = ({ suggestions, onSelect, loading }) => {
         data={suggestions}
         keyExtractor={(item) => String(item.id)}
         keyboardShouldPersistTaps="always"
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        getItemLayout={(_data, index) => ({
+          length: 55,
+          offset: 55 * index,
+          index,
+        })}
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => onSelect(item)}
@@ -150,21 +159,25 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
     // Serve from cache immediately so the list appears without any delay
     if (cacheRef.current.has(mentionQuery)) {
       setSuggestions(cacheRef.current.get(mentionQuery));
+      setLoading(false);
       return;
     }
 
+    const controller = new AbortController();
     // Show the popup spinner immediately — before the debounce fires
     setLoading(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       if (__DEV__) console.log("[useMentionInput] fetching suggestions for:", JSON.stringify(mentionQuery));
       try {
-        const res = await fetchSuggestions(mentionQuery);
+        const res = await fetchSuggestions(mentionQuery, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         if (__DEV__) console.log("[useMentionInput] got response:", JSON.stringify(res?.data || res));
         const results = res?.data?.suggestions ?? res?.suggestions ?? [];
         cacheRef.current.set(mentionQuery, results);
         setSuggestions(results);
       } catch (error) {
+        if (isRequestCanceled(error) || controller.signal.aborted) return;
         // Silently swallowing this made a real failure (auth, network,
         // validation) indistinguishable from "no matches" - log it so a
         // broken mention lookup shows up in adb logcat / Metro instead of
@@ -172,10 +185,15 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
         console.warn("[MentionSuggestions] fetchSuggestions failed:", error?.response?.status, error?.response?.data || error?.message);
         setSuggestions(keepIfEmpty);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }, 120);
-    return () => clearTimeout(debounceRef.current);
+    return () => {
+      clearTimeout(debounceRef.current);
+      controller.abort();
+    };
   }, [mentionQuery, fetchSuggestions]);
 
   const handleSelect = useCallback(

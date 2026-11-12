@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getStoryArchive, getArchivedPosts } from "../../../services/api/Api";
+import { getStoryArchive, getArchivedPosts, isRequestCanceled } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import FastImage from "../../../components/FastImage";
 import { DeviceEventEmitter } from "react-native";
@@ -46,7 +46,14 @@ const ArchiveScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [archivedPosts, setArchivedPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [postsLoadMoreError, setPostsLoadMoreError] = useState(false);
   const [selectedStories, setSelectedStories] = useState(null);
+  const postsPageRef = useRef(1);
+  const postsHasMoreRef = useRef(true);
+  const isFetchingPostsRef = useRef(false);
+  const archiveAbortRef = useRef(null);
+  const postsAbortRef = useRef(null);
 
   // The story viewer is black: light status bar icons while it is open,
   // whatever the theme; back to the theme's own when it closes.
@@ -101,7 +108,11 @@ const ArchiveScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     fetchArchive();
-    fetchArchivedPosts();
+    fetchArchivedPosts(1);
+    return () => {
+      if (archiveAbortRef.current) archiveAbortRef.current.abort();
+      if (postsAbortRef.current) postsAbortRef.current.abort();
+    };
   }, []);
 
   const resolveStoryMediaUrl = (story) => {
@@ -154,13 +165,21 @@ const ArchiveScreen = ({ route, navigation }) => {
   };
 
   const fetchArchive = async () => {
+    if (archiveAbortRef.current) {
+      archiveAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    archiveAbortRef.current = controller;
+
     try {
       setLoading(true);
-      const response = await getStoryArchive();
+      const response = await getStoryArchive({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       if (response?.data?.data) {
         setArchiveData(response.data.data);
       }
     } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
       console.error("Error fetching archive:", error);
       Toast.show({
         type: "error",
@@ -168,27 +187,71 @@ const ArchiveScreen = ({ route, navigation }) => {
         text2: t('archive.loadError'),
       });
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   };
 
-  const fetchArchivedPosts = async () => {
-    try {
-      setPostsLoading(true);
-      const response = await getArchivedPosts();
-      const posts = response?.data?.data;
-      setArchivedPosts(Array.isArray(posts) ? posts : []);
-    } catch (error) {
-      console.error("Error fetching archived posts:", error);
-      Toast.show({
-        type: "error",
-        text1: t('common.error'),
-        text2: t('archive.loadPostsError'),
-      });
-    } finally {
-      setPostsLoading(false);
+  const fetchArchivedPosts = useCallback(async (pageToLoad = 1) => {
+    const isFirstPage = pageToLoad === 1;
+    if (!isFirstPage && (isFetchingPostsRef.current || !postsHasMoreRef.current)) return;
+
+    if (postsAbortRef.current) {
+      postsAbortRef.current.abort();
     }
-  };
+    const controller = new AbortController();
+    postsAbortRef.current = controller;
+    isFetchingPostsRef.current = true;
+    setPostsLoadMoreError(false);
+
+    try {
+      if (isFirstPage) {
+        setPostsLoading(true);
+      } else {
+        setLoadingMorePosts(true);
+      }
+      const response = await getArchivedPosts(pageToLoad, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const posts = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const more = Boolean(
+        response?.data?.has_more ??
+          response?.data?.next_page_url ??
+          (response?.data?.current_page < response?.data?.last_page) ??
+          (posts.length >= 10)
+      );
+      setArchivedPosts((prev) => {
+        if (isFirstPage) return posts;
+        const existingIds = new Set(prev.map((p) => p.id));
+        return [...prev, ...posts.filter((p) => !existingIds.has(p.id))];
+      });
+      postsPageRef.current = pageToLoad;
+      postsHasMoreRef.current = more;
+    } catch (error) {
+      if (isRequestCanceled(error) || controller.signal.aborted) return;
+      console.error("Error fetching archived posts:", error);
+      if (!isFirstPage) {
+        setPostsLoadMoreError(true);
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t('common.error'),
+          text2: t('archive.loadPostsError'),
+        });
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        isFetchingPostsRef.current = false;
+        setPostsLoading(false);
+        setLoadingMorePosts(false);
+      }
+    }
+  }, [t]);
+
+  const handleLoadMorePosts = useCallback(() => {
+    if (isFetchingPostsRef.current || !postsHasMoreRef.current || postsLoadMoreError) return;
+    fetchArchivedPosts(postsPageRef.current + 1);
+  }, [fetchArchivedPosts, postsLoadMoreError]);
 
   // PostItem performs the restore call itself; this only drops the row once
   // the post is no longer archived.
@@ -593,10 +656,29 @@ const ArchiveScreen = ({ route, navigation }) => {
               keyExtractor={(item) => String(item.id)}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              initialNumToRender={3}
-              maxToRenderPerBatch={3}
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
               windowSize={5}
+              updateCellsBatchingPeriod={50}
               removeClippedSubviews={Platform.OS === 'android'}
+              onEndReached={handleLoadMorePosts}
+              onEndReachedThreshold={0.4}
+              ListFooterComponent={
+                loadingMorePosts ? (
+                  <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  </View>
+                ) : postsLoadMoreError ? (
+                  <TouchableOpacity
+                    onPress={() => fetchArchivedPosts(postsPageRef.current + 1)}
+                    style={{ paddingVertical: 16, alignItems: "center" }}
+                  >
+                    <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 13 }}>
+                      {t("common.retry", "Thử lại")}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null
+              }
               ListHeaderComponent={
                 <>
                   {tabBar}
