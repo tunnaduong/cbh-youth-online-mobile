@@ -16,6 +16,7 @@ import { getPostCopyableText, cleanHtmlToPlainText } from "../utils/postCopy";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
 import MediaShimmer from "./MediaShimmer";
+import ChunkedHtml from "./ChunkedHtml";
 import RenderHTML, {
   HTMLElementModel,
   HTMLContentModel,
@@ -1290,6 +1291,29 @@ const PostItem = ({
     [AnchorRenderer]
   );
 
+  // Latest handlers via a ref so postHtmlProps stays the same object and the
+  // memoized ChunkedHtml does not re-render on every keystroke / state change.
+  const linkPressRef = useRef(null);
+  linkPressRef.current = (event, href) => {
+    if (activeCopyTarget) {
+      setActiveCopyTarget(null);
+      return;
+    }
+    handleContentLinkPress(event, href);
+  };
+  const postHtmlProps = useMemo(
+    () => ({
+      contentWidth: contentWidth - 30,
+      customHTMLElementModels,
+      renderers: postRenderers,
+      renderersProps: { a: { onPress: (event, href) => linkPressRef.current?.(event, href) } },
+      baseStyle: postBaseStyle,
+      classesStyles: POST_HTML_CLASSES_STYLES,
+      tagsStyles: postTagsStyles,
+    }),
+    [contentWidth, postRenderers, postBaseStyle, postTagsStyles]
+  );
+
   const cachedHeight = !single && !isExpanded && item?.id ? postHeightCache.get(String(item.id)) : undefined;
 
   return (
@@ -1640,25 +1664,10 @@ const PostItem = ({
                     },
                   ]}
                 >
-                  <RenderHTML
-                    contentWidth={contentWidth - 30}
-                    customHTMLElementModels={customHTMLElementModels}
-                    renderers={postRenderers}
-                    renderersProps={{
-                      a: {
-                        onPress: (event, href) => {
-                          if (activeCopyTarget) {
-                            setActiveCopyTarget(null);
-                            return;
-                          }
-                          handleContentLinkPress(event, href);
-                        },
-                      },
-                    }}
-                    source={postHtmlSource}
-                    baseStyle={postBaseStyle}
-                    classesStyles={POST_HTML_CLASSES_STYLES}
-                    tagsStyles={postTagsStyles}
+                  <ChunkedHtml
+                    html={postHtmlSource.html}
+                    expanded={isExpanded || !isLongContent}
+                    htmlProps={postHtmlProps}
                   />
                   {!isExpanded && isLongContent && (
                     // Fade the clipped text out toward "Xem thêm" instead of cutting it hard.
