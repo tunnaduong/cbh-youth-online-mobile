@@ -1,4 +1,5 @@
 import React, { useContext, useMemo, useRef, useState, useCallback } from "react";
+import { getSheetTokens } from "./SheetShell";
 import {
   View,
   Pressable,
@@ -733,9 +734,7 @@ const PostItem = ({
   }, [handleToggleAiTranslate]);
 
   const handleMoreOptions = () => {
-    const sheetCardBg = isDarkMode ? "#1E212B" : "#FFFFFF";
-    const sheetCardBorder = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)";
-    const sheetDivider = isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(15, 23, 42, 0.06)";
+    const { cardBg: sheetCardBg, cardBorder: sheetCardBorder, divider: sheetDivider } = getSheetTokens(isDarkMode);
     const rowBaseStyle = {
       flexDirection: "row",
       alignItems: "center",

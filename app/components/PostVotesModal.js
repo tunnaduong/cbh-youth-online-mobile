@@ -15,6 +15,7 @@ import UserNameRow from "./profile/UserNameRow";
 import StyledUsername from "./profile/StyledUsername";
 import { AvatarFrameWrap } from "./profile/AvatarFrame";
 import ActionSheet from "react-native-actions-sheet";
+import { actionSheetProps, useSheetTokens } from "./SheetShell";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -170,16 +171,13 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
     );
   };
 
+  const sheetTokens = useSheetTokens();
   return (
     <ActionSheet
       ref={actionSheetRef}
       gestureEnabled={false}
-      defaultOverlayOpacity={0.45}
       onClose={onClose}
-      containerStyle={[
-        styles.sheetContainer,
-        { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 },
-      ]}
+      {...actionSheetProps(sheetTokens, { maxHeight: windowHeight * 0.85 })}
     >
         <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: windowHeight * 0.85 }, styles.flexContainer]}>
           <View

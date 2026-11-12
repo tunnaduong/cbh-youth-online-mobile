@@ -1,11 +1,11 @@
 import React, { createContext, useCallback, useMemo, useRef, useState, useContext } from "react";
-import { StyleSheet } from "react-native";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
+  useBottomSheetSpringConfigs,
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "./ThemeContext";
+import { SHEET_SPRING, sheetSurfaceStyle, useSheetTokens } from "../components/SheetShell";
 
 const BottomSheetContext = createContext();
 
@@ -21,7 +21,7 @@ export const BottomSheetProvider = ({ children }) => {
   // that first reaction never lands, and the always-mounted, full-screen
   // backdrop then swallowed every touch in the whole app.
   const [isOpen, setIsOpen] = useState(false);
-  const { isDarkMode } = useTheme();
+  const tokens = useSheetTokens();
   const insets = useSafeAreaInsets();
 
   const [customSnapPoints, setCustomSnapPoints] = useState(null);
@@ -69,8 +69,8 @@ export const BottomSheetProvider = ({ children }) => {
 
   const value = useMemo(() => ({ showBottomSheet, hideBottomSheet }), [showBottomSheet, hideBottomSheet]);
 
-  const sheetBg = isDarkMode ? "#14161C" : "#F4F6F9";
-  const handleColor = isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(15, 23, 42, 0.16)";
+  const sheetBg = tokens.sheetBg;
+  const animationConfigs = useBottomSheetSpringConfigs(SHEET_SPRING);
 
   return (
     <BottomSheetContext.Provider value={value}>
@@ -85,16 +85,10 @@ export const BottomSheetProvider = ({ children }) => {
         enablePanDownToClose
         onChange={handleSheetChange}
         onClose={handleSheetClose}
-        backgroundStyle={{
-          backgroundColor: sheetBg,
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderBottomWidth: 0,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.06)",
-        }}
+        animationConfigs={animationConfigs}
+        backgroundStyle={sheetSurfaceStyle(tokens)}
         handleIndicatorStyle={{
-          backgroundColor: handleColor,
+          backgroundColor: tokens.handle,
           width: 40,
           height: 5,
           borderRadius: 2.5,
@@ -104,7 +98,7 @@ export const BottomSheetProvider = ({ children }) => {
             ? (props) => (
                 <BottomSheetBackdrop
                   {...props}
-                  opacity={isDarkMode ? 0.65 : 0.45}
+                  opacity={tokens.overlayOpacity}
                   appearsOnIndex={0}
                   disappearsOnIndex={-1}
                   pressBehavior="close"

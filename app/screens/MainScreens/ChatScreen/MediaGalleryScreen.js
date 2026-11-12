@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   View,
@@ -32,6 +32,7 @@ import {
   glassTint,
   androidGlassPerfProps,
 } from "../../../components/GlassModules";
+import LiquidTabBar from "../../../components/LiquidTabBar";
 import { openExternalLink } from "../../../utils/externalLink";
 import formatTime from "../../../utils/formatTime";
 import { getConversationMedia, isRequestCanceled } from "../../../services/api/Api";
@@ -92,104 +93,36 @@ const SF_SYMBOLS = {
 const NAV_HEIGHT = 56;
 const NAV_RADIUS = 28;
 const NAV_INSET = 5;
-const NAV_PILL_HEIGHT = NAV_HEIGHT - NAV_INSET * 2;
-const NAV_PILL_RADIUS = NAV_PILL_HEIGHT / 2;
 const NAV_BUTTON_WIDTH = 76;
-const IS_IOS_26_PLUS = Platform.OS === "ios" && parseInt(Platform.Version, 10) >= 26;
 
-// Bottom nav pill - mirrors CustomTabBar's structure so the two read as the
-// same control. Kept local to this file because it is gallery-only.
+// Bottom nav pill - the same LiquidTabBar as the main bottom nav (glass
+// capsule + draggable liquid selection pill). Hugs its buttons, centred.
 const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
-  const { isDarkMode, liquidGlassEnabled } = useTheme();
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  const activeIndex = Math.max(0, tabs.findIndex((tab) => tab.key === activeTab));
-  const buttonWidth = NAV_BUTTON_WIDTH;
-
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: activeIndex * buttonWidth,
-      damping: 24,
-      stiffness: 280,
-      mass: 0.8,
-      useNativeDriver: true,
-    }).start();
-  }, [activeIndex, buttonWidth, slideAnim]);
-
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 4 : 16;
-  const surface = isDarkMode ? "rgba(22, 22, 26, 0.86)" : "rgba(255, 255, 255, 0.86)";
-  const border = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.07)";
-  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.075)";
-  const activeColor = isDarkMode ? "#FFFFFF" : "#111827";
-  const inactiveColor = isDarkMode ? "rgba(255, 255, 255, 0.72)" : "rgba(17, 24, 39, 0.78)";
-  const NavGlassWrapper = LiquidGlassView ?? View;
-  const useNativeIos26Glass = IS_IOS_26_PLUS && !!LiquidGlassView && liquidGlassEnabled;
+  const items = useMemo(
+    () =>
+      tabs.map((tab) => ({
+        key: tab.key,
+        label: t(tab.labelKey, tab.fallback),
+        render: ({ focused, color }) => (
+          <Ionicons name={focused ? tab.iconFocused : tab.icon} size={24} color={color} />
+        ),
+      })),
+    [tabs, t]
+  );
 
   return (
     <View style={[styles.navWrap, { bottom: bottomOffset }]}>
-      <NavGlassWrapper
-        {...(LiquidGlassView
-          ? {
-              variant: "regular",
-              interactive: true,
-              tintColor: useNativeIos26Glass
-                ? isDarkMode
-                  ? "rgba(18, 18, 22, 0.28)"
-                  : "rgba(255, 255, 255, 0.22)"
-                : glassTint(isDarkMode),
-              borderRadius: NAV_RADIUS,
-              ...androidGlassPerfProps,
-            }
-          : {})}
-        renderToHardwareTextureAndroid
-        style={[
-          styles.navPill,
-          {
-            width: buttonWidth * tabs.length + NAV_INSET * 2,
-            paddingHorizontal: NAV_INSET,
-            backgroundColor: LiquidGlassView ? "transparent" : surface,
-            borderWidth: useNativeIos26Glass ? 0 : 1,
-            borderColor: border,
-            overflow: useNativeIos26Glass ? "visible" : "hidden",
-          },
-          // Android's elevation shadow renders black and ignores borderRadius
-          // clipping, poking a square corner past the pill in dark mode.
-          Platform.OS === "android" && isDarkMode && { elevation: 0, shadowOpacity: 0 },
-        ]}
-      >
-        <Animated.View
-          pointerEvents="none"
-          renderToHardwareTextureAndroid
-          style={{
-            position: "absolute",
-            width: buttonWidth,
-            height: NAV_PILL_HEIGHT,
-            borderRadius: NAV_PILL_RADIUS,
-            top: NAV_INSET,
-            left: NAV_INSET,
-            backgroundColor: indicator,
-            transform: [{ translateX: slideAnim }],
-          }}
-        />
-        {tabs.map((tab) => {
-          const focused = tab.key === activeTab;
-          const color = focused ? activeColor : inactiveColor;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={styles.navButton}
-              onPress={() => onSelect(tab.key)}
-              activeOpacity={0.75}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={t(tab.labelKey, tab.fallback)}
-            >
-              <Ionicons name={focused ? tab.iconFocused : tab.icon} size={24} color={color} />
-            </TouchableOpacity>
-          );
-        })}
-      </NavGlassWrapper>
+      <LiquidTabBar
+        items={items}
+        activeKey={activeTab}
+        onSelect={onSelect}
+        height={NAV_HEIGHT}
+        radius={NAV_RADIUS}
+        inset={NAV_INSET}
+        width={NAV_BUTTON_WIDTH * tabs.length + NAV_INSET * 2}
+      />
     </View>
   );
 };
@@ -782,21 +715,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 99,
   },
-  navPill: {
-    height: NAV_HEIGHT,
-    borderRadius: NAV_RADIUS,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    overflow: "hidden",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-  },
-  navButton: { width: NAV_BUTTON_WIDTH, alignItems: "center", justifyContent: "center", paddingVertical: 4 },
-  navLabel: { fontSize: 9, fontWeight: "bold", marginTop: 2 },
   gridItem: { width: `${100 / 3}%`, aspectRatio: 1, padding: 1 },
   gridImage: { width: "100%", height: "100%", backgroundColor: "#ddd" },
   playIconOverlay: {

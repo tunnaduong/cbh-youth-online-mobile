@@ -76,6 +76,7 @@ import { useOwnProfileTheme } from "../../../utils/ownProfileTheme";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
+import { actionSheetProps, useSheetTokens } from "../../../components/SheetShell";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -332,21 +333,12 @@ const StoryOptionsModal = ({
   // When opening the modal for a new user, you might want to reset or set the initial state
   // based on some actual user data. For now, we'll let it maintain local state.
 
+  const sheetTokens = useSheetTokens();
   return (
     <ActionSheet
       ref={actionSheetRef}
       isModal={false}
-      containerStyle={{
-        borderTopLeftRadius: 15,
-        borderTopRightRadius: 15,
-        backgroundColor: theme.cardBackground,
-      }}
-      indicatorStyle={{
-        width: 30,
-        height: 4,
-        backgroundColor: isDarkMode ? "#666" : "#404040",
-        marginTop: 10,
-      }}
+      {...actionSheetProps(sheetTokens)}
       onClose={() => {
         setIsOptionsSheetOpen(false);
         if (isOpeningReportRef.current || isOpeningDeleteRef.current) {

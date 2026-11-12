@@ -68,6 +68,8 @@ app/
     PostItem.js            Feed post card (largest component)
     LiquidButton.js        Floating glass button used by native screen headers
     GlassModules.js        Liquid-glass wrappers + AndroidGlassBackdrop
+    LiquidTabBar.js        Glass capsule bar with a draggable liquid selection pill (main bottom nav + chat gallery tabs)
+    SheetShell.js          Shared bottom-sheet look: tokens, actionSheetProps, SheetHeader, SheetCard
     WebViewHeader.js       Plain solid header for WebView screens
     profile/               Profile customization pieces, ProfilePhotoGallery, ProfileVideoGallery
     StoryOverlays/         Story text/sticker/music overlays
@@ -333,7 +335,7 @@ Weights used: `"500"`, `"600"` (default emphasis), `"700"`/`"bold"` (titles, but
 
 ### Liquid glass
 
-- Glass is for **floating chrome only**: header buttons (`LiquidButton`), the bottom tab bar and its "+" button, the sidebar, the comment bar, floating pills. Never for cards, lists or anything that scrolls with the content, and never over a WebView.
+- Glass is for **floating chrome only**: header buttons (`LiquidButton`), the bottom tab bar (`LiquidTabBar`), the sidebar, the comment bar, floating pills. Never for cards, lists or anything that scrolls with the content, and never over a WebView.
 - **Exception: the chat conversation** (Messenger style). Its header and composer are full-width glass bars docked to the top and bottom edge (`ChatScreen/conversation/ChatGlassBar.js`, hairline on the side facing the messages). Their buttons are `LiquidButton forceNoGlass` with `backgroundColor="transparent"`, never glass on glass. A flat docked composer elsewhere uses `CommentBar variant="flat"` inside such a bar.
 - Use `LiquidGlassView` from `components/GlassModules.js` (never the library directly) with `variant="clear"`, `tintColor={glassTint(isDarkMode)}`, `borderRadius` and `{...androidGlassPerfProps}`; its content must be a real child of the glass view. `LiquidGlassView` is `null` when the native module is missing - fall back to a `View` with a translucent `rgba` surface.
 - **iOS below 26** has no system liquid glass: with the setting on, `LiquidGlassView` draws `BlurGlassView` there (an `expo-blur` system material + tint + top highlight + hairline edge). Call sites stay the same; never use `expo-blur` directly.
@@ -342,8 +344,8 @@ Weights used: `"500"`, `"600"` (default emphasis), `"700"`/`"bold"` (titles, but
 
 ### Sheets and modals
 
-- Global sheet: `useBottomSheet().showBottomSheet(content)` (`contexts/BottomSheetContext.js`, `@gorhom/bottom-sheet`, 90% height, `theme.cardBackground`, handle in `theme.border`, 16 padding).
-- A custom sheet: top corners radius 20-24, `theme.surface`, a dimmed backdrop (`rgba(0,0,0,0.5)`, 0.7 in dark mode) that closes it on tap.
+- All sheets share `components/SheetShell.js` (28pt top corners, `#14161C` / `#F4F6F9` surface, hairline edge, 40x5 grabber, backdrop 0.45 / 0.65, grouped `SheetCard`s radius 20, `SheetHeader` = centred title + close circle). Use `useSheetTokens()` / `actionSheetProps(tokens)`; don't hand-copy the colours.
+- Global sheet: `useBottomSheet().showBottomSheet(content)` (`contexts/BottomSheetContext.js`, `@gorhom/bottom-sheet`, dynamic height, shell tokens + spring). Other sheets use `react-native-actions-sheet` with `actionSheetProps`. Sheets stay solid - no glass inside a native modal window.
 - Whole screens that are a task (compose, feedback) are stack screens with `presentation: "modal"` and a `"close"` button.
 
 ### Motion
@@ -371,6 +373,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 > **Size rules - read before adding an entry.** Max 10 entries, each max 3 lines (~300 chars); adding one drops the oldest (`git log -p -- INFO.md` keeps everything). No file-by-file changelogs or step lists - commits hold that. Record only what the code cannot tell a future agent: rules, gotchas, "needs a new native build", API dependencies. A lasting rule goes in Conventions / Design system, not here. Keep this whole file under ~500 lines / 60 KB; trim in the same commit if you push past it.
 
+- **Draggable liquid tab bar + shared sheet shell** (`LiquidTabBar.js`, `SheetShell.js`; not run on a device; JS only, OTA is enough): the selection pill is dragged/flicked (Reanimated + GH 3 `usePanGesture`), stretches with speed, swells the icons under it; used by the main nav and the gallery tabs. Sheets take colours/spring from `SheetShell`.
 - **Post content loads in chunks as you read** (`ChunkedHtml.js`, `PostItem.js`; not run on a device): long posts are split at top-level blocks (~1200 chars); collapsed shows chunk 1, expanded mounts the next when a sentinel nears the screen bottom (250ms `measureInWindow` poll).
 - **Lag with scroll depth** (not run on a device): chat collapses runs of off-screen rows (any kind) into one spacer (`MessagesListContent.js` `OffscreenSpacer`; spacer `onLayout` re-derives each row's `y`); Home feed has a stable `renderItem`, `windowSize 3`, `HOME_SCROLL` emitted only near the top.
 - **Feed posts: collapsed text fades into "Xem thêm"** (`PostItem.js`): 90px `LinearGradient` over the clipped text, `pointerEvents="none"`.

@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import ActionSheet from "react-native-actions-sheet";
+import { SHEET_RADIUS } from "./SheetShell";
 import { getStoryViewers } from "../services/api/Api";
 import FastImage from "./FastImage";
 import Toast from "react-native-toast-message";
@@ -208,8 +209,8 @@ const StoryViewersSheet = () => {
       isModal={false}
       containerStyle={{
         backgroundColor: sheetBackground,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: SHEET_RADIUS,
+        borderTopRightRadius: SHEET_RADIUS,
         overflow: "hidden",
         maxHeight: windowHeight * 0.85,
       }}
