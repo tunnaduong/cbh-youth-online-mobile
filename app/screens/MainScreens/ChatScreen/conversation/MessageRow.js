@@ -64,6 +64,10 @@ const MessageRow = React.memo(({
   otherUser,
   // Worked out once by MessagesListContent from the window width.
   bubbleMaxWidth,
+  // Like Messenger/Zalo: only the conversation's last real message keeps the
+  // quick-react icon visible (see ReactionBadge) - everything older reacts
+  // only via long-press on the bubble.
+  isLastRealMessage,
 }) => {
 
   // For group chats, check if sender changed from previous message. Also
@@ -645,7 +649,7 @@ const MessageRow = React.memo(({
               />
             ) : null}
           </Pressable>
-          <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />
+          <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} isLastRealMessage={isLastRealMessage} />
         </View>
       </View>
       {isLastInGroup && (
@@ -773,7 +777,8 @@ const MessageRow = React.memo(({
     prev.onImageError === next.onImageError &&
     prev.seenAvatars === next.seenAvatars &&
     prev.otherUser === next.otherUser &&
-    prev.bubbleMaxWidth === next.bubbleMaxWidth
+    prev.bubbleMaxWidth === next.bubbleMaxWidth &&
+    prev.isLastRealMessage === next.isLastRealMessage
   );
 });
 

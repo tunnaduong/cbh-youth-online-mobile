@@ -94,6 +94,7 @@ const MessageListItem = React.memo(({
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
   onRowLayout,
+  isLastRealMessage,
 }) => {
   const cacheKey = value.id != null ? `${conversationId || ""}:${value.type}:${value.id}` : null;
 
@@ -215,6 +216,7 @@ const MessageListItem = React.memo(({
           activeInlineVideoId={activeInlineVideoId}
           autoplayVideos={autoplayVideos}
           bubbleMaxWidth={bubbleMaxWidth}
+          isLastRealMessage={isLastRealMessage}
         />
       )}
     </View>
@@ -404,6 +406,7 @@ const MessagesListContent = React.memo(({
         onRowLayout={onRowLayout}
         conversationId={conversationId}
         otherUser={otherUser}
+        isLastRealMessage={value.id === lastRealMessage?.id ? true : undefined}
       />,
     );
   });
