@@ -11,7 +11,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 // dependent, which matches "sometimes, not always" freeze-on-entry reports.
 // Screens still get their native view detached when backgrounded (that part
 // is automatic, not from this call) - just not their React tree frozen too.
-import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
+import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter, Dimensions } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 import { SessionResetContext } from "./app/contexts/SessionContext";
@@ -840,6 +840,7 @@ const App = ({ skipSplash = false }) => {
                   title: "Tạo bài viết",
                   headerShown: false,
                   presentation: "modal",
+                  gestureResponseDistance: Dimensions.get("window").height,
                 }}
                 component={CreatePostScreen}
               />
@@ -887,6 +888,7 @@ const App = ({ skipSplash = false }) => {
                 options={{
                   headerShown: false,
                   presentation: "modal",
+                  gestureResponseDistance: Dimensions.get("window").height,
                 }}
               />
               <Stack.Screen
