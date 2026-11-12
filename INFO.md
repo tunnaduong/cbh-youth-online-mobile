@@ -371,7 +371,6 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 > **Size rules - read before adding an entry.** Max 10 entries, each max 3 lines (~300 chars); adding one drops the oldest (`git log -p -- INFO.md` keeps everything). No file-by-file changelogs or step lists - commits hold that. Record only what the code cannot tell a future agent: rules, gotchas, "needs a new native build", API dependencies. A lasting rule goes in Conventions / Design system, not here. Keep this whole file under ~500 lines / 60 KB; trim in the same commit if you push past it.
 
-- **Post content loads in chunks as you read** (`ChunkedHtml.js`, `PostItem.js`; not run on a device): long posts are split at top-level blocks (~1200 chars); collapsed shows chunk 1, expanded mounts the next when a sentinel nears the screen bottom (250ms `measureInWindow` poll).
 - **Feed posts: collapsed text fades into "Xem thêm"** (`PostItem.js`): 90px `LinearGradient` over the clipped text, `pointerEvents="none"`.
 - **Calls: no more lagging/doubled voice** (`WebRtcBridge.js`, `CallContext.js`): one audio output, HTTP audio relay only after 3 s of transport down, call poll every 5 s once connected. Clear calls over mobile data still need `WEBRTC_TURN_SERVER` in the API `.env`.
 - **Markdown tables in posts** (`components/MarkdownTable.js`): `tableRenderers` spread into each `RenderHTML`; needs the API's `TableExtension`; old posts keep old HTML until edited.
