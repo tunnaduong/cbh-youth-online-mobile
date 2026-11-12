@@ -6,7 +6,7 @@ import { styles } from "./styles";
 
 // Reactions row under a message bubble - split out of MessageRow (below) so
 // a reaction change only re-renders this small badge, not the whole bubble.
-const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
+const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef, isLastRealMessage }) => {
   if (typeof item.id !== "number") return null;
 
   const reactions = item.reactions;
@@ -26,7 +26,12 @@ const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
         .map((s) => REACTION_EMOJI_BY_TYPE[s.type] || "👍")
     : [];
 
-  const dotsBtn = (
+  // Like Messenger/Zalo: the quick-react icon doesn't sit under every bubble -
+  // only the conversation's last real message keeps it visible. Reacting to
+  // an older message still works via long-press on the bubble itself
+  // (handlersRef.current.openReactionPicker, wired in MessageRow's Pressable
+  // onLongPress), which is independent of this button.
+  const dotsBtn = isLastRealMessage ? (
     <TouchableOpacity
       key="dots"
       onPress={(evt) => handlersRef.current.openReactionPicker(item, evt)}
@@ -38,7 +43,7 @@ const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
     >
       <Ionicons name="happy-outline" size={13} color={theme.subText} />
     </TouchableOpacity>
-  );
+  ) : null;
 
   const pill = hasReactions ? (
     <TouchableOpacity
@@ -55,6 +60,8 @@ const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
       </Text>
     </TouchableOpacity>
   ) : null;
+
+  if (!dotsBtn && !pill) return null;
 
   // Mine: [...] [pill?]  anchored at left
   // Theirs: [pill?] [...]  anchored at right
