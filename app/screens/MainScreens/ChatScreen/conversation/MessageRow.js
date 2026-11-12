@@ -670,7 +670,11 @@ const MessageRow = React.memo(({
               </Text>
             ) : null}
           </Text>
-          {item.is_myself && (
+          {/* Like Messenger/Zalo: the delivered/seen indicator (checkmarks or
+              avatar stack) only shows under the conversation's true last
+              message - not under every group-ending bubble of mine, which is
+              what isLastInGroup alone would give for an alternating chat. */}
+          {item.is_myself && isLastRealMessage && (
             item.is_sending ? (
               <View style={styles.readStatus}>
                 <ActivityIndicator
