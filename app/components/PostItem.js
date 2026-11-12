@@ -1580,11 +1580,13 @@ const PostItem = ({
                     // Fade the clipped text out toward "Xem thêm" instead of cutting it hard.
                     <LinearGradient
                       pointerEvents="none"
+                      // The card sits on theme.background (not cardBackground,
+                      // which is lighter in dark mode and showed as a grey box).
                       colors={[
-                        /^#[0-9a-f]{6}$/i.test(theme.cardBackground)
-                          ? `${theme.cardBackground}00`
+                        /^#[0-9a-f]{6}$/i.test(theme.background)
+                          ? `${theme.background}00`
                           : "rgba(255,255,255,0)",
-                        theme.cardBackground,
+                        theme.background,
                       ]}
                       style={{
                         position: "absolute",
@@ -1738,7 +1740,12 @@ const PostItem = ({
       )}
 
       {linkPreviewUrl ? (
-        <LinkPreviewCard url={linkPreviewUrl} style={{ marginHorizontal: 15, marginTop: 10 }} />
+        // The card is width "100%" by default; with side margins that
+        // overflowed the post by 30px on the right.
+        <LinkPreviewCard
+          url={linkPreviewUrl}
+          style={{ width: "auto", alignSelf: "stretch", marginHorizontal: 15, marginTop: 10 }}
+        />
       ) : null}
 
       {/* Document attachment display */}
