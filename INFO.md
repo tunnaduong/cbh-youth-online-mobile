@@ -356,6 +356,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-11)
 
+- **Post content loads in chunks as you read** (`app/components/ChunkedHtml.js`, `PostItem.js`; not run on a device - no `node_modules` here, only the splitter was tested): a long post used to be given to `RenderHTML` whole (clipped to 180px when collapsed), so expanding it froze the feed. The HTML is now cut at top-level blocks into ~1200-character chunks; collapsed posts mount only the first chunk, expanded ones mount the next chunk when a sentinel under the last one comes within ~700px of the screen bottom (checked every 250ms with `measureInWindow`, only while chunks remain). Unbalanced HTML falls back to one chunk. Rule: don't render a whole long post in one `RenderHTML`.
+
 - **Version 6.7.4 & Build 1103**:
   - `app.json` and `package.json` version bumped to `6.7.4`.
   - Android `versionCode` and iOS `buildNumber` set to `1103` via `scripts/set-build-number.js`.
