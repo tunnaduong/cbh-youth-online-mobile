@@ -75,6 +75,12 @@ task here:
 - If the change is user-visible or alters setup, update `README.md` too,
   keeping its existing style and language.
 - Commit these doc updates together with the change they describe.
+- **Keep INFO.md short** (it is read in full every task): Recent work holds at
+  most 10 entries of at most 3 lines each - adding one drops the oldest. No
+  file-by-file changelogs; commits and `git log` hold that. Write only rules,
+  gotchas, "needs a new native build" and API dependencies. A lasting rule goes
+  in Conventions / Design system. The whole file stays under ~500 lines / 60 KB;
+  trim in the same commit if a change pushes past it.
 
 ## Repo rules (details in INFO.md)
 
