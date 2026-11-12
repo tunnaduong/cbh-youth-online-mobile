@@ -388,6 +388,9 @@ const LiquidTabBar = ({
 const styles = StyleSheet.create({
   track: {
     flex: 1,
+    // The bar centres its children, which would shrink the track to its
+    // content height and leave the buttons (height: 100%) off-centre.
+    alignSelf: "stretch",
     flexDirection: "row",
     alignItems: "center",
   },
