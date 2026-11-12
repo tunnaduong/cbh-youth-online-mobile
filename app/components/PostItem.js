@@ -1831,7 +1831,9 @@ const PostItem = ({
       )}
 
       {linkPreviewUrl ? (
-        <LinkPreviewCard url={linkPreviewUrl} style={{ marginHorizontal: 15, marginTop: 10 }} />
+        <View style={{ paddingHorizontal: 15, marginTop: 10 }}>
+          <LinkPreviewCard url={linkPreviewUrl} />
+        </View>
       ) : null}
 
       {/* Document attachment display */}
