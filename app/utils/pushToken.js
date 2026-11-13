@@ -14,6 +14,13 @@ export function rememberPushToken(token) {
   registeredPushToken = token || null;
 }
 
+// Same idea for the iOS VoIP (PushKit) token CallContext registers.
+let registeredVoipToken = null;
+
+export function rememberVoipToken(token) {
+  registeredVoipToken = token || null;
+}
+
 export function currentPushToken() {
   return registeredPushToken;
 }
@@ -27,6 +34,16 @@ export function currentPushToken() {
 export async function releasePushToken() {
   const token = registeredPushToken;
   registeredPushToken = null;
+  const voipToken = registeredVoipToken;
+  registeredVoipToken = null;
+  if (voipToken) {
+    try {
+      await axiosInstance.delete("/v1.0/notifications/voip/unregister", {
+        data: { voip_token: voipToken },
+        timeout: 5000,
+      });
+    } catch {}
+  }
   if (!token) return;
 
   try {

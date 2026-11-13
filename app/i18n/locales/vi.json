@@ -160,6 +160,10 @@
     "noUserFoundHint": "Hãy kiểm tra lại username và thử lần nữa."
   },
   "call": {
+    "fullScreenPermissionTitle": "Hiện cuộc gọi toàn màn hình",
+    "fullScreenPermissionBody": "Để cuộc gọi đến hiện toàn màn hình (cả khi máy đang khóa), hãy cho phép CBH Online dùng thông báo toàn màn hình trong Cài đặt.",
+    "fullScreenPermissionOpen": "Mở Cài đặt",
+    "fullScreenPermissionLater": "Để sau",
     "incomingVoice": "Cuộc gọi thoại đến...",
     "incomingVideo": "Cuộc gọi video đến...",
     "voiceCall": "Cuộc gọi thoại",

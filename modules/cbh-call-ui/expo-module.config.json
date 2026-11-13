@@ -1,0 +1,10 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["CbhCallUiModule"],
+    "appDelegateSubscribers": ["CbhCallUiAppDelegateSubscriber"]
+  },
+  "android": {
+    "modules": ["expo.modules.cbhcallui.CbhCallUiModule"]
+  }
+}

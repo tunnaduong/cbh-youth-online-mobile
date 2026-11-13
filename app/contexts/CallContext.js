@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppState, DeviceEventEmitter, Platform, PermissionsAndroid } from "react-native";
+import { Alert, AppState, DeviceEventEmitter, Platform, PermissionsAndroid } from "react-native";
 import { Camera } from "expo-camera";
 import { AuthContext } from "./AuthContext";
 import { getEcho } from "../services/echo/echo";
@@ -30,6 +30,28 @@ import IncomingCallModal from "../components/call/IncomingCallModal";
 import ActiveCallModal from "../components/call/ActiveCallModal";
 import Toast from "react-native-toast-message";
 import { CALL_FEATURES_ENABLED } from "../services/call/callConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axiosInstance from "../services/api/axiosInstance";
+import { storage } from "../global/storage";
+import i18n from "../i18n";
+import { rememberVoipToken } from "../utils/pushToken";
+import {
+  nativeCallUiAvailable,
+  ringsThroughCallKit,
+  setNativeCallSession,
+  clearNativeCallSession,
+  reportIncomingCallToOs,
+  dismissOsIncomingCall,
+  markAnsweredInApp,
+  osCallEnded,
+  getVoipToken,
+  consumePendingCallActions,
+  addCallActionListener,
+  addVoipTokenListener,
+  canUseFullScreenIntent,
+  openFullScreenIntentSettings,
+} from "../services/call/nativeCallUi";
+import { registerVoipPushToken } from "../services/api/Api";
 
 export const CallContext = createContext(null);
 
@@ -89,6 +111,9 @@ export const CallProvider = ({ children }) => {
   const processedAudioSeqRef = useRef(0);
   const processedCandidatesSetRef = useRef(new Set());
   const callTypeRef = useRef("audio");
+  // iOS: answered in CallKit while the app was in the background / locked -
+  // the WebView can only use the microphone once the app is in front.
+  const pendingOsAnswerRef = useRef(null);
 
   useEffect(() => {
     callStatusRef.current = callStatus;
@@ -153,6 +178,10 @@ export const CallProvider = ({ children }) => {
 
   // Cleanup helper
   const cleanupCallState = useCallback(() => {
+    if (activeCallRef.current?.id != null) {
+      osCallEnded(activeCallRef.current.id);
+    }
+    pendingOsAnswerRef.current = null;
     clearConnectingTimeout();
     clearRingingTimeout();
     clearRingingRetryTimers();
@@ -591,6 +620,59 @@ export const CallProvider = ({ children }) => {
     [clearRingingRetryTimers]
   );
 
+  // In-app ringing (JS ringtone + IncomingCallModal) - or, where the OS shows
+  // its own call UI, hand the ringing to it so the phone doesn't ring twice:
+  // - iOS: CallKit rings (a no-op when the VoIP push already reported it);
+  // - Android: the full-screen call notification rings while the app is in
+  //   the background; once the app is in front JS rings and drops it.
+  const startLocalRinging = useCallback((call) => {
+    if (ringsThroughCallKit) {
+      reportIncomingCallToOs(call);
+      return;
+    }
+    if (nativeCallUiAvailable && AppState.currentState !== "active") return;
+    startRingtoneVibration();
+    bridgeRef.current?.sendMessage("START_INCOMING_RING");
+    dismissOsIncomingCall(call.id);
+  }, []);
+
+  const beginIncomingRinging = useCallback(
+    (call) => {
+      processedSignalSeqRef.current = 0;
+      activeCallRef.current = call;
+      setActiveCall(call);
+      callTypeRef.current = call.type || "audio";
+      setCallType(call.type || "audio");
+      callStatusRef.current = "ringing";
+      setCallStatus("ringing");
+      startLocalRinging(call);
+      scheduleRingingRetries(call.id);
+
+      // Auto-disconnect callee after 60s if not answered
+      clearRingingTimeout();
+      ringingTimeoutRef.current = setTimeout(() => {
+        if (activeCallRef.current && callStatusRef.current === "ringing") {
+          console.log(
+            "[CallContext] Callee 60s timeout without answer -> stop ringing"
+          );
+          cleanupCallState();
+        }
+      }, 60000);
+
+      // Join conversation presence channel to listen for call progression
+      if (call.conversation_id) {
+        joinConversationPresence(call.conversation_id, call.id);
+      }
+    },
+    [
+      startLocalRinging,
+      scheduleRingingRetries,
+      clearRingingTimeout,
+      cleanupCallState,
+      joinConversationPresence,
+    ]
+  );
+
   // Subscribe to user private channel to receive incoming calls and direct signaling
   useEffect(() => {
     if (!isLoggedIn || !userInfo?.id) return;
@@ -624,32 +706,7 @@ export const CallProvider = ({ children }) => {
         return;
       }
 
-      processedSignalSeqRef.current = 0;
-      activeCallRef.current = call;
-      setActiveCall(call);
-      callTypeRef.current = call.type || "audio";
-      setCallType(call.type || "audio");
-      callStatusRef.current = "ringing";
-      setCallStatus("ringing");
-      startRingtoneVibration();
-      bridgeRef.current?.sendMessage("START_INCOMING_RING");
-      scheduleRingingRetries(call.id);
-
-      // Auto-disconnect callee after 60s if not answered
-      clearRingingTimeout();
-      ringingTimeoutRef.current = setTimeout(() => {
-        if (activeCallRef.current && callStatusRef.current === "ringing") {
-          console.log(
-            "[CallContext] Callee 60s timeout without answer -> stop ringing"
-          );
-          cleanupCallState();
-        }
-      }, 60000);
-
-      // Join conversation presence channel to listen for call progression
-      if (call.conversation_id) {
-        joinConversationPresence(call.conversation_id, call.id);
-      }
+      beginIncomingRinging(call);
     };
 
     userChannel
@@ -672,10 +729,7 @@ export const CallProvider = ({ children }) => {
   }, [
     isLoggedIn,
     userInfo?.id,
-    scheduleRingingRetries,
-    clearRingingTimeout,
-    cleanupCallState,
-    joinConversationPresence,
+    beginIncomingRinging,
     handleCallAnsweredEvent,
     handleCallRejectedEvent,
     handleCallEndedEvent,
@@ -803,6 +857,11 @@ export const CallProvider = ({ children }) => {
     try {
       const call = activeCallRef.current;
       if (!call?.id) return;
+      if (callStatusRef.current !== "ringing") return;
+      pendingOsAnswerRef.current = null;
+      // CallKit / the call notification only ring; the call itself runs here.
+      markAnsweredInApp(call.id);
+      dismissOsIncomingCall(call.id);
 
       await ensureNativeCallPermissions(call.type || callTypeRef.current);
 
@@ -853,32 +912,7 @@ export const CallProvider = ({ children }) => {
       (pushData) => {
         const call = pushData?.call || pushData;
         if (!call || activeCallRef.current) return;
-
-        processedSignalSeqRef.current = 0;
-        activeCallRef.current = call;
-        setActiveCall(call);
-        callTypeRef.current = call.type || "audio";
-        setCallType(call.type || "audio");
-        callStatusRef.current = "ringing";
-        setCallStatus("ringing");
-        startRingtoneVibration();
-        bridgeRef.current?.sendMessage("START_INCOMING_RING");
-        scheduleRingingRetries(call.id);
-
-        // Auto-disconnect callee after 60s if not answered
-        clearRingingTimeout();
-        ringingTimeoutRef.current = setTimeout(() => {
-          if (activeCallRef.current && callStatusRef.current === "ringing") {
-            console.log(
-              "[CallContext] Callee 60s timeout without answer -> stop ringing"
-            );
-            cleanupCallState();
-          }
-        }, 60000);
-
-        if (call.conversation_id) {
-          joinConversationPresence(call.conversation_id, call.id);
-        }
+        beginIncomingRinging(call);
       }
     );
 
@@ -901,14 +935,7 @@ export const CallProvider = ({ children }) => {
       subAnswer.remove();
       subDecline.remove();
     };
-  }, [
-    answerCall,
-    joinConversationPresence,
-    rejectCall,
-    scheduleRingingRetries,
-    clearRingingTimeout,
-    cleanupCallState,
-  ]);
+  }, [answerCall, rejectCall, beginIncomingRinging]);
 
   // Check active calls when app resumes or logs in
   useEffect(() => {
@@ -926,30 +953,7 @@ export const CallProvider = ({ children }) => {
           !activeCallRef.current &&
           String(call.caller?.id) !== String(userInfo?.id)
         ) {
-          processedSignalSeqRef.current = 0;
-          activeCallRef.current = call;
-          setActiveCall(call);
-          callTypeRef.current = call.type || "audio";
-          setCallType(call.type || "audio");
-          callStatusRef.current = "ringing";
-          setCallStatus("ringing");
-          startRingtoneVibration();
-          bridgeRef.current?.sendMessage("START_INCOMING_RING");
-          scheduleRingingRetries(call.id);
-
-          clearRingingTimeout();
-          ringingTimeoutRef.current = setTimeout(() => {
-            if (activeCallRef.current && callStatusRef.current === "ringing") {
-              console.log(
-                "[CallContext] Callee 60s timeout without answer -> stop ringing"
-              );
-              cleanupCallState();
-            }
-          }, 60000);
-
-          if (call.conversation_id) {
-            joinConversationPresence(call.conversation_id, call.id);
-          }
+          beginIncomingRinging(call);
         }
       } catch (e) {}
     };
@@ -981,14 +985,138 @@ export const CallProvider = ({ children }) => {
       }
       sub.remove();
     };
-  }, [
-    isLoggedIn,
-    userInfo?.id,
-    scheduleRingingRetries,
-    clearRingingTimeout,
-    cleanupCallState,
-    joinConversationPresence,
-  ]);
+  }, [isLoggedIn, userInfo?.id, beginIncomingRinging]);
+
+  // ---- Operating system call UI (CallKit / Android full-screen call) ----
+
+  // Coming back to the app while a call rings or was answered in the OS UI.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") return;
+      const call = activeCallRef.current;
+      if (!call) return;
+      if (
+        pendingOsAnswerRef.current != null &&
+        String(pendingOsAnswerRef.current) === String(call.id)
+      ) {
+        pendingOsAnswerRef.current = null;
+        answerCall();
+        return;
+      }
+      // Android: the notification rang while the app was away; now the app
+      // is in front, ring here instead.
+      if (
+        nativeCallUiAvailable &&
+        !ringsThroughCallKit &&
+        callStatusRef.current === "ringing"
+      ) {
+        startLocalRinging(call);
+      }
+    });
+    return () => sub.remove();
+  }, [answerCall, startLocalRinging]);
+
+  // What the user did in the OS call UI.
+  const handleOsCallAction = useCallback(
+    ({ action, call }) => {
+      if (!CALL_FEATURES_ENABLED || !call?.id) return;
+      const current = activeCallRef.current;
+      const isCurrent = current && String(current.id) === String(call.id);
+
+      if (action === "show" || action === "answer") {
+        if (!current) {
+          beginIncomingRinging(call);
+        } else if (!isCurrent) {
+          return; // already in another call
+        }
+        if (action === "answer" && callStatusRef.current === "ringing") {
+          if (AppState.currentState === "active") {
+            answerCall();
+          } else {
+            // iOS answered on the lock screen: join once the app is opened.
+            pendingOsAnswerRef.current = call.id;
+            stopRingtoneVibration();
+            bridgeRef.current?.sendMessage("STOP_RINGING");
+          }
+        }
+        return;
+      }
+
+      if (!isCurrent) return;
+      if (action === "decline" || action === "cancelled") {
+        // Declined in the OS UI: the native side already told the API.
+        stopRingtoneVibration();
+        cleanupCallState();
+      } else if (action === "end") {
+        endCall();
+      }
+    },
+    [beginIncomingRinging, answerCall, cleanupCallState, endCall]
+  );
+
+  useEffect(() => {
+    if (!nativeCallUiAvailable || !isLoggedIn) return;
+    const sub = addCallActionListener(handleOsCallAction);
+    // Actions taken before this listener existed (app started by the call).
+    consumePendingCallActions().forEach(handleOsCallAction);
+    return () => sub.remove();
+  }, [isLoggedIn, handleOsCallAction]);
+
+  // The native side declines calls itself (lock screen, app not running), so
+  // it needs the API address and the signed-in account's token.
+  useEffect(() => {
+    if (!nativeCallUiAvailable) return;
+    if (!isLoggedIn) {
+      clearNativeCallSession();
+      return;
+    }
+    let cancelled = false;
+    AsyncStorage.getItem("auth_token").then((token) => {
+      if (!cancelled && token) {
+        setNativeCallSession(axiosInstance.defaults.baseURL, token);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, userInfo?.id]);
+
+  // iOS: register this device's VoIP push token, which is what lets the API
+  // ring a call through CallKit while the app is in the background or killed.
+  useEffect(() => {
+    if (!ringsThroughCallKit || !isLoggedIn || !userInfo?.id) return;
+    let lastSent = null;
+    const send = (token) => {
+      if (!token || token === lastSent) return;
+      lastSent = token;
+      registerVoipPushToken({ voip_token: token })
+        .then(() => rememberVoipToken(token))
+        .catch((e) => {
+          lastSent = null;
+          console.warn("[CallContext] VoIP token registration failed:", e?.message);
+        });
+    };
+    send(getVoipToken());
+    const sub = addVoipTokenListener(send);
+    return () => sub.remove();
+  }, [isLoggedIn, userInfo?.id]);
+
+  // Android 14+: showing a call full screen needs a permission the user may
+  // have to grant in Settings. Ask once.
+  useEffect(() => {
+    if (!nativeCallUiAvailable || Platform.OS !== "android" || !isLoggedIn) return;
+    if (canUseFullScreenIntent()) return;
+    const key = "call_fullscreen_prompted";
+    try {
+      if (storage.getBoolean(key)) return;
+      storage.set(key, true);
+    } catch {}
+    const t = i18n.t.bind(i18n);
+    Alert.alert(t("call.fullScreenPermissionTitle"), t("call.fullScreenPermissionBody"), [
+      { text: t("call.fullScreenPermissionLater"), style: "cancel" },
+      { text: t("call.fullScreenPermissionOpen"), onPress: openFullScreenIntentSettings },
+    ]);
+  }, [isLoggedIn]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {

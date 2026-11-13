@@ -180,6 +180,10 @@
     "noUserFoundHint": "Проверьте имя пользователя и попробуйте снова."
   },
   "call": {
+    "fullScreenPermissionTitle": "Звонки на весь экран",
+    "fullScreenPermissionBody": "Чтобы входящие звонки показывались на весь экран (даже на экране блокировки), разрешите CBH Online полноэкранные уведомления в настройках.",
+    "fullScreenPermissionOpen": "Открыть настройки",
+    "fullScreenPermissionLater": "Позже",
     "incomingVoice": "Входящий аудиозвонок...",
     "incomingVideo": "Входящий видеозвонок...",
     "voiceCall": "Аудиозвонок",

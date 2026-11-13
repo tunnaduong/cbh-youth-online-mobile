@@ -47,6 +47,10 @@
           "UIApplicationSupportsMultipleScenes": false,
           "UISceneConfigurations": {}
         },
+        "UIBackgroundModes": [
+          "voip",
+          "audio"
+        ],
         "NSMicrophoneUsageDescription": "Cho ph?p CBH Youth Online truy c?p microphone c?a b?n ?? th?c hi?n cu?c g?i tho?i v? video"
       },
       "associatedDomains": [

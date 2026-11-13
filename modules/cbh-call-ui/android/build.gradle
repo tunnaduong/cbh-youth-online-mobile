@@ -1,0 +1,23 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.cbhcallui'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.cbhcallui"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+    consumerProguardFiles 'proguard-rules.pro'
+  }
+}
+
+dependencies {
+  // CallStyle notifications need core 1.9+; same version expo-notifications uses.
+  implementation 'androidx.core:core:1.17.0'
+  // Same firebase-messaging as expo-notifications 55, so only one copy is resolved.
+  implementation 'com.google.firebase:firebase-messaging:25.0.1'
+}

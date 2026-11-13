@@ -170,6 +170,10 @@
     "noUserFoundHint": "Check the username and try again."
   },
   "call": {
+    "fullScreenPermissionTitle": "Show calls full screen",
+    "fullScreenPermissionBody": "To show incoming calls full screen (even on the lock screen), allow CBH Online to use full-screen notifications in Settings.",
+    "fullScreenPermissionOpen": "Open Settings",
+    "fullScreenPermissionLater": "Later",
     "incomingVoice": "Incoming voice call...",
     "incomingVideo": "Incoming video call...",
     "voiceCall": "Voice call",

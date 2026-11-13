@@ -940,6 +940,11 @@ export const unregisterExpoPushToken = (params) => {
   return Api.deleteRequest("/v1.0/notifications/expo/unregister", params);
 };
 
+// iOS VoIP (PushKit) token: lets the API ring calls through CallKit.
+export const registerVoipPushToken = (params) => {
+  return Api.postRequest("/v1.0/notifications/voip/register", params);
+};
+
 export const getExpoPushTokens = () => {
   return Api.getRequest("/v1.0/notifications/expo/tokens");
 };
