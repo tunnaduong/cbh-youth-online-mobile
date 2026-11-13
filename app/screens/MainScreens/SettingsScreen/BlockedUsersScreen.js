@@ -36,66 +36,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-const SettingItem = ({
-  icon,
-  title,
-  onPress,
-  value,
-  isSwitch,
-  chevron = true,
-  lastItem = false,
-  color = "#000",
-  theme,
-}) => (
-  <TouchableOpacity
-    style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}
-    onPress={onPress}
-    disabled={isSwitch}
-  >
-    <View style={styles.settingItemLeft}>
-      <View style={styles.settingItemIcon}>
-        <Ionicons name={icon} size={22} color={color === "#FF3B30" ? color : theme.subText} />
-      </View>
-      <Text style={[styles.settingItemText, { color: color === "#FF3B30" ? color : theme.text }]}>{title}</Text>
-    </View>
-    {isSwitch ? (
-      <Switch
-        value={value}
-        onValueChange={onPress}
-        trackColor={{ true: theme.primary }}
-      />
-    ) : value ? (
-      <View style={styles.settingItemRight}>
-        <Text style={[styles.valueText, { color: theme.subText }]}>{value}</Text>
-        {chevron && (
-          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
-        )}
-      </View>
-    ) : (
-      chevron && <Ionicons name="chevron-forward" size={20} color={theme.subText} />
-    )}
-  </TouchableOpacity>
-);
-
-const SettingSection = ({ title, children, titleColor, theme, isDarkMode }) => {
-  const childrenArray = React.Children.toArray(children);
-
-  return (
-    <View style={[styles.settingSection, { backgroundColor: isDarkMode ? "#1f2937" : "#FAFAFA" }]}>
-      <Text style={[styles.sectionTitle, { color: titleColor || theme.primary }]}>
-        {title}
-      </Text>
-      <View style={styles.sectionContent}>
-        {childrenArray.map((child, index) =>
-          React.cloneElement(child, {
-            lastItem: index === childrenArray.length - 1,
-            theme,
-          })
-        )}
-      </View>
-    </View>
-  );
-};
+import { SettingItem, SettingSection } from "../../../components/settings/SettingsUI";
 
 export default function BlockedUsersScreen({ navigation }) {
   const insets = useSafeAreaInsets();

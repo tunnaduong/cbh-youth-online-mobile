@@ -22,66 +22,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-const SettingItem = ({
-  icon,
-  title,
-  description,
-  onPress,
-  value,
-  isSwitch,
-  lastItem = false,
-  disabled = false,
-  theme,
-}) => (
-  <View style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}>
-    <View style={styles.settingItemLeft}>
-      {icon && (
-        <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-          <Ionicons name={icon} size={20} color={theme.primary} />
-        </View>
-      )}
-      <View style={{ flex: 1, marginRight: 8 }}>
-        <Text style={[styles.settingItemText, { color: theme.text }, disabled && { color: theme.subText }]}>
-          {title}
-        </Text>
-        {description && (
-          <Text style={[styles.settingItemDescription, { color: theme.subText }]}>{description}</Text>
-        )}
-      </View>
-    </View>
-    {isSwitch ? (
-      <Switch
-        value={value}
-        onValueChange={onPress}
-        disabled={disabled}
-        trackColor={{ true: theme.primary }}
-      />
-    ) : (
-      <TouchableOpacity onPress={onPress} disabled={disabled}>
-        <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-const SettingSection = ({ title, children, theme }) => {
-  const childrenArray = React.Children.toArray(children);
-
-  return (
-    <View style={styles.sectionWrapper}>
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        {childrenArray.map((child, index) =>
-          React.cloneElement(child, {
-            lastItem: index === childrenArray.length - 1,
-            key: index,
-            theme,
-          })
-        )}
-      </View>
-    </View>
-  );
-};
+import { SettingItem, SettingSection } from "../../../components/settings/SettingsUI";
 
 export default function NotificationSettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();

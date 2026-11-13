@@ -28,71 +28,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-const SettingItem = ({
-  icon,
-  title,
-  description,
-  onPress,
-  value,
-  isSwitch,
-  chevron = true,
-  lastItem = false,
-  color,
-  theme,
-}) => (
-  <TouchableOpacity
-    style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}
-    onPress={onPress}
-    disabled={isSwitch}
-    activeOpacity={0.7}
-  >
-    <View style={[styles.settingItemLeft, description ? { alignItems: 'flex-start' } : null, { flex: 1 }]}>
-      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground, marginTop: description ? 2 : 0 }]}>
-        <Ionicons name={icon} size={20} color={color === "#FF3B30" ? color : theme.primary} />
-      </View>
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={[styles.settingItemText, { marginLeft: 0, color: color || theme.text }]}>{title}</Text>
-        {description ? <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>{description}</Text> : null}
-      </View>
-    </View>
-    {isSwitch ? (
-      <Switch
-        value={value}
-        onValueChange={onPress}
-        trackColor={{ true: theme.primary }}
-      />
-    ) : value ? (
-      <View style={styles.settingItemRight}>
-        <Text style={[styles.valueText, { color: theme.subText }]}>{value}</Text>
-        {chevron && (
-          <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-        )}
-      </View>
-    ) : (
-      chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-    )}
-  </TouchableOpacity>
-);
-
-const SettingSection = ({ title, children, titleColor, theme }) => {
-  const childrenArray = React.Children.toArray(children);
-
-  return (
-    <View style={styles.sectionWrapper}>
-      <Text style={[styles.sectionTitle, { color: titleColor || theme.primary }]}>
-        {title}
-      </Text>
-      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        {childrenArray.map((child, index) =>
-          React.cloneElement(child, {
-            lastItem: index === childrenArray.length - 1,
-            theme,
-          })
-        )}
-      </View>
-    </View>
-  );
-};
+import { SettingItem, SettingSection } from "../../../components/settings/SettingsUI";
 
 export default function SecurityScreen({ navigation }) {
   const insets = useSafeAreaInsets();

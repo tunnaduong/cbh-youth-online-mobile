@@ -34,14 +34,7 @@ import {
 } from "../../../services/ota/otaService";
 import UpdatePromptModal from "../../../components/ota/UpdatePromptModal";
 
-const Section = ({ title, children, theme }) => (
-  <View style={styles.sectionWrapper}>
-    {title ? <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text> : null}
-    <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {children}
-    </View>
-  </View>
-);
+import { SettingSection as Section } from "../../../components/settings/SettingsUI";
 
 export default function AppUpdatesScreen({ navigation }) {
   const insets = useSafeAreaInsets();

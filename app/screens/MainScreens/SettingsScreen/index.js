@@ -15,7 +15,6 @@ import {
   Image,
   Linking,
   Alert,
-  Dimensions,
   Animated,
   StatusBar,
 } from "react-native";
@@ -37,154 +36,8 @@ import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 import { batteryOptimizationApi } from "../../../services/bubble/nativeBubble";
 import { isBatteryPromptEnabled, setBatteryPromptEnabled } from "../../../utils/batteryOptimization";
+import { SettingItem, SettingSection, SettingTile, SectionHeader, ACCENT, tint } from "../../../components/settings/SettingsUI";
 import { getAiTranslatePreference, setAiTranslatePreference } from "../../../utils/aiTranslation";
-
-// Same colourful look as the menu (Sidebar): every entry has its own accent,
-// shown on a tinted round holder.
-const tint = (hex, isDark) => {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${isDark ? 0.2 : 0.12})`;
-};
-const ACCENT = {
-  profile: "#3B82F6",
-  profileTheme: "#EC4899",
-  security: "#6366F1",
-  verification: "#14B8A6",
-  blocked: "#EF4444",
-  notifications: "#F59E0B",
-  theme: "#8B5CF6",
-  appIcon: "#F59E0B",
-  glass: "#0EA5E9",
-  language: "#3B82F6",
-  aiTranslate: "#EC4899",
-  autoplay: "#EF4444",
-  bubble: "#10B981",
-  battery: "#22C55E",
-  remind: "#F97316",
-  shake: "#6366F1",
-  updates: "#14B8A6",
-  about: "#3B82F6",
-  debug: "#64748B",
-};
-const GRID_GAP = 10;
-const GRID_CARD_WIDTH = Math.floor((Dimensions.get("window").width - 32 - GRID_GAP) / 2);
-
-const SettingItem = ({
-  icon,
-  iconComponent,
-  color,
-  title,
-  subtitle,
-  onPress,
-  onLongPress,
-  delayLongPress,
-  value,
-  isSwitch,
-  chevron = true,
-  lastItem = false,
-  theme,
-  isDarkMode,
-}) => {
-  const accent = color || theme.primary;
-  return (
-    <TouchableOpacity
-      style={[
-        styles.settingItem,
-        lastItem && styles.lastSettingItem,
-        { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" },
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={delayLongPress}
-      disabled={isSwitch}
-      activeOpacity={0.7}
-    >
-      <View style={styles.settingItemLeft}>
-        <View style={[styles.settingItemIcon, { backgroundColor: tint(accent, isDarkMode) }]}>
-          {iconComponent || <Ionicons name={icon} size={20} color={accent} />}
-        </View>
-        {/* Title + description share one column; the 12px gap to the icon is on
-            the column, so both lines start at the same x. */}
-        <View style={{ flex: 1, flexShrink: 1, marginLeft: 12 }}>
-          <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
-          {subtitle ? (
-            <Text style={{ fontSize: 12, lineHeight: 16, color: theme.subText, marginTop: 2 }}>{subtitle}</Text>
-          ) : null}
-        </View>
-      </View>
-      {isSwitch ? (
-        <Switch
-          value={value}
-          onValueChange={onPress}
-          trackColor={{ true: accent }}
-          style={{ marginLeft: 12 }}
-        />
-      ) : value ? (
-        <View style={styles.settingItemRight}>
-          <Text style={[styles.settingValueText, { color: theme.subText }]}>{value}</Text>
-          {chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />}
-        </View>
-      ) : (
-        chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-      )}
-    </TouchableOpacity>
-  );
-};
-
-// Two-column shortcut tile (like the menu's utilities grid).
-const SettingTile = ({ icon, color, title, subtitle, onPress, theme, isDarkMode }) => (
-  <TouchableOpacity
-    style={[
-      styles.tile,
-      {
-        width: GRID_CARD_WIDTH,
-        backgroundColor: theme.surface,
-        borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
-      },
-    ]}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <View style={[styles.tileIcon, { backgroundColor: tint(color, isDarkMode) }]}>
-      <Ionicons name={icon} size={22} color={color} />
-    </View>
-    <Text style={[styles.tileTitle, { color: theme.text }]} numberOfLines={1}>
-      {title}
-    </Text>
-    {subtitle ? (
-      <Text style={[styles.tileSubtitle, { color: theme.subText }]} numberOfLines={1}>
-        {subtitle}
-      </Text>
-    ) : null}
-  </TouchableOpacity>
-);
-
-const SettingSection = ({ icon, color, title, children, theme, isDarkMode }) => {
-  const childrenArray = React.Children.toArray(children);
-  if (childrenArray.length === 0) return null;
-  return (
-    <View style={styles.sectionWrapper}>
-      <View style={styles.sectionHeaderRow}>
-        {icon ? <Ionicons name={icon} size={15} color={color || theme.primary} style={{ marginRight: 6 }} /> : null}
-        <Text style={[styles.sectionTitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>{title}</Text>
-      </View>
-      <View
-        style={[
-          styles.settingSection,
-          { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
-        ]}
-      >
-        {childrenArray.map((child, index) =>
-          React.cloneElement(child, {
-            lastItem: index === childrenArray.length - 1,
-            theme,
-            isDarkMode,
-          })
-        )}
-      </View>
-    </View>
-  );
-};
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
@@ -403,10 +256,7 @@ export default function SettingsScreen({ navigation }) {
         </LinearGradient>
 
         {/* Account: shortcut tiles */}
-        <View style={styles.sectionHeaderRow}>
-          <Ionicons name="person-circle-outline" size={15} color={ACCENT.profile} style={{ marginRight: 6, marginLeft: 20 }} />
-          <Text style={[styles.sectionTitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>{t("settings.account")}</Text>
-        </View>
+        <SectionHeader icon="person-circle-outline" color={ACCENT.profile} title={t("settings.account")} />
         <View style={styles.tilesGrid}>
           <SettingTile
             icon="person"
@@ -827,7 +677,7 @@ const styles = StyleSheet.create({
   tilesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: GRID_GAP,
+    gap: 10,
     marginHorizontal: 16,
     marginBottom: 24,
   },

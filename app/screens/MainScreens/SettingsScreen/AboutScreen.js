@@ -18,14 +18,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-const Section = ({ title, children, theme }) => (
-  <View style={[styles.sectionWrapper]}>
-    <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-    <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {children}
-    </View>
-  </View>
-);
+import { SettingSection as Section } from "../../../components/settings/SettingsUI";
 
 export default function AboutScreen({ navigation }) {
   const insets = useSafeAreaInsets();
