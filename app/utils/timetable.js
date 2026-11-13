@@ -129,3 +129,33 @@ export function parseTimetableJson(text) {
     return null;
   }
 }
+
+// "Lớp của tôi" for the AI import: a photo of the whole school's timetable has
+// many classes, so the user's one is given to the AI. Format: grade + class,
+// e.g. 11C5 (11 = khối, C5 = lớp chuyên). Kept with the other timetable prefs.
+const CLASS_KEY = "timetable_class_name";
+
+export function normalizeClassName(value) {
+  return String(value || "").replace(/\s+/g, "").toUpperCase().slice(0, 12);
+}
+
+export function readTimetableClass() {
+  try {
+    return normalizeClassName(storage.getString(CLASS_KEY));
+  } catch {
+    return "";
+  }
+}
+
+export function writeTimetableClass(value) {
+  try {
+    const v = normalizeClassName(value);
+    if (v) storage.set(CLASS_KEY, v);
+    else storage.delete(CLASS_KEY);
+  } catch {}
+}
+
+/** 11C5, 10A1, 12T... : grade 10-12 then a class code. */
+export function isValidClassName(value) {
+  return /^(10|11|12)[A-ZÀ-Ỹ][A-ZÀ-Ỹ0-9]{0,8}$/.test(normalizeClassName(value));
+}

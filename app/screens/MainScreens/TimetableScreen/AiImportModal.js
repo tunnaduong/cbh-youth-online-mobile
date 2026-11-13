@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { apiErrorMessage } from "../../../utils/apiMessage";
 import { aiImportTimetable } from "../../../services/api/Api";
+import { readTimetableClass, writeTimetableClass, normalizeClassName, isValidClassName } from "../../../utils/timetable";
 
 // "Nhập bằng AI": type / paste the timetable in any words, or pick a photo of
 // it, and the API's model turns it into blocks. The result only fills the
@@ -29,6 +30,8 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState(null); // { uri }
+  // Saved with the timetable settings, so it is asked once.
+  const [className, setClassName] = useState(() => readTimetableClass());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -51,7 +54,7 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
     const asset = result.assets[0];
     const resized = await ImageManipulator.manipulateAsync(
       asset.uri,
-      asset.width > 1800 ? [{ resize: { width: 1800 } }] : [],
+      asset.width > 2600 ? [{ resize: { width: 2600 } }] : [],
       { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
     );
     setPhoto({ uri: resized.uri });
@@ -66,6 +69,7 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
       if (text.trim()) form.append("text", text.trim());
       if (photo) form.append("image", { uri: photo.uri, name: "timetable.jpg", type: "image/jpeg" });
       if (current) form.append("current", JSON.stringify(current));
+      if (className) form.append("class_name", className);
       const res = await aiImportTimetable(form);
       onResult(res.data.data, res.data.note || "");
       setText("");
@@ -142,6 +146,35 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
               marginBottom: 16,
             }}
           >
+            <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, marginBottom: 4 }}>{t("timetable.ai.classLabel")}</Text>
+            <Text style={{ fontSize: 13, lineHeight: 18, color: theme.subText, marginBottom: 8 }}>{t("timetable.ai.classHint")}</Text>
+            <TextInput
+              value={className}
+              onChangeText={(v) => {
+                const next = normalizeClassName(v);
+                setClassName(next);
+                writeTimetableClass(next);
+              }}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={12}
+              placeholder={t("timetable.ai.classPlaceholder")}
+              placeholderTextColor={theme.subText}
+              style={{
+                height: 44,
+                borderWidth: 1,
+                borderColor: className && !isValidClassName(className) ? "#FF3B30" : theme.border,
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                fontSize: 16,
+                color: theme.text,
+                marginBottom: className && !isValidClassName(className) ? 4 : 16,
+              }}
+            />
+            {className && !isValidClassName(className) ? (
+              <Text style={{ color: "#FF3B30", fontSize: 13, marginBottom: 16 }}>{t("timetable.ai.classInvalid")}</Text>
+            ) : null}
+
             <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, marginBottom: 8 }}>{t("timetable.ai.textLabel")}</Text>
             <TextInput
               value={text}

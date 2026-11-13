@@ -1716,6 +1716,10 @@
   "timetable": {
     "title": "Thời khóa biểu",
     "ai": {
+      "classLabel": "Lớp của tôi (không bắt buộc)",
+      "classHint": "Khối + lớp chuyên, ví dụ 11C5 (11 là khối, C5 là lớp chuyên). Được lưu lại. Nếu ảnh có nhiều lớp, AI chỉ đọc đúng lớp này.",
+      "classPlaceholder": "11C5",
+      "classInvalid": "Nhập khối (10-12) rồi đến lớp, ví dụ 11C5.",
       "title": "Nhập bằng AI",
       "cardHint": "Gõ hoặc dán lịch, hoặc chụp ảnh thời khóa biểu - AI tự điền vào",
       "intro": "Viết thời khóa biểu theo cách bạn quen (giờ vào tiết, giờ ra chơi, tên môn từng thứ...) hoặc chụp ảnh thời khóa biểu. AI sẽ đọc rồi điền vào lịch để bạn kiểm tra trước khi lưu.",

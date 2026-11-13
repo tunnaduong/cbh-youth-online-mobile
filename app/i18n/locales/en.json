@@ -1730,6 +1730,10 @@
   "timetable": {
     "title": "Timetable",
     "ai": {
+      "classLabel": "My class (optional)",
+      "classHint": "Grade + class code, e.g. 11C5 (11 = grade, C5 = specialised class). Saved. If a photo shows many classes, the AI reads only this one.",
+      "classPlaceholder": "11C5",
+      "classInvalid": "Use a grade (10-12) then the class, like 11C5.",
       "title": "Import with AI",
       "cardHint": "Type or paste your timetable, or take a photo - AI fills it in",
       "intro": "Write your timetable however you like (class times, breaks, subjects for each day...) or take a photo of it. The AI reads it and fills in the editor so you can check it before saving.",
