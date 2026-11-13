@@ -553,7 +553,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.settingItemIcon, { backgroundColor: tint(ACCENT.aiTranslate, isDarkMode) }]}>
                 <Ionicons name="sparkles-outline" size={20} color={ACCENT.aiTranslate} />
               </View>
-              <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 12 }]} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 12 }]} numberOfLines={2}>
                 {t("settings.aiTranslate")}
               </Text>
             </View>
@@ -571,7 +571,7 @@ export default function SettingsScreen({ navigation }) {
                 });
               }}
               style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent", maxWidth: "100%" }}
-              containerStyle={{ marginVertical: 0, alignItems: "flex-end", flexShrink: 1, maxWidth: "52%" }}
+              containerStyle={{ marginVertical: 0, alignItems: "flex-end", flexShrink: 1, maxWidth: "46%" }}
               textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
               modalTitle={t("settings.aiTranslate")}
             />

@@ -87,7 +87,11 @@ export default function BubbleChatRoot({ conversationId }) {
                   <ChatSocketProvider>
                     <StatusBarProvider>
                       <BottomSheetProvider>
-                        <View style={{ flex: 1 }}>{id != null && <Navigator conversationId={id} />}</View>
+                        <View style={{ flex: 1 }}>
+                          {id != null && <Navigator conversationId={id} />}
+                          {/* Inside the providers: it reads the theme. */}
+                          <CustomAlertProvider />
+                        </View>
                       </BottomSheetProvider>
                     </StatusBarProvider>
                   </ChatSocketProvider>
@@ -97,7 +101,6 @@ export default function BubbleChatRoot({ conversationId }) {
           </KeyboardProvider>
         </SafeAreaProvider>
         <AppToast topOffset={60} />
-        <CustomAlertProvider />
       </GestureHandlerRootView>
     </TailwindProvider>
   );
