@@ -111,6 +111,7 @@ jobs:
         run: |
           node scripts/set-ota-channel.js "${{ steps.meta.outputs.channel }}"
           node scripts/set-build-number.js "${{ steps.meta.outputs.build_number }}"
+          node scripts/set-commit-time.js
 
       - name: Export update bundle with Expo CLI
         run: npx expo export --platform android --platform ios --output-dir dist
@@ -130,6 +131,7 @@ jobs:
           BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
           MIN_NATIVE_BUILD: ${{ steps.meta.outputs.min_native_build }}
         run: |
+          COMMIT_TIME=$(node -p "require('./app.json').expo.extra.commitTime")
           if [ -z "$OTA_DEPLOY_TOKEN" ]; then
             echo "::error::Secret OTA_DEPLOY_TOKEN is not set in repository secrets."
             exit 1
@@ -142,7 +144,8 @@ jobs:
             -F "runtime_version=${RUNTIME_VERSION}" \
             -F "message=${MESSAGE}" \
             -F "build_number=${BUILD_NUMBER}" \
-            -F "min_native_build=${MIN_NATIVE_BUILD}")
+            -F "min_native_build=${MIN_NATIVE_BUILD}" \
+            -F "commit_time=${COMMIT_TIME}")
 
           echo "Publish Response:"
           echo "$RESPONSE"

@@ -780,6 +780,7 @@
     "updateCompleteMessage": "Update complete! Restart app to continue."
   },
   "chatConversation": {
+    "openInBubbleFailed": "Could not open the bubble.",
     "openInBubble": "Open in bubble",
     "you": "You",
     "reply": "Reply",

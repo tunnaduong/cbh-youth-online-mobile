@@ -123,6 +123,9 @@ jobs:
       - name: Use the preview OTA channel
         run: node scripts/set-ota-channel.js preview
 
+      - name: Record the commit time (OTA up-to-date check)
+        run: node scripts/set-commit-time.js
+
       # android/ and ios/ are not in git: generate the native project from
       # app.json and the config plugins.
       - name: Generate the native project (expo prebuild)

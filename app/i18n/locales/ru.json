@@ -791,6 +791,7 @@
     "updateCompleteMessage": "Обновление завершено! Пожалуйста, перезапустите приложение, чтобы продолжить."
   },
   "chatConversation": {
+    "openInBubbleFailed": "Не удалось открыть пузырь.",
     "openInBubble": "Открыть в пузыре",
     "you": "Вы",
     "reply": "Ответить",

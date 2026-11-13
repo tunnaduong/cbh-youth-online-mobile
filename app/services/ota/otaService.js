@@ -150,6 +150,28 @@ export function getNativeBuildNumber() {
 }
 
 /**
+ * Epoch ms of the git commit the running bundle was built from (app.json
+ * extra.commitTime, written by CI into both the base build and every OTA
+ * bundle), or 0 when unknown (local/old builds).
+ */
+export function getRunningCommitTime() {
+  const v = Number(Constants.expoConfig?.extra?.commitTime);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+/**
+ * True when an update is built from a commit that is not newer than the running
+ * bundle's: the same code, so offering it would prompt forever (a base build
+ * upgraded to the latest version finishes after the OTA of the same commit, so
+ * comparing build times alone cannot tell).
+ */
+function isSameOrOlderCommit(manifest) {
+  const upstream = Number(manifest?.metadata?.commit_time);
+  const running = getRunningCommitTime();
+  return Number.isFinite(upstream) && upstream > 0 && running > 0 && upstream <= running;
+}
+
+/**
  * Returns the build number of the currently running JS bundle.
  * - If running embedded, returns the native binary build number.
  * - If running an OTA update, reads `manifest.metadata.build_number` directly from the
@@ -586,6 +608,11 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
       // (patched DatabaseLauncher / AppLauncherWithDatabase) drops OTAs whose commitTime is
       // <= the embedded one, and otherwise picks the newest. Offering it showed the prompt
       // on every launch while the app kept running the same bundle.
+      if (isSameOrOlderCommit(manifest)) {
+        console.log("[OTA Native] Update commit is not newer than the running bundle's. Up to date.");
+        return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+      }
+
       {
         const serverTime = manifest.createdAt ? new Date(manifest.createdAt).getTime() : 0;
         if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {
@@ -711,6 +738,11 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         // Check timestamps against active/embedded update if build numbers are equal
         // (allows consecutive OTA pushes with the same build number while blocking older channels).
         // Same rule as the native path: not newer than the running bundle = never launched.
+        if (isSameOrOlderCommit(data)) {
+          console.log("[OTA] Update commit is not newer than the running bundle's. Up to date.");
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+        }
+
         {
           const serverTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
           if (activeTime > 0 && serverTime > 0 && serverTime <= activeTime) {

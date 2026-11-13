@@ -752,7 +752,9 @@ const ConversationScreen = ({ navigation, route }) => {
         privateConversationId,
         headerTitle,
         typeof avatar === "string" && avatar.startsWith("http") ? avatar : null,
-      );
+      ).then((ok) => {
+        if (!ok) Toast.show({ type: "error", text1: t("common.error"), text2: t("chatConversation.openInBubbleFailed"), topOffset: 60 });
+      });
     };
     const bubbleItem = offerBubble
       ? { text: t("chatConversation.openInBubble"), onPress: openInBubble }

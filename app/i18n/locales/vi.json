@@ -768,6 +768,7 @@
     "updateCompleteMessage": "Cập nhật hoàn tất! Vui lòng khởi động lại ứng dụng để tiếp tục."
   },
   "chatConversation": {
+    "openInBubbleFailed": "Không thể mở bong bóng.",
     "openInBubble": "Mở trong bong bóng",
     "you": "Bạn",
     "reply": "Trả lời",

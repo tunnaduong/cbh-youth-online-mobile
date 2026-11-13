@@ -81,9 +81,14 @@ export function openAppAt(conversationId) {
 }
 
 /** Opens this conversation as an expanded bubble (the "Open in bubble" menu item). */
-export function openChatInBubble(conversationId, title, avatarUrl) {
-  if (!bubbleChatAvailable || conversationId == null) return;
-  safe(() => Native.openBubble(String(conversationId), String(title || ""), avatarUrl || null));
+export async function openChatInBubble(conversationId, title, avatarUrl) {
+  if (!bubbleChatAvailable || conversationId == null) return false;
+  try {
+    return !!(await Native.openBubble(String(conversationId), String(title || ""), avatarUrl || null));
+  } catch (e) {
+    console.warn("[nativeBubble]", e?.message);
+    return false;
+  }
 }
 
 /** The menu item shows only when the feature can work: Android 11+, switched on. */

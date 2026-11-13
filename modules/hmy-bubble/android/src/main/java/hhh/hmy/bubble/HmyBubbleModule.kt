@@ -41,13 +41,17 @@ class HmyBubbleModule : Module() {
     Function("dismiss") { conversationId: String -> BubbleNotifier.cancel(context, conversationId) }
 
     /** "Open in bubble" from the chat screen: raise this conversation as an expanded bubble now. */
-    Function("openBubble") { conversationId: String, title: String, avatarUrl: String? ->
-      Thread {
+    AsyncFunction("openBubble") { conversationId: String, title: String, avatarUrl: String? ->
+      try {
         BubbleNotifier.showChat(
-          context, conversationId, null, title, "", autoExpand = true,
+          context, conversationId, null, title.ifEmpty { "CBH" }, "", autoExpand = true,
           knownAvatarUrl = avatarUrl?.takeIf { it.startsWith("http") }
         )
-      }.start()
+        true
+      } catch (e: Throwable) {
+        android.util.Log.e("HmyBubble", "openBubble failed", e)
+        false
+      }
     }
 
     /** From inside the bubble: fold it back to the floating icon. */
