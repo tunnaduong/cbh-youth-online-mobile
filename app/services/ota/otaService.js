@@ -1006,25 +1006,36 @@ export async function reloadApp() {
     console.log("[OTA] reloadApp skipped in __DEV__");
     return;
   }
-  try {
-    if (Updates.isEnabled) {
-      console.log("[OTA] Calling Updates.reloadAsync()...");
-      await Updates.reloadAsync();
-      console.log("[OTA] Updates.reloadAsync call returned.");
-      return;
-    }
-    // If Updates is not enabled (e.g. standalone dev build), fallback to exitApp
-    if (Platform.OS === "android") {
-      BackHandler.exitApp();
-    }
-  } catch (err) {
-    console.error("[OTA] reloadApp error:", err?.message || err);
+  // Last resort on Android: relaunch natively (new build), else just exit so the
+  // next launch loads the new bundle.
+  const relaunchAndroid = () => {
+    if (Platform.OS !== "android") return;
     try {
-      if (Platform.OS === "android") {
-        BackHandler.exitApp();
+      const Native = require("../../../modules/cbh-call-ui").default;
+      if (typeof Native?.restartApp === "function") {
+        Native.restartApp();
+        return;
       }
     } catch {}
+    try {
+      BackHandler.exitApp();
+    } catch {}
+  };
+  if (!Updates.isEnabled) {
+    relaunchAndroid();
+    return;
   }
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`[OTA] Calling Updates.reloadAsync() (attempt ${attempt})...`);
+      await Updates.reloadAsync();
+      return;
+    } catch (err) {
+      console.error("[OTA] reloadApp error:", err?.message || err);
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+  relaunchAndroid();
 }
 
 let isForcedUpdateInProgress = false;

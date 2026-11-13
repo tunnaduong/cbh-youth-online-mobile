@@ -44,6 +44,11 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         run: node scripts/set-build-number.js "$BUILD_NUMBER"
 
+      # dhphuc builds follow the preview OTA channel; app.json on main says
+      # production and only a merge into main (build-number.yml) writes that.
+      - name: Use the preview OTA channel
+        run: node scripts/set-ota-channel.js preview
+
       # android/ and ios/ are not in git: generate the native project from
       # app.json and the config plugins.
       - name: Generate the native project (expo prebuild)

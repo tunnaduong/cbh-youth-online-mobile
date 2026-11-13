@@ -1,5 +1,6 @@
 package expo.modules.cbhcallui
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -61,6 +62,21 @@ class CbhCallUiModule : Module() {
       try {
         context.startActivity(intent)
       } catch (_: Throwable) {
+      }
+    }
+
+    /** Relaunches the app (alarm + kill) so an OTA bundle loads even if reloadAsync fails. */
+    Function("restartApp") {
+      val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+      if (launch != null) {
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        val pending = android.app.PendingIntent.getActivity(
+          context, 0, launch,
+          android.app.PendingIntent.FLAG_CANCEL_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarm = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        alarm.set(android.app.AlarmManager.RTC, System.currentTimeMillis() + 300, pending)
+        android.os.Process.killProcess(android.os.Process.myPid())
       }
     }
 
