@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { ACCENT, tint } from "../../../components/settings/SettingsUI";
 import {
   LAUNCHER_APP_ICONS,
   getActiveIconDisplay,
@@ -148,7 +149,13 @@ export default function AppIconScreen({ navigation }) {
           }}
         >
           {/* Current Active Icon Hero Banner */}
-          <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <LinearGradient
+            colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          >
+            <View style={styles.heroCircle} />
             <View style={styles.iconPreviewWrap}>
               <Image
                 key={activeIconItem.key}
@@ -158,41 +165,44 @@ export default function AppIconScreen({ navigation }) {
               />
             </View>
             <View style={styles.heroTextWrap}>
-              <Text style={[styles.heroTitle, { color: theme.text }]}>
+              <Text style={[styles.heroTitle, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>
                 {t(activeIconItem.nameKey, activeIconItem.tag)}
               </Text>
-              <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
+              <Text style={[styles.heroSubtitle, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>
                 {isDefault
                   ? t("appIcon.activeDefaultDesc", "Đang dùng biểu tượng mặc định")
                   : t("appIcon.activeBadge", "Đang dùng trên màn hình chính")}
               </Text>
               {isDefault ? (
-                <View style={[styles.resetButton, { borderColor: theme.border, opacity: 0.6 }]}>
-                  <Ionicons name="checkmark-circle-outline" size={14} color={theme.subText} style={{ marginRight: 4 }} />
-                  <Text style={[styles.resetButtonText, { color: theme.subText }]}>
+                <View style={[styles.resetButton, { backgroundColor: "rgba(34,197,94,0.15)" }]}>
+                  <Ionicons name="checkmark-circle" size={14} color="#16A34A" style={{ marginRight: 4 }} />
+                  <Text style={[styles.resetButtonText, { color: "#16A34A" }]}>
                     {t("appIcon.alreadyDefault", "Đang là mặc định")}
                   </Text>
                 </View>
               ) : (
                 <TouchableOpacity
-                  style={[styles.resetButton, { borderColor: theme.primary }]}
+                  style={[styles.resetButton, { backgroundColor: tint(ACCENT.appIcon, isDarkMode) }]}
                   onPress={handleResetToDefault}
                   disabled={switching}
                 >
-                  <Ionicons name="reload-outline" size={14} color={theme.primary} style={{ marginRight: 4 }} />
-                  <Text style={[styles.resetButtonText, { color: theme.primary }]}>
+                  <Ionicons name="reload-outline" size={14} color={ACCENT.appIcon} style={{ marginRight: 4 }} />
+                  <Text style={[styles.resetButtonText, { color: ACCENT.appIcon }]}>
                     {t("appIcon.resetDefault", "Đặt lại mặc định")}
                   </Text>
                 </TouchableOpacity>
               )}
             </View>
-          </View>
+          </LinearGradient>
 
           {/* Section: Presets Grid (NO separate default card) */}
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.primary }]}>
-              {t("appIcon.presets", "Bộ sưu tập biểu tượng")}
-            </Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="apps-outline" size={15} color={ACCENT.appIcon} style={{ marginRight: 6 }} />
+              <Text style={[styles.sectionTitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>
+                {t("appIcon.presets", "Bộ sưu tập biểu tượng")}
+              </Text>
+            </View>
             <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>
               {t("appIcon.launcherNotice", "Chọn biểu tượng hiển thị trên màn hình chính của thiết bị.")}
             </Text>
@@ -207,9 +217,9 @@ export default function AppIconScreen({ navigation }) {
                   style={[
                     styles.gridItem,
                     {
-                      backgroundColor: theme.surface,
-                      borderColor: isSelected ? theme.primary : theme.border,
-                      borderWidth: isSelected ? 2 : 1,
+                      backgroundColor: isSelected ? tint("#22C55E", isDarkMode) : theme.surface,
+                      borderColor: isSelected ? "#22C55E" : isDarkMode ? "#282B34" : "#E2E8F0",
+                      borderWidth: isSelected ? 2 : StyleSheet.hairlineWidth,
                     },
                   ]}
                   onPress={() => handleSelectIcon(item.key)}
@@ -224,12 +234,12 @@ export default function AppIconScreen({ navigation }) {
                       resizeMode="cover"
                     />
                     {isSelected && (
-                      <View style={[styles.checkBadge, { backgroundColor: theme.primary }]}>
+                      <View style={[styles.checkBadge, { backgroundColor: "#22C55E" }]}>
                         <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.gridItemTitle, { color: isSelected ? theme.primary : theme.text }]} numberOfLines={1}>
+                  <Text style={[styles.gridItemTitle, { color: isSelected ? "#16A34A" : theme.text }]} numberOfLines={1}>
                     {t(item.nameKey, item.tag)}
                   </Text>
                   <Text style={[styles.gridItemTag, { color: theme.subText }]} numberOfLines={1}>
@@ -266,14 +276,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    marginBottom: 24,
+    overflow: "hidden",
+  },
+  heroCircle: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(34,197,94,0.10)",
+    top: -45,
+    right: -25,
   },
   iconPreviewWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
+    width: 76,
+    height: 76,
+    borderRadius: 20,
     overflow: "hidden",
     elevation: 3,
     shadowColor: "#000",
@@ -302,10 +322,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     marginTop: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
   },
   resetButtonText: {
     fontSize: 12,
@@ -314,6 +333,10 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginBottom: 10,
     paddingHorizontal: 4,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   sectionTitle: {
     fontSize: 13,
@@ -402,8 +425,8 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     width: "48%",
-    padding: 12,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 18,
     alignItems: "center",
   },
   gridIconWrap: {

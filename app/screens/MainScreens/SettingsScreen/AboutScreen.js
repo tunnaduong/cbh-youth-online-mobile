@@ -99,92 +99,117 @@ export default function AboutScreen({ navigation }) {
         )}
         contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
       >
-        {/* School Info */}
-        <View style={styles.schoolInfo}>
-          <Image
-            source={require("../../../assets/school-logo-removebg.png")}
-            style={[styles.schoolLogo, { resizeMode: 'contain', borderRadius: 0, backgroundColor: 'transparent' }]}
-          />
-          <Text style={[styles.schoolName, { color: theme.primary }]}>{t("about.schoolName")}</Text>
-        </View>
+        {/* School hero card */}
+        <LinearGradient
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+        >
+          <View style={styles.heroCircle} />
+          <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
+            <Image
+              source={require("../../../assets/school-logo-removebg.png")}
+              style={styles.heroLogo}
+            />
+          </View>
+          <Text style={[styles.schoolName, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("about.schoolName")}</Text>
+          <Text style={[styles.heroDesc, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("about.schoolDesc1")}</Text>
+        </LinearGradient>
 
-        <Text style={[styles.description, { color: theme.text }]}>
-          {t("about.schoolDesc1")}
-        </Text>
-
-        <Text style={[styles.description, { color: theme.text }]}>
+        <Text style={[styles.description, { color: theme.subText }]}>
           {t("about.schoolDesc2")}
         </Text>
 
-        <Section title={t("about.historyTitle")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            {t("about.historyDesc")}
-          </Text>
-        </Section>
-
-        <Section title={t("about.activitiesTitle")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            {t("about.activitiesDesc")}
-          </Text>
-        </Section>
-
-        <Section title={t("about.goalsTitle")} theme={theme}>
-          <View style={styles.bulletPoints}>
-            <Text style={[styles.bulletPoint, { color: theme.text }]}>
-              • {t("about.goals1")}
-            </Text>
-            <Text style={[styles.bulletPoint, { color: theme.text }]}>
-              • {t("about.goals2")}
-            </Text>
-            <Text style={[styles.bulletPoint, { color: theme.text }]}>
-              • {t("about.goals3")}
+        <Section icon="time-outline" color="#F59E0B" title={t("about.historyTitle")} theme={theme}>
+          <View style={styles.sectionBody}>
+            <Text style={[styles.sectionText, { color: theme.text }]}>
+              {t("about.historyDesc")}
             </Text>
           </View>
         </Section>
 
-        {/* School Info */}
-        <View style={[styles.schoolInfo, { marginTop: 40 }]}>
-          <Image
-            source={require("../../../assets/logo.png")}
-            style={[styles.schoolLogo, { resizeMode: 'contain' }]}
-          />
-          <Text style={[styles.schoolName, { color: theme.primary }]}>{t("about.appName")}</Text>
-        </View>
+        <Section icon="color-palette-outline" color="#EC4899" title={t("about.activitiesTitle")} theme={theme}>
+          <View style={styles.sectionBody}>
+            <Text style={[styles.sectionText, { color: theme.text }]}>
+              {t("about.activitiesDesc")}
+            </Text>
+          </View>
+        </Section>
 
-        <Text style={[styles.description, { color: theme.text }]}>
-          {t("about.appDesc1")}
-        </Text>
+        <Section icon="flag-outline" color="#3B82F6" title={t("about.goalsTitle")} theme={theme}>
+          <View style={styles.sectionBody}>
+            {["about.goals1", "about.goals2", "about.goals3"].map((key) => (
+              <View key={key} style={styles.bulletRow}>
+                <View style={[styles.bulletDot, { backgroundColor: "#3B82F6" }]} />
+                <Text style={[styles.bulletPoint, { color: theme.text }]}>{t(key)}</Text>
+              </View>
+            ))}
+          </View>
+        </Section>
 
-        <Text style={[styles.description, { color: theme.text }]}>
+        {/* App hero card */}
+        <LinearGradient
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7", marginTop: 8 }]}
+        >
+          <View style={styles.heroCircle} />
+          <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
+            <Image
+              source={require("../../../assets/logo.png")}
+              style={[styles.heroLogo, { borderRadius: 14 }]}
+            />
+          </View>
+          <Text style={[styles.schoolName, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("about.appName")}</Text>
+          <Text style={[styles.heroDesc, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("about.appDesc1")}</Text>
+        </LinearGradient>
+
+        <Text style={[styles.description, { color: theme.subText }]}>
           {t("about.appDesc2")}
         </Text>
 
-        <Section title={t("about.feature1Title")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            {t("about.feature1Desc")}
-          </Text>
+        <Section icon="sparkles-outline" color="#8B5CF6" title={t("about.feature1Title")} theme={theme}>
+          <View style={styles.sectionBody}>
+            <Text style={[styles.sectionText, { color: theme.text }]}>
+              {t("about.feature1Desc")}
+            </Text>
+          </View>
         </Section>
 
-        <Section title={t("about.feature2Title")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            {t("about.feature2Desc")}
-          </Text>
+        <Section icon="chatbubbles-outline" color="#10B981" title={t("about.feature2Title")} theme={theme}>
+          <View style={styles.sectionBody}>
+            <Text style={[styles.sectionText, { color: theme.text }]}>
+              {t("about.feature2Desc")}
+            </Text>
+          </View>
         </Section>
 
-        <Section title={t("about.feature3Title")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            {t("about.feature3Desc")}
-          </Text>
+        <Section icon="rocket-outline" color="#F97316" title={t("about.feature3Title")} theme={theme}>
+          <View style={styles.sectionBody}>
+            <Text style={[styles.sectionText, { color: theme.text }]}>
+              {t("about.feature3Desc")}
+            </Text>
+          </View>
         </Section>
 
-        <Section title={t("about.soundLicenseTitle", "Bản quyền âm thanh")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
+        {/* Third-party credits: kept apart from the app's own content */}
+        <View style={[styles.creditsDivider, { backgroundColor: isDarkMode ? "#282B34" : "#E2E8F0" }]} />
+        <View style={styles.creditsBox}>
+          <View style={styles.creditsHeader}>
+            <Ionicons name="musical-notes-outline" size={13} color={theme.subText} style={{ marginRight: 5 }} />
+            <Text style={[styles.creditsTitle, { color: theme.subText }]}>
+              {t("about.soundLicenseTitle", "Bản quyền âm thanh")}
+            </Text>
+          </View>
+          <Text style={[styles.creditsText, { color: theme.subText }]}>
             {t(
               "about.soundLicenseDesc",
               "Nhạc chuông cuộc gọi được trích xuất từ âm báo thức (Alarm Ringtone) của OPPO. Bản quyền âm thanh thuộc sở hữu của Guangdong OPPO Mobile Telecommunications Corp., Ltd. Được sử dụng cho mục đích cộng đồng phi thương mại."
             )}
           </Text>
-        </Section>
+        </View>
 
         <Text style={[styles.copyright, { color: theme.subText }]}>
           {t("about.copyright")}
@@ -222,17 +247,77 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 20,
   },
+  heroCard: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    marginTop: 8,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  heroCircle: {
+    position: "absolute",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(34,197,94,0.10)",
+    top: -50,
+    right: -30,
+  },
+  heroLogoWrap: {
+    width: 92,
+    height: 92,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+    shadowColor: "#16A34A",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
+  },
+  heroLogo: {
+    width: 68,
+    height: 68,
+    resizeMode: "contain",
+  },
+  heroDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    marginTop: 8,
+  },
   schoolName: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 19,
+    fontWeight: "800",
     textAlign: "center",
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-    textAlign: "justify",
-    marginHorizontal: 16,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 22,
+    textAlign: "center",
+    marginHorizontal: 24,
+  },
+  sectionBody: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 6,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 9,
+    marginRight: 10,
   },
   sectionWrapper: {
     marginHorizontal: 16,
@@ -260,8 +345,33 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   bulletPoint: {
+    flex: 1,
     fontSize: 14,
-    lineHeight: 24,
+    lineHeight: 22,
+  },
+  creditsDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 32,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  creditsBox: {
+    marginHorizontal: 24,
+  },
+  creditsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  creditsTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  creditsText: {
+    fontSize: 11,
+    lineHeight: 16,
   },
   copyright: {
     fontSize: 12,

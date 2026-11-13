@@ -233,10 +233,10 @@ export default function SettingsScreen({ navigation }) {
       >
         {/* Gradient info card */}
         <LinearGradient
-          colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]}
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientCard}
+          style={[styles.gradientCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
           {/* Decorative circles */}
           <View style={styles.gradientCircle1} />
@@ -247,11 +247,19 @@ export default function SettingsScreen({ navigation }) {
               <Image source={require("../../../assets/logo.png")} style={styles.gradientBadgeLogo} />
               <Text style={styles.gradientBadgeText}>CBH Online</Text>
             </View>
-            <Text style={styles.gradientTitle}>{t("settings.greeting", { name: userInfo.profile_name })}</Text>
-            <Text style={styles.gradientSubtitle}>{t("settings.subtitle")}</Text>
+            <Text style={[styles.gradientTitle, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]} numberOfLines={2}>
+              {t("settings.greeting", { name: userInfo.profile_name })}
+            </Text>
+            <Text style={[styles.gradientSubtitle, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("settings.subtitle")}</Text>
           </View>
-          <View style={[styles.gradientIconWrap, { zIndex: 1 }]}>
-            <Ionicons name="settings" size={26} color="#FFFFFF" />
+          <View style={[styles.gradientAvatarRing, { zIndex: 1 }]}>
+            <Image
+              source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar` }}
+              style={styles.gradientAvatar}
+            />
+            <View style={styles.gradientAvatarBadge}>
+              <Ionicons name="settings" size={11} color="#FFFFFF" />
+            </View>
           </View>
         </LinearGradient>
 
@@ -572,22 +580,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 22,
-    padding: 20,
+    borderWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
     marginHorizontal: 16,
     marginBottom: 20,
     overflow: "hidden",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    shadowColor: "#16A34A",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   gradientCircle1: {
     position: "absolute",
     width: 130,
     height: 130,
     borderRadius: 65,
-    backgroundColor: "rgba(255,255,255,0.07)",
+    backgroundColor: "rgba(34,197,94,0.10)",
     top: -40,
     right: 60,
   },
@@ -596,7 +606,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(245,158,11,0.10)",
     bottom: -30,
     right: -10,
   },
@@ -604,7 +614,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(34,197,94,0.15)",
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -618,17 +628,39 @@ const styles = StyleSheet.create({
   },
   gradientBadgeText: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "#C7F5D7",
+    fontWeight: "700",
+    color: "#16A34A",
     letterSpacing: 0.3,
   },
   gradientTitle: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
     marginBottom: 4,
   },
-  gradientSubtitle: { fontSize: 13, color: "rgba(199,245,215,0.85)", lineHeight: 18 },
+  gradientSubtitle: { fontSize: 13, lineHeight: 18 },
+  gradientAvatarRing: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 2.5,
+    borderColor: "#22C55E",
+    padding: 2,
+    marginLeft: 12,
+  },
+  gradientAvatar: { width: "100%", height: "100%", borderRadius: 28, backgroundColor: "#D1D5DB" },
+  gradientAvatarBadge: {
+    position: "absolute",
+    right: -4,
+    bottom: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#22C55E",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   gradientIconWrap: {
     width: 54,
     height: 54,
