@@ -477,20 +477,24 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               activeOpacity={0.75}
             >
               {active ? (
-                <LinearGradient
-                  colors={
-                    isDarkMode
-                      ? ["#22C55E", "#15803D"]
-                      : ["#22C55E", "#16A34A"]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.tabGradient}
-                >
-                  <Text style={styles.tabTextActive}>
+                <View style={styles.tabGradient}>
+                  {/* Gradient is a background layer, not the text's parent:
+                      on Android the text inside it was not drawn. */}
+                  <LinearGradient
+                    colors={
+                      isDarkMode
+                        ? ["#22C55E", "#15803D"]
+                        : ["#22C55E", "#16A34A"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <Text style={styles.tabTextActive} numberOfLines={1}>
                     {getCategoryName(cat.name, t)}
                   </Text>
-                </LinearGradient>
+                </View>
               ) : (
                 <Text
                   style={[
