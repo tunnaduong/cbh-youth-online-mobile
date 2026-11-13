@@ -7,6 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -85,6 +88,28 @@ object BubbleNotifier {
     }
   }
 
+  /**
+   * Avatar for people / groups without a picture: the brand green with their
+   * initial, instead of the (monochrome, so dark) notification glyph.
+   */
+  private fun initialAvatar(label: String): Bitmap {
+    val size = 192
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    canvas.drawColor(0xFF319527.toInt())
+    val text = label.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+      color = 0xFFFFFFFF.toInt()
+      textSize = size * 0.42f
+      isFakeBoldText = true
+      textAlign = Paint.Align.CENTER
+    }
+    val bounds = Rect()
+    paint.getTextBounds(text, 0, text.length, bounds)
+    canvas.drawText(text, size / 2f, size / 2f + bounds.height() / 2f, paint)
+    return bmp
+  }
+
   fun showChat(
     ctx: Context,
     conversationId: String,
@@ -101,8 +126,7 @@ object BubbleNotifier {
     val avatarUrl = fetchedAvatar
     val sender = senderName ?: title.substringBefore(" trong ")
     val conversationTitle = if (title.contains(" trong ")) title.substringAfter(" trong ") else sender
-    val avatar = fetchBitmap(avatarUrl)?.let { IconCompat.createWithAdaptiveBitmap(it) }
-      ?: IconCompat.createWithResource(ctx, smallIcon(ctx))
+    val avatar = IconCompat.createWithAdaptiveBitmap(fetchBitmap(avatarUrl) ?: initialAvatar(conversationTitle))
 
     val person = Person.Builder().setName(sender).setIcon(avatar).setKey("chat_sender_$sender").setImportant(true).build()
 

@@ -29,6 +29,7 @@ const ConversationHeader = ({
   onCall,
   canCall = true,
   hasCustomBackground = false,
+  inBubble = false,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -59,19 +60,34 @@ const ConversationHeader = ({
   // Common header content row
   const headerContentRow = (
     <View pointerEvents="box-none" style={styles.row}>
-      <LiquidButton
-        size={40}
-        forceNoGlass
-        backgroundColor="transparent"
-        onPress={onBack}
-        accessibilityLabel={t("chatConversation.back")}
-      >
-        <Ionicons
-          name="chevron-back"
-          size={26}
-          color={hasCustomBackground ? theme.primary : primaryAccent}
-        />
-      </LiquidButton>
+      {inBubble ? (
+        // Plain button: the glass button's native view is not available in the
+        // bubble's process, which left the header without a back button.
+        <TouchableOpacity
+          onPress={onBack}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("chatConversation.back")}
+          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+        >
+          <Ionicons name="chevron-back" size={26} color={hasCustomBackground ? theme.primary : primaryAccent} />
+        </TouchableOpacity>
+      ) : (
+        <LiquidButton
+          size={40}
+          forceNoGlass
+          backgroundColor="transparent"
+          onPress={onBack}
+          accessibilityLabel={t("chatConversation.back")}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={26}
+            color={hasCustomBackground ? theme.primary : primaryAccent}
+          />
+        </LiquidButton>
+      )}
 
       <TouchableOpacity
         activeOpacity={0.7}

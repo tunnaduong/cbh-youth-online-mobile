@@ -3507,6 +3507,7 @@ const ConversationScreen = ({ navigation, route }) => {
         username={headerUsername}
         subtitle={headerSubtitle}
         onBack={uiActions.goBack}
+        inBubble={!!route?.params?.inBubble}
         onPressTitle={uiActions.openTitle}
         onOptions={uiActions.showOptions}
         onCall={uiActions.callVoice}
