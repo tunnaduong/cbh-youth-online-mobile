@@ -15,6 +15,7 @@ import {
   Image,
   Linking,
   Alert,
+  Dimensions,
   Animated,
   StatusBar,
 } from "react-native";
@@ -38,9 +39,40 @@ import { batteryOptimizationApi } from "../../../services/bubble/nativeBubble";
 import { isBatteryPromptEnabled, setBatteryPromptEnabled } from "../../../utils/batteryOptimization";
 import { getAiTranslatePreference, setAiTranslatePreference } from "../../../utils/aiTranslation";
 
+// Same colourful look as the menu (Sidebar): every entry has its own accent,
+// shown on a tinted round holder.
+const tint = (hex, isDark) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${isDark ? 0.2 : 0.12})`;
+};
+const ACCENT = {
+  profile: "#3B82F6",
+  profileTheme: "#EC4899",
+  security: "#6366F1",
+  verification: "#14B8A6",
+  blocked: "#EF4444",
+  notifications: "#F59E0B",
+  theme: "#8B5CF6",
+  appIcon: "#F59E0B",
+  glass: "#0EA5E9",
+  language: "#3B82F6",
+  aiTranslate: "#EC4899",
+  autoplay: "#EF4444",
+  bubble: "#10B981",
+  battery: "#22C55E",
+  remind: "#F97316",
+  shake: "#6366F1",
+  updates: "#14B8A6",
+  about: "#3B82F6",
+  debug: "#64748B",
+};
+const GRID_GAP = 10;
+const GRID_CARD_WIDTH = Math.floor((Dimensions.get("window").width - 32 - GRID_GAP) / 2);
+
 const SettingItem = ({
   icon,
   iconComponent,
+  color,
   title,
   subtitle,
   onPress,
@@ -51,62 +83,102 @@ const SettingItem = ({
   chevron = true,
   lastItem = false,
   theme,
-}) => (
-  <TouchableOpacity
-    style={[
-      styles.settingItem,
-      lastItem && styles.lastSettingItem,
-      { borderBottomColor: theme.border },
-    ]}
-    onPress={onPress}
-    onLongPress={onLongPress}
-    delayLongPress={delayLongPress}
-    disabled={isSwitch}
-    activeOpacity={0.7}
-  >
-    <View style={styles.settingItemLeft}>
-      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-        {iconComponent || <Ionicons name={icon} size={20} color={theme.primary} />}
-      </View>
-      {subtitle ? (
-        // Title + description share one column; the 12px gap to the icon is on
-        // the column, so both lines start at the same x.
+  isDarkMode,
+}) => {
+  const accent = color || theme.primary;
+  return (
+    <TouchableOpacity
+      style={[
+        styles.settingItem,
+        lastItem && styles.lastSettingItem,
+        { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" },
+      ]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
+      disabled={isSwitch}
+      activeOpacity={0.7}
+    >
+      <View style={styles.settingItemLeft}>
+        <View style={[styles.settingItemIcon, { backgroundColor: tint(accent, isDarkMode) }]}>
+          {iconComponent || <Ionicons name={icon} size={20} color={accent} />}
+        </View>
+        {/* Title + description share one column; the 12px gap to the icon is on
+            the column, so both lines start at the same x. */}
         <View style={{ flex: 1, flexShrink: 1, marginLeft: 12 }}>
-          <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 0 }]}>{title}</Text>
-          <Text style={{ fontSize: 12, lineHeight: 16, color: theme.subText, marginTop: 2 }}>{subtitle}</Text>
+          <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+          {subtitle ? (
+            <Text style={{ fontSize: 12, lineHeight: 16, color: theme.subText, marginTop: 2 }}>{subtitle}</Text>
+          ) : null}
+        </View>
+      </View>
+      {isSwitch ? (
+        <Switch
+          value={value}
+          onValueChange={onPress}
+          trackColor={{ true: accent }}
+          style={{ marginLeft: 12 }}
+        />
+      ) : value ? (
+        <View style={styles.settingItemRight}>
+          <Text style={[styles.settingValueText, { color: theme.subText }]}>{value}</Text>
+          {chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />}
         </View>
       ) : (
-        <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+        chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />
       )}
+    </TouchableOpacity>
+  );
+};
+
+// Two-column shortcut tile (like the menu's utilities grid).
+const SettingTile = ({ icon, color, title, subtitle, onPress, theme, isDarkMode }) => (
+  <TouchableOpacity
+    style={[
+      styles.tile,
+      {
+        width: GRID_CARD_WIDTH,
+        backgroundColor: theme.surface,
+        borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+      },
+    ]}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
+    <View style={[styles.tileIcon, { backgroundColor: tint(color, isDarkMode) }]}>
+      <Ionicons name={icon} size={22} color={color} />
     </View>
-    {isSwitch ? (
-      <Switch
-        value={value}
-        onValueChange={onPress}
-        trackColor={{ true: theme.primary }}
-        style={subtitle ? { marginLeft: 12 } : undefined}
-      />
-    ) : value ? (
-      <View style={styles.settingItemRight}>
-        <Text style={[styles.settingValueText, { color: theme.subText }]}>{value}</Text>
-        {chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />}
-      </View>
-    ) : (
-      chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-    )}
+    <Text style={[styles.tileTitle, { color: theme.text }]} numberOfLines={1}>
+      {title}
+    </Text>
+    {subtitle ? (
+      <Text style={[styles.tileSubtitle, { color: theme.subText }]} numberOfLines={1}>
+        {subtitle}
+      </Text>
+    ) : null}
   </TouchableOpacity>
 );
 
-const SettingSection = ({ title, children, theme }) => {
+const SettingSection = ({ icon, color, title, children, theme, isDarkMode }) => {
   const childrenArray = React.Children.toArray(children);
+  if (childrenArray.length === 0) return null;
   return (
     <View style={styles.sectionWrapper}>
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={styles.sectionHeaderRow}>
+        {icon ? <Ionicons name={icon} size={15} color={color || theme.primary} style={{ marginRight: 6 }} /> : null}
+        <Text style={[styles.sectionTitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>{title}</Text>
+      </View>
+      <View
+        style={[
+          styles.settingSection,
+          { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
+        ]}
+      >
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
             theme,
+            isDarkMode,
           })
         )}
       </View>
@@ -330,44 +402,71 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </LinearGradient>
 
-        {/* Account */}
-        <SettingSection title={t("settings.account")} theme={theme}>
-          <SettingItem
-            icon="person-outline"
+        {/* Account: shortcut tiles */}
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="person-circle-outline" size={15} color={ACCENT.profile} style={{ marginRight: 6, marginLeft: 20 }} />
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>{t("settings.account")}</Text>
+        </View>
+        <View style={styles.tilesGrid}>
+          <SettingTile
+            icon="person"
+            color={ACCENT.profile}
             title={t("settings.editProfile")}
+            theme={theme}
+            isDarkMode={isDarkMode}
             onPress={() => navigation.navigate("ProfileDetailScreen", { username: userInfo.username })}
           />
-          <SettingItem
-            icon="color-palette-outline"
+          <SettingTile
+            icon="color-palette"
+            color={ACCENT.profileTheme}
             title={t("profileTheme.title", "Giao diện hồ sơ")}
+            theme={theme}
+            isDarkMode={isDarkMode}
             onPress={() => navigation.navigate("ProfileCustomizerScreen")}
           />
-          <SettingItem
-            icon="lock-closed-outline"
+          <SettingTile
+            icon="lock-closed"
+            color={ACCENT.security}
             title={t("settings.security")}
+            theme={theme}
+            isDarkMode={isDarkMode}
             onPress={() => navigation.navigate("SecurityScreen")}
           />
-          <SettingItem
-            icon="school-outline"
+          <SettingTile
+            icon="notifications"
+            color={ACCENT.notifications}
+            title={t("settings.notifications")}
+            theme={theme}
+            isDarkMode={isDarkMode}
+            onPress={() => navigation.navigate("NotificationSettingsScreen")}
+          />
+          <SettingTile
+            icon="school"
+            color={ACCENT.verification}
             title={t("settings.studentVerification", "Xác minh học sinh")}
+            theme={theme}
+            isDarkMode={isDarkMode}
             onPress={() => navigation.navigate("StudentVerificationScreen")}
           />
-          <SettingItem
-            icon="ban-outline"
+          <SettingTile
+            icon="ban"
+            color={ACCENT.blocked}
             title={t("settings.blockedUsers")}
+            theme={theme}
+            isDarkMode={isDarkMode}
             onPress={() => navigation.navigate("BlockedUsersScreen")}
           />
-        </SettingSection>
+        </View>
 
         {/* Appearance */}
-        <SettingSection title={t("settings.groupAppearance")} theme={theme}>
+        <SettingSection icon="color-wand-outline" color={ACCENT.theme} title={t("settings.groupAppearance")} theme={theme} isDarkMode={isDarkMode}>
           {/* Theme dropdown */}
-          <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
+          <View style={[styles.dropdownRow, { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" }]}>
             <View style={styles.settingItemLeft}>
-              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name="color-palette-outline" size={20} color={theme.primary} />
+              <View style={[styles.settingItemIcon, { backgroundColor: tint(ACCENT.theme, isDarkMode) }]}>
+                <Ionicons name="color-palette-outline" size={20} color={ACCENT.theme} />
               </View>
-              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
+              <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 12 }]}>{t("settings.theme")}</Text>
             </View>
             <Dropdown
               options={themeOptions}
@@ -400,13 +499,31 @@ export default function SettingsScreen({ navigation }) {
 
         {/* Language and content */}
         <SettingSection title={t("settings.groupLanguage")} theme={theme}>
+          <SettingItem
+            icon="apps-outline"
+            color={ACCENT.appIcon}
+            title={t("settings.appIcon", "Biểu tượng ứng dụng")}
+            onPress={() => navigation.navigate("AppIconScreen")}
+          />
+          <SettingItem
+            icon="sparkles-outline"
+            color={ACCENT.glass}
+            title={t("settings.liquidGlassEffect")}
+            isSwitch
+            value={liquidGlassEnabled}
+            onPress={setLiquidGlassEnabled}
+          />
+        </SettingSection>
+
+        {/* Language and content */}
+        <SettingSection icon="globe-outline" color={ACCENT.language} title={t("settings.groupLanguage")} theme={theme} isDarkMode={isDarkMode}>
           {/* Language dropdown */}
-          <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
+          <View style={[styles.dropdownRow, { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" }]}>
             <View style={styles.settingItemLeft}>
-              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name="language-outline" size={20} color={theme.primary} />
+              <View style={[styles.settingItemIcon, { backgroundColor: tint(ACCENT.language, isDarkMode) }]}>
+                <Ionicons name="language-outline" size={20} color={ACCENT.language} />
               </View>
-              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.language")}</Text>
+              <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 12 }]}>{t("settings.language")}</Text>
             </View>
             <Dropdown
               options={[
@@ -431,12 +548,12 @@ export default function SettingsScreen({ navigation }) {
           </View>
 
           {/* AI Translation Language dropdown */}
-          <View style={[styles.dropdownRow, { borderBottomColor: theme.border, justifyContent: "space-between" }]}>
+          <View style={[styles.dropdownRow, { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9", justifyContent: "space-between" }]}>
             <View style={[styles.settingItemLeft, { minWidth: 0, marginRight: 8 }]}>
-              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
+              <View style={[styles.settingItemIcon, { backgroundColor: tint(ACCENT.aiTranslate, isDarkMode) }]}>
+                <Ionicons name="sparkles-outline" size={20} color={ACCENT.aiTranslate} />
               </View>
-              <Text style={[styles.settingItemText, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 12 }]} numberOfLines={1} ellipsizeMode="tail">
                 {t("settings.aiTranslate")}
               </Text>
             </View>
@@ -462,6 +579,7 @@ export default function SettingsScreen({ navigation }) {
 
           <SettingItem
             icon="play-circle-outline"
+            color={ACCENT.autoplay}
             title={t("settings.autoplayVideos")}
             isSwitch
             value={autoplayVideos}
@@ -469,16 +587,12 @@ export default function SettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        {/* Notifications, chat and background use */}
-        <SettingSection title={t("settings.groupNotifications")} theme={theme}>
-          <SettingItem
-            icon="notifications-outline"
-            title={t("settings.notifications")}
-            onPress={() => navigation.navigate("NotificationSettingsScreen")}
-          />
+        {/* Chat and background use (Android only; the section hides itself when empty) */}
+        <SettingSection icon="chatbubbles-outline" color={ACCENT.bubble} title={t("settings.groupNotifications")} theme={theme} isDarkMode={isDarkMode}>
           {bubbleChatAvailable && (
             <SettingItem
               icon="chatbubble-ellipses-outline"
+              color={ACCENT.bubble}
               title={t("settings.bubbleChat")}
               subtitle={t("settings.bubbleChatDesc")}
               isSwitch
@@ -489,6 +603,7 @@ export default function SettingsScreen({ navigation }) {
           {batteryApi && (
             <SettingItem
               icon="battery-charging-outline"
+              color={ACCENT.battery}
               title={t("settings.batteryBackground")}
               subtitle={batteryIgnoring ? t("settings.batteryBackgroundOn") : t("settings.batteryBackgroundOff")}
               chevron={!batteryIgnoring}
@@ -500,6 +615,7 @@ export default function SettingsScreen({ navigation }) {
           {batteryApi && (
             <SettingItem
               icon="alarm-outline"
+              color={ACCENT.remind}
               title={t("settings.batteryRemind")}
               subtitle={t("settings.batteryRemindDesc")}
               isSwitch
@@ -510,9 +626,10 @@ export default function SettingsScreen({ navigation }) {
         </SettingSection>
 
         {/* App */}
-        <SettingSection title={t("settings.groupApp")} theme={theme}>
+        <SettingSection icon="apps-outline" color={ACCENT.about} title={t("settings.groupApp")} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="phone-portrait-outline"
+            color={ACCENT.shake}
             title={t("settings.shakeToReport")}
             isSwitch
             value={shakeToReportEnabled}
@@ -520,6 +637,7 @@ export default function SettingsScreen({ navigation }) {
           />
           <SettingItem
             icon="cloud-download-outline"
+            color={ACCENT.updates}
             title={t("settings.appUpdates", "Cập nhật ứng dụng")}
             value={
               runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
@@ -530,6 +648,7 @@ export default function SettingsScreen({ navigation }) {
           />
           <SettingItem
             icon="information-circle-outline"
+            color={ACCENT.about}
             title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}
             onLongPress={() => navigation.navigate("EasterEggScreen")}
@@ -538,6 +657,7 @@ export default function SettingsScreen({ navigation }) {
           {devMode && (
             <SettingItem
               icon="terminal-outline"
+              color={ACCENT.debug}
               title={t("settings.debugConsole")}
               onPress={() => navigation.navigate("DevConsoleScreen")}
               lastItem
@@ -692,16 +812,47 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 8,
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
     marginLeft: 4,
   },
-  settingSection: {
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  tilesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: GRID_GAP,
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  tile: {
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
+    padding: 14,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  tileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  tileTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
+  tileSubtitle: { fontSize: 11, fontWeight: "500" },
+  settingSection: {
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
@@ -722,15 +873,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingItemIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
   settingItemText: {
-    fontSize: 16,
-    marginLeft: 12,
+    fontSize: 15,
+    fontWeight: "600",
     flexShrink: 1,
   },
   settingItemRight: {
