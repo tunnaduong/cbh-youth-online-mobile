@@ -39,7 +39,7 @@ const NewConversationScreen = ({ navigation }) => {
     extrapolate: "clamp",
   });
   const { t } = useTranslation();
-  const { username } = useContext(AuthContext);
+  const { username, blockedUsers } = useContext(AuthContext);
 
   // Each keystroke used to fire its own request, so a fast typist could get
   // an older response landing after a newer one. Debounce, and ignore any
@@ -62,7 +62,10 @@ const NewConversationScreen = ({ navigation }) => {
       try {
         const response = await searchChatUsername(query, { signal: controller.signal });
         if (latestQueryRef.current !== query || controller.signal.aborted) return;
-        setSearchResult(response.data);
+        // A blocked user must not be found, whatever the server returned.
+        setSearchResult(
+          (blockedUsers || []).includes(response.data?.user?.username) ? null : response.data
+        );
       } catch (error) {
         if (isRequestCanceled(error) || controller.signal.aborted || latestQueryRef.current !== query) return;
         setSearchResult(null);

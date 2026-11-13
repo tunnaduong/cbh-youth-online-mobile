@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from "react";
+import { AuthContext } from "../../../contexts/AuthContext";
 import {
   View,
   Text,
@@ -129,6 +130,7 @@ export default function SearchScreen({ navigation, route }) {
   const inset = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const { blockedUsers } = useContext(AuthContext);
 
   const [query, setQuery] = useState(route?.params?.initialQuery || "");
   const [results, setResults] = useState({ users: [], posts: [] });
@@ -298,8 +300,11 @@ export default function SearchScreen({ navigation, route }) {
 
   const allFlatItems = useMemo(() => {
     if (!query.trim() || loading) return [];
-    const users = results.users || [];
-    const posts = results.posts || [];
+    // The API already hides blocked users; this also covers a block made
+    // after the results were fetched and any stale server response.
+    const blocked = new Set(blockedUsers || []);
+    const users = (results.users || []).filter((u) => !blocked.has(u?.username));
+    const posts = (results.posts || []).filter((p) => !blocked.has(p?.author?.username));
     if (hasSearched && !users.length && !posts.length) return [];
 
     const items = [];
@@ -365,7 +370,7 @@ export default function SearchScreen({ navigation, route }) {
     }
 
     return items;
-  }, [query, loading, results.users, results.posts, hasSearched, activeFilter, hashtagTag, t]);
+  }, [query, loading, results.users, results.posts, blockedUsers, hasSearched, activeFilter, hashtagTag, t]);
 
   const displayedItems = useMemo(
     () => allFlatItems.slice(0, visibleCount),

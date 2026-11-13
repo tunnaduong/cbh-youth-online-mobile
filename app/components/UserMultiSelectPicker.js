@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
 import {
   View,
   Text,
@@ -27,7 +28,10 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const { blockedUsers } = useContext(AuthContext);
+  const [rawSuggestions, setSuggestions] = useState([]);
+  // Cached results can predate a block, so the block list is applied here.
+  const suggestions = rawSuggestions.filter((u) => !(blockedUsers || []).includes(u?.username));
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef(null);
   const cacheRef = useRef(new Map());
