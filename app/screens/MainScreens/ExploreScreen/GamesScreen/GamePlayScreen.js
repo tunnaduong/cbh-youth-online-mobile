@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, BackHandler } from "react-native";
+import { View, StyleSheet, TouchableOpacity, BackHandler, StatusBar } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -27,6 +28,7 @@ export default function GamePlayScreen({ navigation, route }) {
   const { slug, name } = route.params || {};
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
 
   // Session tracking (startSession/heartbeat - what fills "Đang chơi" and
@@ -69,20 +71,30 @@ export default function GamePlayScreen({ navigation, route }) {
   const webViewRef = useRef(null);
   const [canGoBack, setCanGoBack] = useState(false);
 
+  // Fullscreen hides the header and status bar; one small button brings them back.
+  const [fullscreen, setFullscreen] = useState(false);
+
   const handleBack = useCallback(() => {
+    if (fullscreen) {
+      setFullscreen(false);
+      return true;
+    }
     if (canGoBack && webViewRef.current) {
       webViewRef.current.goBack();
       return true;
     }
     return false;
-  }, [canGoBack]);
+  }, [canGoBack, fullscreen]);
 
   // Many games are made for landscape: this is the one screen that follows
   // the device's rotation. Back to portrait as soon as it loses focus.
   useFocusEffect(
     useCallback(() => {
       allowRotation();
-      return () => lockPortrait();
+      return () => {
+        lockPortrait();
+        setFullscreen(false);
+      };
     }, [])
   );
 
@@ -128,19 +140,39 @@ export default function GamePlayScreen({ navigation, route }) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <WebViewHeader
-        title={name || t("games.title")}
-        onBack={() => {
-          if (!handleBack()) navigation.goBack();
-        }}
-        onClose={() => navigation.goBack()}
-        right={
-          <TouchableOpacity hitSlop={8} onPress={() => webViewRef.current?.reload()}>
-            <Ionicons name="refresh" size={22} color={theme.primary} />
-          </TouchableOpacity>
-        }
-      />
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.background },
+        fullscreen && { paddingLeft: insets.left, paddingRight: insets.right, paddingBottom: insets.bottom },
+      ]}
+    >
+      {fullscreen ? (
+        <StatusBar hidden />
+      ) : (
+        <WebViewHeader
+          title={name || t("games.title")}
+          onBack={() => {
+            if (!handleBack()) navigation.goBack();
+          }}
+          onClose={() => navigation.goBack()}
+          right={
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                hitSlop={8}
+                onPress={() => setFullscreen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t("games.fullscreen")}
+              >
+                <Ionicons name="expand" size={22} color={theme.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity hitSlop={8} onPress={() => webViewRef.current?.reload()}>
+                <Ionicons name="refresh" size={22} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
 
       {startUrl ? (
         <WebView
@@ -186,12 +218,35 @@ export default function GamePlayScreen({ navigation, route }) {
           <CustomLoading size={56} />
         </View>
       )}
+
+      {fullscreen && (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          hitSlop={8}
+          onPress={() => setFullscreen(false)}
+          accessibilityRole="button"
+          accessibilityLabel={t("games.exitFullscreen")}
+          style={[styles.exitFullscreen, { top: insets.top + 8, right: Math.max(insets.right, 0) + 12 }]}
+        >
+          <Ionicons name="contract" size={20} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  exitFullscreen: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   webview: { flex: 1 },
   webviewContainer: { flex: 1 },
   loading: {

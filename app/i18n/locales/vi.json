@@ -1770,6 +1770,8 @@
     "heroSubtitle": "Khám phá các tính năng, kết nối với cộng đồng và tận hưởng trải nghiệm tuyệt vời trên CBH Online!"
   },
   "games": {
+    "fullscreen": "Toàn màn hình",
+    "exitFullscreen": "Thoát toàn màn hình",
     "title": "Game",
     "subtitle": "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!",
     "random": "Game ngẫu nhiên",

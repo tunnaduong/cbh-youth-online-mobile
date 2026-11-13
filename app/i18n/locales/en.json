@@ -1784,6 +1784,8 @@
     "heroSubtitle": "Explore features, connect with the community and enjoy great experiences on CBH Online!"
   },
   "games": {
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
     "title": "Games",
     "subtitle": "Play games right in the app - Free, no download needed!",
     "random": "Random game",
