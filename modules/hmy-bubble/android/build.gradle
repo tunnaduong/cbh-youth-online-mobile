@@ -3,11 +3,11 @@ plugins {
   id 'expo-module-gradle-plugin'
 }
 
-group = 'dhp.hmy.bubble'
+group = 'cyo.hmy.en.bubble'
 version = '1.0.0'
 
 android {
-  namespace "dhp.hmy.bubble"
+  namespace "cyo.hmy.en.bubble"
   defaultConfig {
     versionCode 1
     versionName "1.0.0"

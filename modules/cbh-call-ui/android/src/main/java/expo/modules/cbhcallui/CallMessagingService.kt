@@ -79,7 +79,7 @@ class CallMessagingService : FirebaseMessagingService() {
   }
 
   private fun bubbleHandled(body: JSONObject, remoteMessage: RemoteMessage): Boolean = try {
-    Class.forName("dhp.hmy.bubble.BubbleHook")
+    Class.forName("cyo.hmy.en.bubble.BubbleHook")
       .getMethod("onChatPush", Context::class.java, String::class.java, String::class.java, String::class.java)
       .invoke(null, this, body.toString(), remoteMessage.data["title"], remoteMessage.data["message"]) as? Boolean ?: false
   } catch (_: Throwable) {

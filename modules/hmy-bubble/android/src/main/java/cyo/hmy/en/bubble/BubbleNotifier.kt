@@ -1,4 +1,4 @@
-package dhp.hmy.bubble
+package cyo.hmy.en.bubble
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -33,7 +33,7 @@ object BubbleNotifier {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
     val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
     if (nm.getNotificationChannel(CHANNEL) != null) return
-    val ch = NotificationChannel(CHANNEL, "Chat bubbles", NotificationManager.IMPORTANCE_HIGH)
+    val ch = NotificationChannel(CHANNEL, "hmyen bubble", NotificationManager.IMPORTANCE_HIGH)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ch.setAllowBubbles(true)
     nm.createNotificationChannel(ch)
   }
