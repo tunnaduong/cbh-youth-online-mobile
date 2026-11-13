@@ -75,9 +75,13 @@ export function collapseBubble() {
   if (bubbleChatAvailable) safe(() => Native.collapse());
 }
 
-/** Inside the bubble window: open the main app on a conversation. */
-export function openAppAt(conversationId) {
-  if (bubbleChatAvailable) safe(() => Native.openApp(String(conversationId)));
+/**
+ * Inside the bubble window: open the main app on a conversation. `call` ("audio"
+ * or "video") makes the app start that call as soon as the chat is open - the
+ * call itself runs in the main app.
+ */
+export function openAppAt(conversationId, call) {
+  if (bubbleChatAvailable) safe(() => Native.openApp(String(conversationId), call || null));
 }
 
 /** Opens this conversation as an expanded bubble (the "Open in bubble" menu item). */

@@ -301,8 +301,15 @@ const parseDeepLink = (url) => {
         if (token) return { screen: "GroupJoin", params: { token } };
       }
       if (pathSegment.startsWith("chat/")) {
-        const conversationId = pathSegment.slice(5).split("?")[0];
-        if (conversationId) return { screen: "ConversationScreen", params: { conversationId: Number(conversationId) || conversationId } };
+        const [conversationId, chatQuery = ""] = pathSegment.slice(5).split("?");
+        // ?call=audio|video (from the chat bubble's call button): start it on arrival.
+        const startCall = /(?:^|&)call=(audio|video)(?:&|$)/.exec(chatQuery)?.[1];
+        if (conversationId) {
+          return {
+            screen: "ConversationScreen",
+            params: { conversationId: Number(conversationId) || conversationId, ...(startCall ? { startCall } : null) },
+          };
+        }
       }
       if (pathSegment.startsWith("quiz/")) {
         const quizSetId = pathSegment.slice(5).split("?")[0];

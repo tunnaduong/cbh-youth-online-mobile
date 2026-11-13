@@ -36,7 +36,7 @@ const Stack = createStackNavigator();
 // Calls are started and answered in the main app: from the bubble the button
 // just opens the app on this conversation.
 const bubbleCallContext = (conversationId) => ({
-  startCall: () => openAppAt(conversationId),
+  startCall: (id, type) => openAppAt(id ?? conversationId, type === "video" ? "video" : "audio"),
 });
 
 function Navigator({ conversationId }) {

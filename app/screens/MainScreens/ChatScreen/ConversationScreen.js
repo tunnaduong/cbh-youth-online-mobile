@@ -281,6 +281,7 @@ const ConversationScreen = ({ navigation, route }) => {
     selectedUser,
     isNewConversation,
     highlightMessageId,
+    startCall: startCallParam,
   } = route.params;
   const messageLayoutOffsetsRef = useRef({});
   const activeInlineVideoIdRef = useRef(null);
@@ -3135,6 +3136,15 @@ const ConversationScreen = ({ navigation, route }) => {
   // ConversationHeader / ChatComposer / SeenByModal are memoized; they get
   // callbacks that never change identity and always run this render's
   // handlers (the same idea as messageHandlersRef above).
+  // Opened from the chat bubble's call button: the call starts here, in the app.
+  const startCallParamDoneRef = useRef(false);
+  useEffect(() => {
+    if (!startCallParam || startCallParamDoneRef.current || !otherUser) return;
+    startCallParamDoneRef.current = true;
+    navigation.setParams({ startCall: undefined });
+    startCall(currentConversationId || conversationId, startCallParam, otherUser);
+  }, [startCallParam, otherUser]);
+
   const uiHandlersRef = useRef({});
   uiHandlersRef.current = {
     goBack: safeGoBack,

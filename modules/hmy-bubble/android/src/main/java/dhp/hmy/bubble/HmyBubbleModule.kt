@@ -76,8 +76,10 @@ class HmyBubbleModule : Module() {
     Function("collapse") { BubbleActivity.current?.get()?.runOnUiThread { BubbleActivity.current?.get()?.finish() } }
 
     /** From inside the bubble: continue in the full app. */
-    Function("openApp") { conversationId: String ->
-      val intent = Intent(Intent.ACTION_VIEW, Uri.parse("com.fatties.youth://chat/$conversationId"))
+    Function("openApp") { conversationId: String, call: String? ->
+      // call = "audio" / "video": the app starts that call on arrival.
+      val query = if (call == "audio" || call == "video") "?call=$call" else ""
+      val intent = Intent(Intent.ACTION_VIEW, Uri.parse("com.fatties.youth://chat/$conversationId$query"))
         .setPackage(context.packageName)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
       context.startActivity(intent)
