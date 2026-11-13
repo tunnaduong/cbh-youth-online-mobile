@@ -40,6 +40,16 @@ class HmyBubbleModule : Module() {
     /** The chat is open in the app: drop its bubble and notification. */
     Function("dismiss") { conversationId: String -> BubbleNotifier.cancel(context, conversationId) }
 
+    /** "Open in bubble" from the chat screen: raise this conversation as an expanded bubble now. */
+    Function("openBubble") { conversationId: String, title: String, avatarUrl: String? ->
+      Thread {
+        BubbleNotifier.showChat(
+          context, conversationId, null, title, "", autoExpand = true,
+          knownAvatarUrl = avatarUrl?.takeIf { it.startsWith("http") }
+        )
+      }.start()
+    }
+
     /** From inside the bubble: fold it back to the floating icon. */
     Function("collapse") { BubbleActivity.current?.get()?.runOnUiThread { BubbleActivity.current?.get()?.finish() } }
 

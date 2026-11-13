@@ -1,4 +1,4 @@
-import { dismissBubble } from "../../../services/bubble/nativeBubble";
+import { dismissBubble, canOfferOpenInBubble, openChatInBubble, bubblesAllowedBySystem, openBubbleSystemSettings } from "../../../services/bubble/nativeBubble";
 import LoadMoreHeader from "./conversation/LoadMoreHeader";
 import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
 import {
@@ -739,6 +739,25 @@ const ConversationScreen = ({ navigation, route }) => {
     const openGallery = () =>
       navigation.navigate("MediaGalleryScreen", { conversationId: privateConversationId });
 
+    // "Open in bubble": only with bubble chat on in Settings, not inside the bubble itself.
+    const offerBubble = canOfferOpenInBubble() && !route?.params?.inBubble;
+    const openInBubble = () => {
+      if (!bubblesAllowedBySystem()) {
+        Toast.show({ type: "info", text1: t("settings.bubbleChat"), text2: t("settings.bubbleChatSystemOff"), topOffset: 60 });
+        openBubbleSystemSettings();
+        return;
+      }
+      const avatar = getHeaderAvatar();
+      openChatInBubble(
+        privateConversationId,
+        headerTitle,
+        typeof avatar === "string" && avatar.startsWith("http") ? avatar : null,
+      );
+    };
+    const bubbleItem = offerBubble
+      ? { text: t("chatConversation.openInBubble"), onPress: openInBubble }
+      : null;
+
     const options = [
       t("chatConversation.gallery", "Bộ sưu tập"),
       t("chatConversation.report"),
@@ -760,6 +779,7 @@ const ConversationScreen = ({ navigation, route }) => {
             text: t("chatConversation.gallery", "Bộ sưu tập"),
             onPress: () => navigation.navigate("MediaGalleryScreen", { conversationId: targetConversationId }),
           },
+          ...(bubbleItem ? [bubbleItem] : []),
           {
             text: t("chatConversation.report"),
             onPress: () => setReportModalVisible(true),
@@ -778,6 +798,7 @@ const ConversationScreen = ({ navigation, route }) => {
           text: t("chatConversation.gallery", "Bộ sưu tập"),
           onPress: () => navigation.navigate("MediaGalleryScreen", { conversationId: targetConversationId }),
         },
+        ...(bubbleItem ? [bubbleItem] : []),
         {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
@@ -812,6 +833,7 @@ const ConversationScreen = ({ navigation, route }) => {
           text: t("chatConversation.gallery", "Bộ sưu tập"),
           onPress: openGallery,
         },
+        ...(bubbleItem ? [bubbleItem] : []),
         {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),

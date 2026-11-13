@@ -780,6 +780,7 @@
     "updateCompleteMessage": "Update complete! Restart app to continue."
   },
   "chatConversation": {
+    "openInBubble": "Open in bubble",
     "you": "You",
     "reply": "Reply",
     "replyPhoto": "Photo",

@@ -85,10 +85,20 @@ object BubbleNotifier {
     }
   }
 
-  fun showChat(ctx: Context, conversationId: String, messageId: String?, title: String, text: String) {
+  fun showChat(
+    ctx: Context,
+    conversationId: String,
+    messageId: String?,
+    title: String,
+    text: String,
+    autoExpand: Boolean = false,
+    knownAvatarUrl: String? = null,
+  ) {
     if (!supported()) return
     ensureChannel(ctx)
-    val (avatarUrl, senderName) = fetchSender(ctx, conversationId, messageId)
+    val (fetchedAvatar, senderName) =
+      if (knownAvatarUrl != null) knownAvatarUrl to null else fetchSender(ctx, conversationId, messageId)
+    val avatarUrl = fetchedAvatar
     val sender = senderName ?: title.substringBefore(" trong ")
     val conversationTitle = if (title.contains(" trong ")) title.substringAfter(" trong ") else sender
     val avatar = fetchBitmap(avatarUrl)?.let { IconCompat.createWithAdaptiveBitmap(it) }
@@ -119,8 +129,8 @@ object BubbleNotifier {
 
     val bubble = NotificationCompat.BubbleMetadata.Builder(bubblePending, avatar)
       .setDesiredHeight(640)
-      .setAutoExpandBubble(false)
-      .setSuppressNotification(false)
+      .setAutoExpandBubble(autoExpand)
+      .setSuppressNotification(autoExpand)
       .build()
 
     // Tapping the notification (not the bubble) opens the main app on the chat.
@@ -154,7 +164,7 @@ object BubbleNotifier {
       .setBubbleMetadata(bubble)
       .setContentIntent(openPending)
       .setAutoCancel(true)
-      .setOnlyAlertOnce(false)
+      .setOnlyAlertOnce(autoExpand)
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .build()
     try {

@@ -79,3 +79,14 @@ export function collapseBubble() {
 export function openAppAt(conversationId) {
   if (bubbleChatAvailable) safe(() => Native.openApp(String(conversationId)));
 }
+
+/** Opens this conversation as an expanded bubble (the "Open in bubble" menu item). */
+export function openChatInBubble(conversationId, title, avatarUrl) {
+  if (!bubbleChatAvailable || conversationId == null) return;
+  safe(() => Native.openBubble(String(conversationId), String(title || ""), avatarUrl || null));
+}
+
+/** The menu item shows only when the feature can work: Android 11+, switched on. */
+export function canOfferOpenInBubble() {
+  return bubbleChatAvailable && isBubbleChatEnabled();
+}
