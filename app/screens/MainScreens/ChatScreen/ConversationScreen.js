@@ -1,4 +1,4 @@
-import { dismissBubble, canOfferOpenInBubble, openChatInBubble, bubblesAllowedBySystem, openBubbleSystemSettings } from "../../../services/bubble/nativeBubble";
+import { collapseBubble, dismissBubble, canOfferOpenInBubble, openChatInBubble, bubblesAllowedBySystem, openBubbleSystemSettings } from "../../../services/bubble/nativeBubble";
 import LoadMoreHeader from "./conversation/LoadMoreHeader";
 import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
 import {
@@ -203,6 +203,11 @@ const ConversationScreen = ({ navigation, route }) => {
   }, [i18n.language]);
 
   const safeGoBack = () => {
+    // Inside the chat bubble there is no screen below: back closes the bubble.
+    if (route?.params?.inBubble) {
+      collapseBubble();
+      return;
+    }
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {

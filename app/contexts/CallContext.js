@@ -1,3 +1,4 @@
+import { askIgnoreBatteryOptimizationsOnce } from "../utils/batteryOptimization";
 import {
   setNativeBubbleSession,
   clearNativeBubbleSession,
@@ -1066,6 +1067,13 @@ export const CallProvider = ({ children }) => {
     consumePendingCallActions().forEach(handleOsCallAction);
     return () => sub.remove();
   }, [isLoggedIn, handleOsCallAction]);
+
+  // First login on Android: one-time battery optimisation prompt.
+  useEffect(() => {
+    if (!isLoggedIn) return undefined;
+    const timer = setTimeout(askIgnoreBatteryOptimizationsOnce, 4000);
+    return () => clearTimeout(timer);
+  }, [isLoggedIn]);
 
   // The native side declines calls itself (lock screen, app not running), so
   // it needs the API address and the signed-in account's token.

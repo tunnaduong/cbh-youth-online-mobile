@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
   <application>
+    <!--
+      Own process: a second ReactActivity on the app's React host made the host
+      assert ("Pausing an activity that is not the current activity") and crash
+      the app whenever the main activity paused behind an open bubble. In its
+      own process the bubble has its own host and JS runtime.
+    -->
     <!-- Hosted inside the system bubble: must be resizable, embeddable, one instance per bubble. -->
     <activity
       android:name="hhh.hmy.bubble.BubbleActivity"
@@ -13,6 +20,7 @@
       android:documentLaunchMode="always"
       android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
       android:windowSoftInputMode="adjustResize"
+      android:process=":bubble"
       android:taskAffinity="" />
   </application>
 </manifest>

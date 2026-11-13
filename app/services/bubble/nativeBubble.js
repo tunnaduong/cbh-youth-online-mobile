@@ -95,3 +95,12 @@ export async function openChatInBubble(conversationId, title, avatarUrl) {
 export function canOfferOpenInBubble() {
   return bubbleChatAvailable && isBubbleChatEnabled();
 }
+
+/** Battery-optimisation helpers (same native module); null when unavailable. */
+export function batteryOptimizationApi() {
+  if (!Native || typeof Native.requestIgnoreBatteryOptimizations !== "function") return null;
+  return {
+    isIgnoring: () => safe(() => Native.isIgnoringBatteryOptimizations(), true),
+    request: () => safe(() => Native.requestIgnoreBatteryOptimizations()),
+  };
+}

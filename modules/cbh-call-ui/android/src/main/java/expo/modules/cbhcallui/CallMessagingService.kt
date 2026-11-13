@@ -45,6 +45,7 @@ class CallMessagingService : FirebaseMessagingService() {
   }
 
   override fun onMessageReceived(remoteMessage: RemoteMessage) {
+    Log.d("HmyBubble", "FCM received: ${remoteMessage.data["body"]?.take(120)}")
     val body = try {
       remoteMessage.data["body"]?.let { JSONObject(it) }
     } catch (_: Throwable) {

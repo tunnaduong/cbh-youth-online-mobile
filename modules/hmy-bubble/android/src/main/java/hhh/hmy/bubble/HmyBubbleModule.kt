@@ -34,6 +34,24 @@ class HmyBubbleModule : Module() {
       }
     }
 
+    /** Android battery optimisation: whether the app is already exempt. */
+    Function("isIgnoringBatteryOptimizations") {
+      val pm = context.getSystemService(android.os.PowerManager::class.java)
+      pm?.isIgnoringBatteryOptimizations(context.packageName) ?: true
+    }
+
+    /** The system "let the app run in the background" dialog. */
+    Function("requestIgnoreBatteryOptimizations") {
+      try {
+        context.startActivity(
+          Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+      } catch (e: Throwable) {
+        android.util.Log.w("HmyBubble", "battery optimisation dialog failed", e)
+      }
+    }
+
     Function("setSession") { apiBase: String, token: String -> BubbleStore.setSession(context, apiBase, token) }
     Function("clearSession") { BubbleStore.clearSession(context) }
 
