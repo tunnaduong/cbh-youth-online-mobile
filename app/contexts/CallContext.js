@@ -1,4 +1,4 @@
-import { askIgnoreBatteryOptimizationsOnce } from "../utils/batteryOptimization";
+import { askIgnoreBatteryOptimizations } from "../utils/batteryOptimization";
 import {
   setNativeBubbleSession,
   clearNativeBubbleSession,
@@ -1068,10 +1068,10 @@ export const CallProvider = ({ children }) => {
     return () => sub.remove();
   }, [isLoggedIn, handleOsCallAction]);
 
-  // First login on Android: one-time battery optimisation prompt.
+  // Android: remind (every start) to allow background use until it is allowed.
   useEffect(() => {
     if (!isLoggedIn) return undefined;
-    const timer = setTimeout(askIgnoreBatteryOptimizationsOnce, 4000);
+    const timer = setTimeout(askIgnoreBatteryOptimizations, 4000);
     return () => clearTimeout(timer);
   }, [isLoggedIn]);
 

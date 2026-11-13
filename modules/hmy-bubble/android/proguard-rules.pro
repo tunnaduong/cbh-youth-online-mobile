@@ -1,1 +1,1 @@
--keep class hhh.hmy.bubble.** { *; }
+-keep class dhp.hmy.bubble.** { *; }

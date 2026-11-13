@@ -1,4 +1,4 @@
-package hhh.hmy.bubble
+package dhp.hmy.bubble
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity

@@ -1,6 +1,6 @@
 {
   "platforms": ["android"],
   "android": {
-    "modules": ["hhh.hmy.bubble.HmyBubbleModule"]
+    "modules": ["dhp.hmy.bubble.HmyBubbleModule"]
   }
 }

@@ -14,6 +14,7 @@ import {
   Switch,
   Image,
   Linking,
+  Alert,
   Animated,
   StatusBar,
 } from "react-native";
@@ -33,12 +34,15 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 import { getRunningUpdateInfo } from "../../../services/ota/otaService";
+import { batteryOptimizationApi } from "../../../services/bubble/nativeBubble";
+import { isBatteryPromptEnabled, setBatteryPromptEnabled } from "../../../utils/batteryOptimization";
 import { getAiTranslatePreference, setAiTranslatePreference } from "../../../utils/aiTranslation";
 
 const SettingItem = ({
   icon,
   iconComponent,
   title,
+  subtitle,
   onPress,
   onLongPress,
   delayLongPress,
@@ -64,7 +68,14 @@ const SettingItem = ({
       <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
         {iconComponent || <Ionicons name={icon} size={20} color={theme.primary} />}
       </View>
-      <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+      {subtitle ? (
+        <View style={{ flex: 1, flexShrink: 1 }}>
+          <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+          <Text style={{ fontSize: 12, lineHeight: 16, color: theme.subText, marginTop: 2 }}>{subtitle}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+      )}
     </View>
     {isSwitch ? (
       <Switch
@@ -117,6 +128,33 @@ export default function SettingsScreen({ navigation }) {
   };
   const { t, i18n } = useTranslation();
 
+  // Android background use (battery optimisation): status + the start-up reminder.
+  const batteryApi = batteryOptimizationApi();
+  const [batteryIgnoring, setBatteryIgnoring] = useState(() => (batteryApi ? batteryApi.isIgnoring() : true));
+  const [batteryRemind, setBatteryRemind] = useState(() => isBatteryPromptEnabled());
+  const toggleBatteryRemind = (on) => {
+    if (on) {
+      setBatteryPromptEnabled(true);
+      setBatteryRemind(true);
+      return;
+    }
+    // Switching the reminder off: say what is lost first.
+    Alert.alert(t("settings.batteryWarnTitle"), t("settings.batteryWarnBody"), [
+      {
+        text: t("security.cancel"),
+        style: "cancel",
+      },
+      {
+        text: t("settings.batteryWarnConfirm"),
+        style: "destructive",
+        onPress: () => {
+          setBatteryPromptEnabled(false);
+          setBatteryRemind(false);
+        },
+      },
+    ]);
+  };
+
   // Tapping the version text 5 times within 3s toggles on the hidden
   // developer debug console (persistent - re-checked whenever this screen
   // gains focus, since it can also be turned off from inside that screen).
@@ -129,6 +167,8 @@ export default function SettingsScreen({ navigation }) {
     React.useCallback(() => {
       setDevMode(isDevModeEnabled());
       setRunningUpdate(getRunningUpdateInfo());
+      // Back from the system dialog / settings: show the new state.
+      if (batteryApi) setBatteryIgnoring(batteryApi.isIgnoring());
     }, [])
   );
 
@@ -287,7 +327,7 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </LinearGradient>
 
-        {/* Account Section */}
+        {/* Account */}
         <SettingSection title={t("settings.account")} theme={theme}>
           <SettingItem
             icon="person-outline"
@@ -305,19 +345,19 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => navigation.navigate("SecurityScreen")}
           />
           <SettingItem
-            icon="notifications-outline"
-            title={t("settings.notifications")}
-            onPress={() => navigation.navigate("NotificationSettingsScreen")}
-          />
-          <SettingItem
             icon="school-outline"
             title={t("settings.studentVerification", "Xác minh học sinh")}
             onPress={() => navigation.navigate("StudentVerificationScreen")}
           />
+          <SettingItem
+            icon="ban-outline"
+            title={t("settings.blockedUsers")}
+            onPress={() => navigation.navigate("BlockedUsersScreen")}
+          />
         </SettingSection>
 
-        {/* App Section */}
-        <SettingSection title={t("settings.application")} theme={theme}>
+        {/* Appearance */}
+        <SettingSection title={t("settings.groupAppearance")} theme={theme}>
           {/* Theme dropdown */}
           <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
             <View style={styles.settingItemLeft}>
@@ -341,6 +381,22 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
 
+          <SettingItem
+            icon="apps-outline"
+            title={t("settings.appIcon", "Biểu tượng ứng dụng")}
+            onPress={() => navigation.navigate("AppIconScreen")}
+          />
+          <SettingItem
+            icon="sparkles-outline"
+            title={t("settings.liquidGlassEffect")}
+            isSwitch
+            value={liquidGlassEnabled}
+            onPress={setLiquidGlassEnabled}
+          />
+        </SettingSection>
+
+        {/* Language and content */}
+        <SettingSection title={t("settings.groupLanguage")} theme={theme}>
           {/* Language dropdown */}
           <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
             <View style={styles.settingItemLeft}>
@@ -408,38 +464,57 @@ export default function SettingsScreen({ navigation }) {
             value={autoplayVideos}
             onPress={setAutoplayVideos}
           />
+        </SettingSection>
+
+        {/* Notifications, chat and background use */}
+        <SettingSection title={t("settings.groupNotifications")} theme={theme}>
           <SettingItem
-            icon="sparkles-outline"
-            title={t("settings.liquidGlassEffect")}
-            isSwitch
-            value={liquidGlassEnabled}
-            onPress={setLiquidGlassEnabled}
+            icon="notifications-outline"
+            title={t("settings.notifications")}
+            onPress={() => navigation.navigate("NotificationSettingsScreen")}
           />
+          {bubbleChatAvailable && (
+            <SettingItem
+              icon="chatbubble-ellipses-outline"
+              title={t("settings.bubbleChat")}
+              subtitle={t("settings.bubbleChatDesc")}
+              isSwitch
+              value={bubbleChatOn}
+              onPress={toggleBubbleChat}
+            />
+          )}
+          {batteryApi && (
+            <SettingItem
+              icon="battery-charging-outline"
+              title={t("settings.batteryBackground")}
+              subtitle={batteryIgnoring ? t("settings.batteryBackgroundOn") : t("settings.batteryBackgroundOff")}
+              value={batteryIgnoring ? t("settings.batteryAllowed") : t("settings.batteryRestricted")}
+              chevron={!batteryIgnoring}
+              onPress={() => {
+                if (!batteryIgnoring) batteryApi.request();
+              }}
+            />
+          )}
+          {batteryApi && (
+            <SettingItem
+              icon="alarm-outline"
+              title={t("settings.batteryRemind")}
+              subtitle={t("settings.batteryRemindDesc")}
+              isSwitch
+              value={batteryRemind}
+              onPress={toggleBatteryRemind}
+            />
+          )}
+        </SettingSection>
+
+        {/* App */}
+        <SettingSection title={t("settings.groupApp")} theme={theme}>
           <SettingItem
             icon="phone-portrait-outline"
             title={t("settings.shakeToReport")}
             isSwitch
             value={shakeToReportEnabled}
             onPress={setShakeToReportEnabled}
-          />
-          {bubbleChatAvailable && (
-            <SettingItem
-              icon="chatbubble-ellipses-outline"
-              title={t("settings.bubbleChat")}
-              isSwitch
-              value={bubbleChatOn}
-              onPress={toggleBubbleChat}
-            />
-          )}
-          <SettingItem
-            icon="apps-outline"
-            title={t("settings.appIcon", "Biểu tượng ứng dụng")}
-            onPress={() => navigation.navigate("AppIconScreen")}
-          />
-          <SettingItem
-            icon="ban-outline"
-            title={t("settings.blockedUsers")}
-            onPress={() => navigation.navigate("BlockedUsersScreen")}
           />
           <SettingItem
             icon="cloud-download-outline"

@@ -12,7 +12,7 @@
     -->
     <!-- Hosted inside the system bubble: must be resizable, embeddable, one instance per bubble. -->
     <activity
-      android:name="hhh.hmy.bubble.BubbleActivity"
+      android:name="dhp.hmy.bubble.BubbleActivity"
       android:theme="@style/HmyBubbleTheme"
       android:exported="false"
       android:allowEmbedded="true"
