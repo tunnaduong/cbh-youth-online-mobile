@@ -1729,6 +1729,7 @@
       "submit": "Đọc thời khóa biểu",
       "reading": "AI đang đọc...",
       "failed": "AI chưa đọc được thời khóa biểu, bạn thử lại nhé.",
+      "tooSlow": "AI phản hồi quá lâu nên kết nối bị ngắt (mã {{code}}). Bạn thử lại, hoặc dùng ảnh rõ hơn / chụp từng buổi.",
       "applied": "AI đã điền thời khóa biểu",
       "appliedHint": "Kiểm tra lại từng ngày rồi bấm Lưu.",
       "hint": "Chỉ có khung giờ mà chưa có tên môn? AI sẽ giữ tên môn trong lịch hiện tại theo thứ tự tiết. Mỗi ngày dùng được 30 lần."

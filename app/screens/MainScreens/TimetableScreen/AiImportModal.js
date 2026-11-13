@@ -71,7 +71,15 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
       setText("");
       setPhoto(null);
     } catch (err) {
-      setError(apiErrorMessage(err, t("timetable.ai.failed")));
+      // No JSON from our API (gateway timeout page, connection cut): the photo
+      // read took too long. Show the status so a report can be traced.
+      const status = err?.response?.status;
+      const fromApi = typeof err?.response?.data?.message === "string";
+      if (!fromApi && (status >= 500 || err?.code === "ECONNABORTED")) {
+        setError(t("timetable.ai.tooSlow", { code: status || "timeout" }));
+      } else {
+        setError(apiErrorMessage(err, t("timetable.ai.failed")));
+      }
     } finally {
       setBusy(false);
     }

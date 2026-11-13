@@ -1743,6 +1743,7 @@
       "submit": "Read timetable",
       "reading": "AI is reading...",
       "failed": "The AI couldn't read the timetable, please try again.",
+      "tooSlow": "The AI took too long and the connection was cut (code {{code}}). Try again, or use a clearer photo / one session at a time.",
       "applied": "The AI filled in your timetable",
       "appliedHint": "Check each day, then tap Save.",
       "hint": "Only class times, no subjects? The AI keeps the subjects of your current timetable, in period order. 30 uses per day."
