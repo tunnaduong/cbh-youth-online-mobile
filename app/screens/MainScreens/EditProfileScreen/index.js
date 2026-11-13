@@ -34,11 +34,26 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { SectionHeader, ACCENT, tint, useLook } from "../../../components/settings/SettingsUI";
+
+// One labelled form row: round accent icon on the left, label + input stacked.
+const Field = ({ icon, color, label, children, last, rowBorder, theme, isDarkMode }) => (
+  <View style={[styles.fieldRow, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: rowBorder }]}>
+    <View style={[styles.fieldIcon, { backgroundColor: tint(color, isDarkMode) }]}>
+      <Ionicons name={icon} size={20} color={color} />
+    </View>
+    <View style={{ flex: 1, marginLeft: 12 }}>
+      <Text style={[styles.label, { color: theme.subText }]}>{label}</Text>
+      {children}
+    </View>
+  </View>
+);
 
 const EditProfileScreen = ({ navigation }) => {
   const { username, userInfo, setUserInfo, bumpAvatarVersion, bumpCoverVersion, getCoverUrl, refreshUserInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const { cardBorder, rowBorder } = useLook();
   const { t, i18n } = useTranslation();
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -365,48 +380,45 @@ const EditProfileScreen = ({ navigation }) => {
           )}
           contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
         >
-          <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
-          {/* Avatar Section */}
-          <View style={styles.avatarSection}>
-            <FastImage
-              source={{
-                uri: selectedImage
-                  ? selectedImage
-                  : `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={styles.avatar}
-            />
-            <TouchableOpacity
-              onPress={pickImage}
-              style={[styles.changeAvatarButton, { borderColor: theme.primary }]}
-            >
-              <Ionicons name="camera-outline" size={20} color={theme.text} />
-              <Text style={[styles.changeAvatarText, { color: theme.text }]}>{t('editProfile.changeAvatar')}</Text>
+          {/* Photos card: cover banner with the avatar overlapping it */}
+          <SectionHeader icon="image-outline" color={ACCENT.profileTheme} title={t('editProfile.updateAvatar')} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: cardBorder, marginBottom: 24 }]}>
+            <TouchableOpacity activeOpacity={0.85} onPress={pickCoverImage}>
+              <FastImage
+                source={{ uri: selectedCoverImage ? selectedCoverImage : getCoverUrl(username) }}
+                style={styles.coverImage}
+              />
+              <View style={styles.coverBadge}>
+                <Ionicons name="pencil" size={13} color="#fff" />
+                <Text style={styles.coverBadgeText}>{t('editProfile.changeCover')}</Text>
+              </View>
             </TouchableOpacity>
-            <FastImage
-              source={{
-                uri: selectedCoverImage
-                  ? selectedCoverImage
-                  : getCoverUrl(username),
-              }}
-              style={styles.coverImage}
-            />
-            <TouchableOpacity
-              onPress={pickCoverImage}
-              style={[styles.changeAvatarButton, { borderColor: theme.primary }]}
-            >
-              <Ionicons name="pencil-outline" size={20} color={theme.text} />
-              <Text style={[styles.changeAvatarText, { color: theme.text }]}>{t('editProfile.changeCover')}</Text>
-            </TouchableOpacity>
+            <View style={styles.avatarRow}>
+              <TouchableOpacity activeOpacity={0.85} onPress={pickImage}>
+                <FastImage
+                  source={{ uri: selectedImage ? selectedImage : `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar` }}
+                  style={[styles.avatar, { borderColor: theme.surface }]}
+                />
+                <View style={[styles.avatarCamera, { backgroundColor: ACCENT.profile, borderColor: theme.surface }]}>
+                  <Ionicons name="camera" size={14} color="#fff" />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={pickImage}
+                activeOpacity={0.7}
+                style={[styles.pill, { backgroundColor: tint(ACCENT.profile, isDarkMode) }]}
+              >
+                <Ionicons name="camera-outline" size={16} color={ACCENT.profile} />
+                <Text style={[styles.pillText, { color: ACCENT.profile }]}>{t('editProfile.changeAvatar')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateInfo')}</Text>
-          {/* Form Fields */}
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.primary }]}>{t('editProfile.displayName')}</Text>
+          <SectionHeader icon="person-circle-outline" color={ACCENT.profile} title={t('editProfile.updateInfo')} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: cardBorder, marginBottom: 24 }]}>
+            <Field icon="person-outline" color={ACCENT.profile} label={t('editProfile.displayName')} rowBorder={rowBorder} theme={theme} isDarkMode={isDarkMode}>
               <TextInput
-                style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
+                style={[styles.input, { color: theme.text }]}
                 value={profileData.profile_name}
                 onChangeText={(text) => {
                   setNameError(false);
@@ -427,62 +439,42 @@ const EditProfileScreen = ({ navigation }) => {
                   </Text>
                 </View>
               ) : null}
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.primary }]}>{t('editProfile.bio')}</Text>
+            </Field>
+            <Field icon="document-text-outline" color={ACCENT.aiTranslate} label={t('editProfile.bio')} rowBorder={rowBorder} theme={theme} isDarkMode={isDarkMode}>
               <TextInput
-                style={[styles.input, styles.bioInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
+                style={[styles.input, styles.bioInput, { color: theme.text }]}
                 value={profileData.bio}
-                onChangeText={(text) =>
-                  setProfileData((prev) => ({ ...prev, bio: text }))
-                }
+                onChangeText={(text) => setProfileData((prev) => ({ ...prev, bio: text }))}
                 placeholder={t('editProfile.bioPlaceholder')}
                 placeholderTextColor={theme.subText}
                 multiline
                 numberOfLines={3}
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.class')}</Text>
+            </Field>
+            <Field icon="school-outline" color={ACCENT.verification} label={t('profile.class')} rowBorder={rowBorder} theme={theme} isDarkMode={isDarkMode}>
               <TextInput
-                style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
+                style={[styles.input, { color: theme.text }]}
                 value={profileData.class_name}
-                onChangeText={(text) =>
-                  setProfileData((prev) => ({ ...prev, class_name: text }))
-                }
+                onChangeText={(text) => setProfileData((prev) => ({ ...prev, class_name: text }))}
                 placeholder={t('editProfile.classPlaceholder')}
                 placeholderTextColor={theme.subText}
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.address')}</Text>
+            </Field>
+            <Field icon="location-outline" color={ACCENT.notifications} label={t('profile.address')} rowBorder={rowBorder} theme={theme} isDarkMode={isDarkMode}>
               <TextInput
-                style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
+                style={[styles.input, { color: theme.text }]}
                 value={profileData.location}
-                onChangeText={(text) =>
-                  setProfileData((prev) => ({ ...prev, location: text }))
-                }
+                onChangeText={(text) => setProfileData((prev) => ({ ...prev, location: text }))}
                 placeholder={t('editProfile.addressPlaceholder')}
                 placeholderTextColor={theme.subText}
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.birthday')}</Text>
-              <TouchableOpacity
-                onPress={() => setOpen(true)}
-                style={[styles.input, { borderColor: theme.border, backgroundColor: theme.cardBackground, justifyContent: "center" }]}
-              >
-                <Text style={{ color: profileData.birthday ? theme.text : theme.subText }}>
-                  {profileData.birthday
-                    ? formatDateToLocale(date)
-                    : t('editProfile.selectBirthday')}
+            </Field>
+            <Field icon="calendar-outline" color={ACCENT.theme} label={t('profile.birthday')} rowBorder={rowBorder} theme={theme} isDarkMode={isDarkMode}>
+              <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.7} style={styles.input}>
+                <Text style={{ fontSize: 16, color: profileData.birthday ? theme.text : theme.subText }}>
+                  {profileData.birthday ? formatDateToLocale(date) : t('editProfile.selectBirthday')}
                 </Text>
               </TouchableOpacity>
-
               <DatePicker
                 modal
                 open={open}
@@ -507,19 +499,16 @@ const EditProfileScreen = ({ navigation }) => {
                   setOpen(false);
                 }}
               />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.gender')}</Text>
+            </Field>
+            <Field icon="male-female-outline" color={ACCENT.glass} label={t('profile.gender')} last rowBorder={rowBorder} theme={theme} isDarkMode={isDarkMode}>
               <RadioGroup
                 radioButtons={radioButtons}
                 onPress={setSelectedId}
                 selectedId={selectedId}
                 layout="row"
-                containerStyle={{
-                  marginLeft: -10,
-                }}
+                containerStyle={{ marginLeft: -10, alignSelf: "flex-start" }}
               />
-            </View>
+            </Field>
           </View>
         </Animated.ScrollView>
         </AndroidGlassBackdrop>
@@ -556,85 +545,29 @@ const styles = StyleSheet.create({
   saveButtonDisabled: {
     opacity: 0.5,
   },
-  updateAvatarText: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginHorizontal: 16,
-    marginTop: 20,
+  card: { marginHorizontal: 16, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  coverImage: { width: "100%", height: 130, backgroundColor: "#c4c4c4" },
+  coverBadge: {
+    position: "absolute", right: 10, bottom: 10, flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
   },
-  avatarSection: {
-    alignItems: "center",
-    paddingVertical: 20,
+  coverBadgeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  avatarRow: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 16, paddingBottom: 14, marginTop: -34 },
+  avatar: { width: 84, height: 84, borderRadius: 42, borderWidth: 4 },
+  avatarCamera: {
+    position: "absolute", right: 0, bottom: 2, width: 28, height: 28, borderRadius: 14,
+    borderWidth: 2, alignItems: "center", justifyContent: "center",
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  changeAvatarButton: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#319527",
-    borderRadius: 13,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  changeAvatarText: {
-    color: "#404040",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  coverImage: {
-    width: "70%",
-    height: 130,
-    borderRadius: 13,
-    backgroundColor: "#c4c4c4",
-    marginTop: 20,
-  },
-  form: {
-    padding: 16,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#319527",
-    marginBottom: 8,
-  },
-  fieldHintRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 6,
-  },
-  fieldHint: {
-    flex: 1,
-    fontSize: 13,
-  },
-  fieldError: {
-    fontSize: 14,
-    color: "#FF3B30",
-    marginTop: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    height: 44,
-    color: "#000",
-  },
-  bioInput: {
-    height: 100,
-    textAlignVertical: "top",
-  },
+  pill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, marginLeft: 14, marginBottom: 6 },
+  pillText: { fontSize: 14, fontWeight: "600" },
+  fieldRow: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 16 },
+  fieldIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", marginTop: 2 },
+  label: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 2 },
+  fieldHintRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  fieldHint: { flex: 1, fontSize: 13 },
+  fieldError: { fontSize: 14, color: "#FF3B30", marginTop: 4 },
+  input: { fontSize: 16, minHeight: 28, paddingVertical: 4, paddingHorizontal: 0 },
+  bioInput: { minHeight: 72, textAlignVertical: "top" },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

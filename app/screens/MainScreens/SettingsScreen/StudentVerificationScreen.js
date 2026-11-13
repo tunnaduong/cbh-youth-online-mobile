@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { SectionHeader, ACCENT, tint as accentTint, useLook } from "../../../components/settings/SettingsUI";
 import {
   getStudentVerificationStatus,
   submitStudentVerification,
@@ -33,7 +34,9 @@ const DISCOUNT_LABEL = "10%";
 
 const StatusBanner = ({ icon, iconColor, tint, border, title, children, theme }) => (
   <View style={[styles.banner, { backgroundColor: tint, borderColor: border }]}>
-    <Ionicons name={icon} size={22} color={iconColor} style={{ marginTop: 1 }} />
+    <View style={[styles.bannerIcon, { backgroundColor: iconColor + "26" }]}>
+      <Ionicons name={icon} size={22} color={iconColor} />
+    </View>
     <View style={{ flex: 1 }}>
       <Text style={[styles.bannerTitle, { color: theme.text }]}>{title}</Text>
       {children}
@@ -43,7 +46,7 @@ const StatusBanner = ({ icon, iconColor, tint, border, title, children, theme })
 
 const PhotoPicker = ({ label, hint, uri, onPick, icon, theme, t }) => (
   <View style={{ flex: 1 }}>
-    <Text style={[styles.inputLabel, { color: theme.text }]}>
+    <Text style={[styles.inputLabel, { color: theme.subText }]}>
       {label} <Text style={{ color: "#ef4444" }}>*</Text>
     </Text>
     <TouchableOpacity
@@ -71,6 +74,7 @@ export default function StudentVerificationScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { userInfo } = useContext(AuthContext);
   const { t } = useTranslation();
+  const { cardBorder } = useLook();
 
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState(null);
@@ -216,7 +220,7 @@ export default function StudentVerificationScreen({ navigation }) {
     }
 
     return (
-      <View style={{ gap: 20 }}>
+      <View style={{ gap: 4 }}>
         {verification?.status === "rejected" && (
           <StatusBanner
             icon="close-circle"
@@ -237,7 +241,8 @@ export default function StudentVerificationScreen({ navigation }) {
           </StatusBanner>
         )}
 
-        <View style={{ flexDirection: "row", gap: 12 }}>
+        <SectionHeader icon="images-outline" color={ACCENT.verification} title={t("studentVerification.headerTitle")} />
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: cardBorder, flexDirection: "row", gap: 12 }]}>
           <PhotoPicker
             label={t("studentVerification.selfieLabel")}
             hint={t("studentVerification.selfieHint")}
@@ -262,14 +267,19 @@ export default function StudentVerificationScreen({ navigation }) {
           style={[
             styles.noteBox,
             {
-              backgroundColor: isDarkMode ? "rgba(59,130,246,0.12)" : "#eff6ff",
-              borderColor: isDarkMode ? "rgba(59,130,246,0.3)" : "#bfdbfe",
+              backgroundColor: theme.surface,
+              borderColor: cardBorder,
             },
           ]}
         >
-          <Text style={[styles.noteTitle, { color: theme.text }]}>
-            {t("studentVerification.notesTitle")}
-          </Text>
+          <View style={styles.noteHead}>
+            <View style={[styles.noteIcon, { backgroundColor: accentTint(ACCENT.profile, isDarkMode) }]}>
+              <Ionicons name="information-circle-outline" size={18} color={ACCENT.profile} />
+            </View>
+            <Text style={[styles.noteTitle, { color: theme.text }]}>
+              {t("studentVerification.notesTitle")}
+            </Text>
+          </View>
           {[
             t("studentVerification.note1"),
             t("studentVerification.note2"),
@@ -287,7 +297,7 @@ export default function StudentVerificationScreen({ navigation }) {
           disabled={!canSubmit}
           style={[
             styles.submitButton,
-            { backgroundColor: canSubmit ? theme.primary : theme.border },
+            { backgroundColor: canSubmit ? ACCENT.verification : theme.border },
           ]}
         >
           {submitting ? (
@@ -363,12 +373,17 @@ export default function StudentVerificationScreen({ navigation }) {
             paddingHorizontal: 16,
           }}
         >
-          <Text style={[styles.title, { color: theme.text }]}>
-            {t("studentVerification.title")}
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.subText }]}>
-            {t("studentVerification.subtitle", { discount: DISCOUNT_LABEL })}
-          </Text>
+          <View style={[styles.hero, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+            <View style={[styles.heroIcon, { backgroundColor: accentTint(ACCENT.verification, isDarkMode) }]}>
+              <Ionicons name="ribbon-outline" size={30} color={ACCENT.verification} />
+            </View>
+            <Text style={[styles.title, { color: theme.text }]}>
+              {t("studentVerification.title")}
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.subText }]}>
+              {t("studentVerification.subtitle", { discount: DISCOUNT_LABEL })}
+            </Text>
+          </View>
 
           {renderBody()}
         </Animated.ScrollView>
@@ -381,18 +396,25 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   headerTitle: { fontSize: 18, fontWeight: "600" },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 6 },
-  subtitle: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
+  hero: { alignItems: "center", borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 20, marginBottom: 20 },
+  heroIcon: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  title: { fontSize: 20, fontWeight: "700", marginBottom: 6, textAlign: "center" },
+  subtitle: { fontSize: 14, lineHeight: 20, textAlign: "center" },
+  card: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 14, marginBottom: 20 },
+  bannerIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  noteHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  noteIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   banner: {
     flexDirection: "row",
     gap: 12,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
   },
   bannerTitle: { fontSize: 15, fontWeight: "600", marginBottom: 2 },
   bannerBody: { fontSize: 13, lineHeight: 19 },
-  inputLabel: { fontSize: 13, fontWeight: "500", marginBottom: 8 },
+  inputLabel: { fontSize: 12, fontWeight: "700", marginBottom: 8 },
   dropzone: {
     borderWidth: 1.5,
     borderStyle: "dashed",
@@ -405,8 +427,8 @@ const styles = StyleSheet.create({
   preview: { width: "100%", height: 104, borderRadius: 10 },
   dropzoneText: { fontSize: 13, marginTop: 8 },
   dropzoneHint: { fontSize: 11, marginTop: 2, textAlign: "center" },
-  noteBox: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, padding: 14 },
-  noteTitle: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
+  noteBox: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 14, marginBottom: 20 },
+  noteTitle: { fontSize: 15, fontWeight: "700" },
   noteLine: { fontSize: 13, lineHeight: 20 },
   submitButton: {
     height: 52,

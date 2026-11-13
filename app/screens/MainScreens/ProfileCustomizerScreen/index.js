@@ -18,6 +18,7 @@ import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { ACCENT, tint, accentFor } from "../../../components/settings/SettingsUI";
 import * as ImagePicker from "expo-image-picker";
 import { deleteCustomFrame, getProfile, updateProfile, uploadCustomFrame, isRequestCanceled } from "../../../services/api/Api";
 import { setOwnProfileTheme } from "../../../utils/ownProfileTheme";
@@ -98,11 +99,17 @@ const withoutLockedOptions = (theme, editor) =>
     }
   );
 
-function Section({ title, children, last }) {
-  const { theme } = useTheme();
+function Section({ title, children, last, icon = "color-palette-outline", color }) {
+  const { theme, isDarkMode } = useTheme();
+  const accent = color || accentFor(icon);
   return (
-    <View style={[styles.section, !last && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+    <View style={[styles.section, !last && { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9", borderBottomWidth: StyleSheet.hairlineWidth }]}>
+      <View style={styles.sectionHead}>
+        <View style={[styles.sectionIcon, { backgroundColor: tint(accent, isDarkMode) }]}>
+          <Ionicons name={icon} size={18} color={accent} />
+        </View>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+      </View>
       {children}
     </View>
   );
@@ -666,8 +673,8 @@ export default function ProfileCustomizerScreen({ navigation }) {
           </View>
         ) : null}
 
-        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Section title={t("profileTheme.sections.avatar", "Ảnh đại diện & Khung")}>
+        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
+          <Section icon="person-circle-outline" color={ACCENT.profile} title={t("profileTheme.sections.avatar", "Ảnh đại diện & Khung")}>
             <View style={styles.grid2}>
               <Slot label={t("profileTheme.changeAvatar", "Đổi ảnh đại diện")} onPress={() => navigation.navigate("EditProfileScreen")}>
                 <FastImage source={{ uri: avatarUrl }} style={styles.slotAvatar} />
@@ -685,7 +692,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
             {customFrameRow("avatar")}
           </Section>
 
-          <Section title={t("profileTheme.sections.banner", "Ảnh bìa")}>
+          <Section icon="image-outline" color={ACCENT.theme} title={t("profileTheme.sections.banner", "Ảnh bìa")}>
             <View style={styles.grid2}>
               <Slot
                 label={t("profileTheme.bannerColor", "Màu ảnh bìa")}
@@ -718,7 +725,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
             ) : null}
           </Section>
 
-          <Section title={t("profileTheme.sections.effects", "Hiệu ứng & Khung hồ sơ")}>
+          <Section icon="sparkles-outline" color={ACCENT.aiTranslate} title={t("profileTheme.sections.effects", "Hiệu ứng & Khung hồ sơ")}>
             <View style={styles.grid2}>
               <Slot label={t("profileTheme.groups.profile_effect", "Hiệu ứng hồ sơ")} onPress={() => setPicker("profile_effect")}>
                 {draft.profile_effect === "none" ? (
@@ -745,7 +752,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
             {customFrameRow("profile")}
           </Section>
 
-          <Section title={t("profileTheme.sections.name", "Kiểu tên")}>
+          <Section icon="text-outline" color={ACCENT.notifications} title={t("profileTheme.sections.name", "Kiểu tên")}>
             <Slot label={t("profileTheme.sections.name", "Kiểu tên")} onPress={() => setPicker("name")} style={styles.nameSlot}>
               <UserNameRow
                 name={profileName}
@@ -758,7 +765,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
           </Section>
 
           {nameIconOptions || usernameFontOptions ? (
-            <Section title={t("profileTheme.sections.nameExtras")}>
+            <Section icon="star-outline" color={ACCENT.appIcon} title={t("profileTheme.sections.nameExtras")}>
               {nameIconOptions ? (
                 <>
                   <Slot
@@ -811,7 +818,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
             </Section>
           ) : null}
 
-          <Section title={t("profileTheme.sections.colors", "Màu giao diện")} last={!editor.saved}>
+          <Section icon="color-palette-outline" color={ACCENT.profileTheme} title={t("profileTheme.sections.colors", "Màu giao diện")} last={!editor.saved}>
             <View style={styles.colorRow}>
               <ColorSwatchButton
                 color={draft.primary_color}
@@ -1142,9 +1149,11 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600" },
   notice: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 14, padding: 12 },
   noticeText: { flex: 1, fontSize: 13 },
-  panel: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16 },
+  panel: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16 },
   section: { paddingVertical: 14 },
-  sectionTitle: { fontSize: 14, fontWeight: "600", marginBottom: 10 },
+  sectionHead: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  sectionIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", flexShrink: 1 },
   grid2: { flexDirection: "row", gap: 8 },
   slot: {
     flex: 1,
