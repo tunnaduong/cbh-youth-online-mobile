@@ -11,6 +11,13 @@ const REVERB_PORT = 443;
 const REVERB_SCHEME = "https";
 
 let echoInstance = null;
+const reconnectListeners = new Set();
+
+/** cb() runs each time the socket is connected again after having been down. */
+export function onEchoReconnect(cb) {
+  reconnectListeners.add(cb);
+  return () => reconnectListeners.delete(cb);
+}
 
 /**
  * Lazily creates a singleton Laravel Echo client wired to the Reverb server.
@@ -71,6 +78,9 @@ export function getEcho() {
     forceTLS: REVERB_SCHEME === "https",
     enabledTransports: ["ws", "wss"],
     disableStats: true,
+    // Notice a dead socket (mobile network switch, doze) in ~35s instead of ~2min.
+    activityTimeout: 25000,
+    pongTimeout: 10000,
     authorizer,
   };
 
@@ -81,9 +91,17 @@ export function getEcho() {
     client: new Pusher(REVERB_APP_KEY, connectionOptions),
   });
 
-  // TEMP DIAGNOSTICS - remove once realtime chat is confirmed working
+  // Messages sent while the socket was down are never replayed: tell the
+  // screens to re-read the REST API every time the socket comes back.
+  let wasDown = false;
   echoInstance.connector.pusher.connection.bind("state_change", (states) => {
     console.log("[Echo] connection state:", states.previous, "->", states.current);
+    if (states.current === "connected") {
+      if (wasDown) reconnectListeners.forEach((cb) => cb());
+      wasDown = false;
+    } else if (states.current !== "connecting") {
+      wasDown = true;
+    }
   });
   echoInstance.connector.pusher.connection.bind("error", (err) => {
     console.log("[Echo] connection error:", JSON.stringify(err));
@@ -115,11 +133,19 @@ export function getSocketId() {
  * transitions back to the foreground to force a reconnect if the
  * connection isn't already healthy.
  */
-export function reconnectEchoIfNeeded() {
+export function reconnectEchoIfNeeded(awayMs = 0) {
   const connection = echoInstance?.connector?.pusher?.connection;
   if (!connection) return;
 
   const state = connection.state;
+  // "connected" after a long time in the background is often a dead socket the
+  // OS froze: drop it and connect afresh (channels are re-subscribed by pusher-js).
+  if (state === "connected" && awayMs > 20000) {
+    console.log("[Echo] foregrounded after", awayMs, "ms - refreshing the connection");
+    connection.disconnect();
+    connection.connect();
+    return;
+  }
   if (state !== "connected" && state !== "connecting") {
     console.log("[Echo] app foregrounded with connection state:", state, "- reconnecting");
     connection.connect();

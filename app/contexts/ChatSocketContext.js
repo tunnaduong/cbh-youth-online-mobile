@@ -1,11 +1,18 @@
 import React, { createContext, useContext, useRef, useCallback, useEffect, useMemo } from "react";
 import { AppState } from "react-native";
-import { getEcho, disconnectEcho, reconnectEchoIfNeeded } from "../services/echo/echo";
+import { getEcho, disconnectEcho, reconnectEchoIfNeeded, onEchoReconnect } from "../services/echo/echo";
 import { useAuthContext } from "./AuthContext";
 
 const ChatSocketContext = createContext(null);
 
 const TYPING_THROTTLE_MS = 2000;
+
+// The chat bubble is a second React root in the same JS runtime (app/bubble),
+// so it mounts its own ChatSocketProvider next to the app's. They share the one
+// Echo client and its channels: a channel is left, and the socket closed, only
+// when the last user of it is gone.
+const channelUsers = {}; // id -> number of providers that joined it
+let providerCount = 0;
 
 /**
  * Manages one Reverb presence-channel subscription per conversation id, shared across
@@ -42,6 +49,7 @@ export const ChatSocketProvider = ({ children }) => {
     const echo = getEcho();
     if (!echo) return;
 
+    channelUsers[id] = (channelUsers[id] || 0) + 1;
     const bucket = ensureBucket(id);
     console.log("[ChatSocket] joining chat." + id);
     channelsRef.current[id] = echo
@@ -88,7 +96,8 @@ export const ChatSocketProvider = ({ children }) => {
 
   const leaveChannel = useCallback((id) => {
     if (!channelsRef.current[id]) return;
-    getEcho()?.leave(`chat.${id}`);
+    channelUsers[id] = Math.max(0, (channelUsers[id] || 1) - 1);
+    if (channelUsers[id] === 0) getEcho()?.leave(`chat.${id}`);
     delete channelsRef.current[id];
     delete listenersRef.current[id];
     delete refCountRef.current[id];
@@ -169,7 +178,7 @@ export const ChatSocketProvider = ({ children }) => {
   useEffect(() => {
     if (!isLoggedIn) {
       Object.keys(channelsRef.current).forEach((id) => leaveChannel(id));
-      disconnectEcho();
+      if (providerCount <= 1) disconnectEcho();
     }
   }, [isLoggedIn, leaveChannel]);
 
@@ -180,18 +189,41 @@ export const ChatSocketProvider = ({ children }) => {
   // only show up after leaving and re-entering the conversation.
   useEffect(() => {
     if (!isLoggedIn) return undefined;
+    let leftAt = 0;
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
-        reconnectEchoIfNeeded();
+        reconnectEchoIfNeeded(leftAt ? Date.now() - leftAt : 0);
+        leftAt = 0;
+      } else if (!leftAt) {
+        leftAt = Date.now();
       }
     });
     return () => subscription.remove();
   }, [isLoggedIn]);
 
+  // After a dropped socket comes back, every open conversation re-reads its
+  // messages: a "sent" callback with a resync flag (consumers refetch on any).
+  useEffect(() => {
+    if (!isLoggedIn) return undefined;
+    return onEchoReconnect(() => {
+      Object.keys(listenersRef.current).forEach((id) => {
+        listenersRef.current[id]?.sent.forEach((cb) => cb({ resync: true, conversation_id: id }));
+      });
+    });
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    providerCount += 1;
+    return () => {
+      providerCount -= 1;
+    };
+  }, []);
+
   useEffect(() => {
     return () => {
       Object.keys(channelsRef.current).forEach((id) => leaveChannel(id));
-      disconnectEcho();
+      // The effect above already took this provider off providerCount.
+      if (providerCount <= 0) disconnectEcho();
     };
   }, [leaveChannel]);
 
