@@ -34,7 +34,15 @@ import {
 } from "../../../services/ota/otaService";
 import UpdatePromptModal from "../../../components/ota/UpdatePromptModal";
 
-import { SettingSection as Section } from "../../../components/settings/SettingsUI";
+import { SettingSection } from "../../../components/settings/SettingsUI";
+
+// SettingSection clips its content to the rounded card and adds no padding, so
+// the rows here touched/were cut by the corners: pad them inside the card.
+const Section = ({ children, ...props }) => (
+  <SettingSection {...props}>
+    <View style={{ padding: 16 }}>{children}</View>
+  </SettingSection>
+);
 
 export default function AppUpdatesScreen({ navigation }) {
   const insets = useSafeAreaInsets();

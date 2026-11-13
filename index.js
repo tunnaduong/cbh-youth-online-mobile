@@ -102,6 +102,10 @@ function Root() {
   const [error, setError] = React.useState(fatalError);
 
   React.useEffect(() => {
+    // Drop the native splash on the very first commit instead of waiting for
+    // the JS splash's Lottie child to mount: App renders its own splash with
+    // the same background straight away, so there is no gap.
+    SplashScreen.hideAsync().catch(() => {});
     fatalListeners.add(setError);
     if (fatalError) setError(fatalError);
     return () => fatalListeners.delete(setError);
