@@ -477,9 +477,10 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               activeOpacity={0.75}
             >
               {active ? (
-                <View style={styles.tabGradient}>
-                  {/* Gradient is a background layer, not the text's parent:
-                      on Android the text inside it was not drawn. */}
+                <>
+                  {/* Same structure as the inactive pill (Text straight
+                      inside the touchable, colour passed inline); the
+                      gradient is only a background layer. */}
                   <LinearGradient
                     colors={
                       isDarkMode
@@ -491,10 +492,13 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                     style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   />
-                  <Text style={styles.tabTextActive} numberOfLines={1}>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.tabTextActive, { color: "#FFFFFF" }]}
+                  >
                     {getCategoryName(cat.name, t)}
                   </Text>
-                </View>
+                </>
               ) : (
                 <Text
                   style={[
@@ -736,10 +740,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabActive: {
-    // Android: a solid fill under the gradient (the pill is clipped with
-    // overflow hidden + elevation, and without a background the selected
-    // tab rendered as white text on nothing - "disappeared"). The elevation
-    // shadow is iOS-only here for the same reason.
+    height: 36,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#16A34A",
     shadowColor: "#15803D",
     shadowOffset: { width: 0, height: 3 },
