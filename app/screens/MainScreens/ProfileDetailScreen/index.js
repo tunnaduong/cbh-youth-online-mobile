@@ -430,14 +430,19 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
     marginBottom: 8,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   profileName: {
     fontSize: 24,
@@ -446,7 +451,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   username: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: "500",
     textAlign: "center",
   },
   bioSection: {
@@ -468,9 +474,9 @@ const styles = StyleSheet.create({
   },
   bioText: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 7,
   },
   infoSection: {
     padding: 16,

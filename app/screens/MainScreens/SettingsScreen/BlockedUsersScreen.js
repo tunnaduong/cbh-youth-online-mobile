@@ -205,7 +205,7 @@ export default function BlockedUsersScreen({ navigation }) {
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: false }
           )}
-          contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
+          contentContainerStyle={{ paddingTop: 64 + insets.top + 8, paddingBottom: insets.bottom + 16 }}
           initialNumToRender={12}
           maxToRenderPerBatch={10}
           windowSize={7}
@@ -389,6 +389,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   avatar: {
     width: 48,
