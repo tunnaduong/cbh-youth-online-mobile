@@ -36,13 +36,14 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-import { SettingItem, SettingSection } from "../../../components/settings/SettingsUI";
+import { ACCENT, tint, useLook } from "../../../components/settings/SettingsUI";
 
 export default function BlockedUsersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { unblockUserInContext } = useContext(AuthContext);
   const { t } = useTranslation();
+  const { cardBorder } = useLook();
   const [loading, setLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState([]);
 
@@ -172,8 +173,8 @@ export default function BlockedUsersScreen({ navigation }) {
       <LinearGradient
         colors={
           isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+            ? ["rgba(127, 29, 29, 0.35)", "rgba(15, 23, 42, 0)"]
+            : ["#FEE2E2", "rgba(254, 242, 242, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -187,8 +188,10 @@ export default function BlockedUsersScreen({ navigation }) {
         </View>
       ) : blockedUsers.length === 0 ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Ionicons name="people-outline" size={50} color={theme.subText} />
-          <Text style={{ marginTop: 10, color: theme.subText }}>{t('blockedUsers.empty')}</Text>
+          <View style={{ width: 84, height: 84, borderRadius: 42, alignItems: "center", justifyContent: "center", backgroundColor: tint(ACCENT.blocked, isDarkMode) }}>
+            <Ionicons name="ban-outline" size={40} color={ACCENT.blocked} />
+          </View>
+          <Text style={{ marginTop: 14, fontSize: 15, fontWeight: "600", color: theme.subText }}>{t('blockedUsers.empty')}</Text>
         </View>
       ) : (
         <AndroidGlassBackdrop providerId="BlockedUsersScreen" style={{ flex: 1 }}>
@@ -208,13 +211,8 @@ export default function BlockedUsersScreen({ navigation }) {
           windowSize={7}
           updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === "android"}
-          getItemLayout={(_, index) => ({
-            length: 83,
-            offset: 83 * index,
-            index,
-          })}
           renderItem={({ item: user }) => (
-            <View style={[styles.userItem, { borderBottomColor: theme.border }]}>
+            <View style={[styles.userItem, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: 12 }}>
                 <FastImage
                   source={{ uri: user.profile?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}
@@ -238,10 +236,10 @@ export default function BlockedUsersScreen({ navigation }) {
                 </View>
               </View>
               <TouchableOpacity
-                style={[styles.unblockButton, { borderColor: theme.primary, flexShrink: 0 }]}
+                style={[styles.unblockButton, { backgroundColor: tint(ACCENT.blocked, isDarkMode), flexShrink: 0 }]}
                 onPress={() => handleUnblock(user.id, user.username)}
               >
-                <Text style={[styles.unblockText, { color: theme.primary }]}>{t('blockedUsers.unblockAction')}</Text>
+                <Text style={[styles.unblockText, { color: ACCENT.blocked }]}>{t('blockedUsers.unblockAction')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -386,29 +384,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
+    padding: 14,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   userUsername: {
     fontSize: 14,
   },
   unblockButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
   },
   unblockText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

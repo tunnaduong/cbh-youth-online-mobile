@@ -32,6 +32,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import { SettingItem, SettingSection, ACCENT, tint, useLook } from "../../../components/settings/SettingsUI";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
@@ -50,6 +51,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const isBlocked = blockedUsers?.includes(username);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t, i18n } = useTranslation();
+  const { cardBorder } = useLook();
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
@@ -130,16 +132,14 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     });
   };
 
-  const renderInfoItem = (icon, label, value) => (
-    <View style={styles.infoItem}>
-      <View style={[styles.infoIconContainer, { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" }]}>
-        <Ionicons name={icon} size={24} color={theme.primary} />
-      </View>
-      <View style={styles.infoContent}>
-        <Text style={[styles.infoLabel, { color: theme.subText }]}>{label}</Text>
-        <Text style={[styles.infoValue, { color: theme.text }]}>{value || t('profile.notUpdated')}</Text>
-      </View>
-    </View>
+  const renderInfoItem = (icon, label, value, color) => (
+    <SettingItem
+      icon={icon}
+      color={color}
+      title={value || t('profile.notUpdated')}
+      description={label}
+      chevron={false}
+    />
   );
 
   const handleBlockUser = () => {
@@ -316,8 +316,8 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       <LinearGradient
         colors={
           isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+            ? ["rgba(30, 58, 138, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#DBEAFE", "rgba(239, 246, 255, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -367,20 +367,19 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
         {/* Bio Section */}
         {profileData?.bio && (
-          <View style={[styles.bioSection, { borderColor: theme.border }]}>
+          <View style={[styles.bioSection, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+            <View style={[styles.bioIcon, { backgroundColor: tint(ACCENT.about, isDarkMode) }]}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={ACCENT.about} />
+            </View>
             <Text style={[styles.bioText, { color: theme.text }]}>{profileData.bio}</Text>
           </View>
         )}
 
         {/* Info Section */}
-        <View style={styles.infoSection}>
-          {renderInfoItem(
-            "calendar-outline",
-            t('profile.birthday'),
-            formatDate(profileData?.birthday_raw)
-          )}
-          {renderInfoItem("location-outline", t('profile.address'), profileData?.location)}
-          {renderInfoItem("school-outline", t('profile.class'), profileData?.class_name)}
+        <SettingSection icon="person-circle-outline" color={ACCENT.profile} title={t('profile.title')}>
+          {renderInfoItem("calendar-outline", t('profile.birthday'), formatDate(profileData?.birthday_raw), "#EC4899")}
+          {renderInfoItem("location-outline", t('profile.address'), profileData?.location, "#EF4444")}
+          {renderInfoItem("school-outline", t('profile.class'), profileData?.class_name, "#8B5CF6")}
           {renderInfoItem(
             "person-outline",
             t('profile.gender'),
@@ -388,11 +387,12 @@ const ProfileDetailScreen = ({ navigation, route }) => {
               ? profileData.gender === "Male"
                 ? t('profile.male')
                 : t('profile.female')
-              : t('profile.notUpdated')
+              : t('profile.notUpdated'),
+            "#0EA5E9"
           )}
-          {renderInfoItem("mail-outline", t('profile.email'), profileData?.email)}
-          {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at)}
-        </View>
+          {renderInfoItem("mail-outline", t('profile.email'), profileData?.email, "#F59E0B")}
+          {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at, "#14B8A6")}
+        </SettingSection>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
       <ReportModal
@@ -450,14 +450,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   bioSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginHorizontal: 16,
+    marginBottom: 24,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  bioIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
   bioText: {
-    fontSize: 16,
-    lineHeight: 24,
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 6,
   },
   infoSection: {
     padding: 16,
