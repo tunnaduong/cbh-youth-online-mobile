@@ -1,3 +1,4 @@
+import LoadMoreHeader from "./conversation/LoadMoreHeader";
 import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
 import {
   View,
@@ -266,6 +267,8 @@ const ConversationScreen = ({ navigation, route }) => {
   const lastTapRef = useRef({});
   const initialScrollDoneRef = useRef(false);
   const loadingMoreRef = useRef(false);
+  // Same flag as a state, only to drive the spinner above the first message.
+  const [loadingMore, setLoadingMore] = useState(false);
   const {
     conversation,
     conversationId,
@@ -1129,6 +1132,7 @@ const ConversationScreen = ({ navigation, route }) => {
       }
       if (!isBackground && !isRefresh) {
         loadingMoreRef.current = false;
+        setLoadingMore(false);
         // Nothing was added (empty page, or the request failed): forget the
         // "keep the scroll position" note taken before loading. Left set, the
         // next thing that made the list taller - a new message, the typing
@@ -1586,9 +1590,12 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
-    const isNearTop = offsetY <= 40;
+    // Start loading about a screen before the top, so older messages are
+    // usually there by the time the user arrives.
+    const isNearTop = offsetY <= Math.max(40, nativeEvent.layoutMeasurement?.height ?? 0);
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
+      setLoadingMore(true);
       pendingLoadMoreAdjustRef.current = {
         prevHeight: scrollContentHeightRef.current,
         prevOffsetY: offsetY,
@@ -3425,6 +3432,7 @@ const ConversationScreen = ({ navigation, route }) => {
             }
           }}
         >
+          <LoadMoreHeader loading={loadingMore} />
           <MessagesListContent
             conversationId={currentConversationId || conversationId}
             visibleViewport={visibleViewport}

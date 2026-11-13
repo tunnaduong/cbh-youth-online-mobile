@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, useWindowDimensions } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { getSystemMessageText } from "../../../../utils/systemMessageText";
 import { styles } from "./styles";
@@ -95,6 +96,7 @@ const MessageListItem = React.memo(({
   attemptScrollToHighlightRef,
   onRowLayout,
   isLastRealMessage,
+  animateIn,
 }) => {
   const cacheKey = value.id != null ? `${conversationId || ""}:${value.type}:${value.id}` : null;
 
@@ -116,7 +118,10 @@ const MessageListItem = React.memo(({
   };
 
   return (
-    <View
+    <Animated.View
+      // Only rows just prepended by "load older" fade in (mount only; the
+      // initial load and rows remounted out of a spacer do not animate).
+      entering={animateIn ? FadeIn.duration(260) : undefined}
       onLayout={handleLayout}
       style={
         isHighlighted
@@ -219,7 +224,7 @@ const MessageListItem = React.memo(({
           isLastRealMessage={isLastRealMessage}
         />
       )}
-    </View>
+    </Animated.View>
   );
 });
 
@@ -325,6 +330,28 @@ const MessagesListContent = React.memo(({
     }
   }, [messages, messageLayoutOffsetsRef]);
 
+  // Rows added above the previously-first real message (a "load older" page)
+  // fade in. Detected here from the list itself; the set is emptied shortly
+  // after so a row remounted later does not animate again.
+  const animateKeysRef = React.useRef(new Set());
+  const firstRealKeyRef = React.useRef(null);
+  {
+    const keys = messages.map((m) => `${m.type}-${m.id}`);
+    const firstReal = messages.find((m) => m.type === "message");
+    const firstRealKey = firstReal ? `${firstReal.type}-${firstReal.id}` : null;
+    const prevFirst = firstRealKeyRef.current;
+    if (prevFirst && firstRealKey && prevFirst !== firstRealKey) {
+      const at = keys.indexOf(prevFirst);
+      if (at > 0 && at <= 120) for (let i = 0; i < at; i++) animateKeysRef.current.add(keys[i]);
+    }
+    firstRealKeyRef.current = firstRealKey;
+  }
+  React.useEffect(() => {
+    if (animateKeysRef.current.size === 0) return undefined;
+    const timer = setTimeout(() => animateKeysRef.current.clear(), 900);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
   const out = [];
   let run = null;
   const flushRun = () => {
@@ -376,6 +403,7 @@ const MessagesListContent = React.memo(({
       // remounting (not just re-rendering) the entire message list every time.
       <MessageListItem
         key={rowKey}
+        animateIn={animateKeysRef.current.has(rowKey)}
         value={value}
         prev={prevOf[index]}
         next={nextOf[index]}
