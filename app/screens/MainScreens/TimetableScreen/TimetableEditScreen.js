@@ -33,6 +33,7 @@ import {
   toSeconds,
   writeCachedTimetable,
 } from "../../../utils/timetable";
+import AiImportModal from "./AiImportModal";
 
 const LESSON_MINUTES = 45;
 const GAP_MINUTES = 5;
@@ -60,6 +61,9 @@ export default function TimetableEditScreen({ navigation }) {
   });
 
   const initial = useMemo(() => cloneSchedule(readCachedTimetable()?.data), []);
+  // The sample schedule's subjects mean nothing for this class, so the AI only
+  // gets the current schedule once it is the user's own.
+  const startedFromDemo = useMemo(() => !!readCachedTimetable()?.is_demo, []);
   const [draft, setDraft] = useState(initial);
   const [day, setDay] = useState(() => todayKey());
   const [dirty, setDirty] = useState(false);
@@ -68,6 +72,8 @@ export default function TimetableEditScreen({ navigation }) {
   // { index, field: "start" | "end", value: Date }
   const [picker, setPicker] = useState(null);
   const leavingRef = useRef(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiNote, setAiNote] = useState("");
 
   const blocks = draft[day] || [];
 
@@ -207,6 +213,18 @@ export default function TimetableEditScreen({ navigation }) {
     ]);
   };
 
+  const applyAi = (data, note) => {
+    setDraft(cloneSchedule(data));
+    setDirty(true);
+    setError("");
+    setAiNote(note);
+    setAiOpen(false);
+    // Jump to the first day the AI filled in.
+    const firstDay = DAYS.find((d) => (data?.[d] || []).length);
+    if (firstDay && !(data?.[day] || []).length) setDay(firstDay);
+    Toast.show({ type: "success", text1: t("timetable.ai.applied"), text2: t("timetable.ai.appliedHint") });
+  };
+
   const card = {
     backgroundColor: theme.surface,
     borderColor: theme.border,
@@ -293,6 +311,29 @@ export default function TimetableEditScreen({ navigation }) {
           <Text style={{ fontSize: 14, lineHeight: 20, color: theme.subText, marginBottom: 12, marginHorizontal: 4 }}>
             {t("timetable.editIntro")}
           </Text>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setAiOpen(true)}
+            accessibilityRole="button"
+            style={[card, { flexDirection: "row", alignItems: "center", padding: 14, borderColor: theme.primary, borderWidth: 1 }]}
+          >
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="sparkles" size={24} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>{t("timetable.ai.title")}</Text>
+              <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>{t("timetable.ai.cardHint")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+          </TouchableOpacity>
+
+          {aiNote ? (
+            <View style={{ flexDirection: "row", gap: 8, borderWidth: 1, borderRadius: 12, padding: 10, borderColor: theme.primary, marginBottom: 12 }}>
+              <Ionicons name="sparkles-outline" size={18} color={theme.primary} />
+              <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: theme.text }}>{aiNote}</Text>
+            </View>
+          ) : null}
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 12, paddingHorizontal: 2 }}>
             {DAYS.map((d) => (
@@ -406,6 +447,8 @@ export default function TimetableEditScreen({ navigation }) {
           </View>
         </Animated.ScrollView>
       </AndroidGlassBackdrop>
+
+      <AiImportModal visible={aiOpen} onClose={() => setAiOpen(false)} current={startedFromDemo && !dirty ? null : draft} onResult={applyAi} />
 
       {picker && Platform.OS === "android" ? (
         <DateTimePicker
