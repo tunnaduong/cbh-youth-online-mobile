@@ -1022,6 +1022,19 @@ export const searchUniversities = (q, autocomplete = false, config = {}) => {
   return Api.getRequest(`/v1.0/universities/search?${query}`, config);
 };
 
+// Class timetable (one per account, shared with the web; vaolop.app format)
+export const getTimetable = (config = {}) => {
+  return Api.getRequest("/v1.0/timetable", config);
+};
+
+export const saveTimetable = (data) => {
+  return Api.putRequest("/v1.0/timetable", { data });
+};
+
+export const resetTimetable = () => {
+  return Api.deleteRequest("/v1.0/timetable");
+};
+
 // Exam score lookup (API proxies the Sở GD&ĐT sites)
 export const getExamScoreConfig = (source, config = {}) => {
   return Api.getRequest(`/v1.0/exam-scores/${source}/config`, config);

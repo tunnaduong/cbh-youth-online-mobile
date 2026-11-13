@@ -91,6 +91,8 @@ import UniversityScreen from "./app/screens/MainScreens/ExploreScreen/University
 import ScoreLookupScreen from "./app/screens/MainScreens/ExploreScreen/ScoreLookupScreen";
 import ScoreLookupThptScreen from "./app/screens/MainScreens/ExploreScreen/ScoreLookupScreen/ThptScreen";
 import ScoreLookupGrade10Screen from "./app/screens/MainScreens/ExploreScreen/ScoreLookupScreen/Grade10Screen";
+import TimetableScreen from "./app/screens/MainScreens/TimetableScreen";
+import TimetableEditScreen from "./app/screens/MainScreens/TimetableScreen/TimetableEditScreen";
 import CustomQuizCreateScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen/CustomQuizCreateScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
@@ -1184,6 +1186,21 @@ const App = ({ skipSplash = false }) => {
                 name="ScoreLookupGrade10Screen"
                 component={ScoreLookupGrade10Screen}
                 options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="TimetableScreen"
+                component={TimetableScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="TimetableEditScreen"
+                component={TimetableEditScreen}
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                  // Only the top edge drags the sheet down: the editor scrolls and has time pickers.
+                  gestureResponseDistance: 80,
+                }}
               />
               <Stack.Screen
                 name="StudyMaterialScreen"

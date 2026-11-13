@@ -54,6 +54,21 @@ const FEATURE_CARDS = [
     route: "ScoreLookupScreen",
   },
   {
+    id: "timetable",
+    titleKey: "exploreScreen.timetable",
+    descKey: "exploreScreen.timetableDesc",
+    defaultTitle: "Thời khóa biểu",
+    defaultDesc: "Giờ vào lớp, tiết hiện tại và tiết kế tiếp",
+    icon: "time",
+    watermarkIcon: "calendar-outline",
+    color: "#0EA5E9",
+    lightBg: "#F0F9FF",
+    lightBorder: "#E0F2FE",
+    darkBg: "#0F2230",
+    darkBorder: "#16384D",
+    route: "TimetableScreen",
+  },
+  {
     id: "findUniversities",
     titleKey: "exploreScreen.findUniversities",
     descKey: "exploreScreen.findUniversitiesDesc",
@@ -369,7 +384,7 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
             </LinearGradient>
           </View>
 
-          {/* 6 Feature Cards Grid */}
+          {/* Feature Cards Grid (3 per row) */}
           <View style={styles.gridContainer}>
             {FEATURE_CARDS.map((card) => {
               const bg = isDarkMode ? card.darkBg : card.lightBg;

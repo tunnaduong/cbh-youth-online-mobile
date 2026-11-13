@@ -236,6 +236,15 @@ const Sidebar = ({
         onPress: () => navigation.navigate("MainScreens", { screen: "Explore" }),
       },
       {
+        id: "timetable",
+        icon: "time",
+        title: t("sidebar.timetable", "Thời khóa biểu"),
+        subtitle: t("timetable.sidebarSubtitle", "Giờ vào lớp"),
+        color: "#0EA5E9",
+        bg: isDarkMode ? "rgba(14, 165, 233, 0.16)" : "#F0F9FF",
+        onPress: () => navigation.navigate("TimetableScreen"),
+      },
+      {
         id: "forum",
         icon: "people",
         title: t("navigation.forum", "Diễn đàn"),
