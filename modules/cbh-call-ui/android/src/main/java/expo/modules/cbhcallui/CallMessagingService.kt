@@ -59,6 +59,10 @@ class CallMessagingService : FirebaseMessagingService() {
           return
         }
       }
+      "chat_message" -> {
+        // Chat bubbles (modules/hmy-bubble) take over chat pushes while the app is away.
+        if (!CallUiState.isAppVisible(this) && bubbleHandled(body, remoteMessage)) return
+      }
       "call_cancelled" -> {
         val callId = body.optString("call_id")
         IncomingCallNotifier.cancel(this, callId)
@@ -71,6 +75,14 @@ class CallMessagingService : FirebaseMessagingService() {
     }
 
     forward("onMessageReceived", RemoteMessage::class.java, remoteMessage)
+  }
+
+  private fun bubbleHandled(body: JSONObject, remoteMessage: RemoteMessage): Boolean = try {
+    Class.forName("hhh.hmy.bubble.BubbleHook")
+      .getMethod("onChatPush", Context::class.java, String::class.java, String::class.java, String::class.java)
+      .invoke(null, this, body.toString(), remoteMessage.data["title"], remoteMessage.data["message"]) as? Boolean ?: false
+  } catch (_: Throwable) {
+    false
   }
 
   override fun onNewToken(token: String) = forward("onNewToken", String::class.java, token)

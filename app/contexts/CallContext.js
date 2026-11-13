@@ -1,3 +1,8 @@
+import {
+  setNativeBubbleSession,
+  clearNativeBubbleSession,
+  syncBubbleChatEnabled,
+} from "../services/bubble/nativeBubble";
 import React, {
   createContext,
   useCallback,
@@ -1065,11 +1070,17 @@ export const CallProvider = ({ children }) => {
   // The native side declines calls itself (lock screen, app not running), so
   // it needs the API address and the signed-in account's token.
   useEffect(() => {
-    if (!nativeCallUiAvailable) return;
     if (!isLoggedIn) {
       clearNativeCallSession();
+      clearNativeBubbleSession();
       return;
     }
+    // Chat bubbles read the messages natively, so they need the same access.
+    AsyncStorage.getItem("auth_token").then((token) => {
+      if (token) setNativeBubbleSession(axiosInstance.defaults.baseURL, token);
+    });
+    syncBubbleChatEnabled();
+    if (!nativeCallUiAvailable) return;
     let cancelled = false;
     AsyncStorage.getItem("auth_token").then((token) => {
       if (!cancelled && token) {

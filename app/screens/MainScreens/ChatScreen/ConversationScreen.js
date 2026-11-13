@@ -1,3 +1,4 @@
+import { dismissBubble } from "../../../services/bubble/nativeBubble";
 import LoadMoreHeader from "./conversation/LoadMoreHeader";
 import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
 import {
@@ -294,6 +295,10 @@ const ConversationScreen = ({ navigation, route }) => {
   // event, instead of after just the first one - see onContentSizeChange.
   const pendingLoadMoreAdjustTimeoutRef = useRef(null);
   const isFocused = useIsFocused();
+  // Reading the chat here: its bubble (if any) is no longer needed.
+  useEffect(() => {
+    if (isFocused && !route?.params?.inBubble) dismissBubble(route?.params?.conversationId ?? route?.params?.conversation?.id);
+  }, [isFocused]);
   // For handlers that outlive a render (socket, timers, AppState).
   const isFocusedRef = useRef(isFocused);
   isFocusedRef.current = isFocused;

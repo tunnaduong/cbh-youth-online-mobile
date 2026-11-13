@@ -1281,6 +1281,8 @@
     "studentVerification": "Student verification",
     "autoplayVideos": "Autoplay videos",
     "liquidGlassEffect": "Liquid glass effect",
+    "bubbleChat": "Chat bubbles",
+    "bubbleChatSystemOff": "Bubbles are off for this app in system settings. Turn them on there.",
     "shakeToReport": "Shake phone to report a problem",
     "blockedUsers": "Blocked Users",
     "appIcon": "App Icon",

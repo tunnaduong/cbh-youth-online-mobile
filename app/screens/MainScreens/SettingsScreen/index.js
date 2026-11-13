@@ -1,4 +1,11 @@
-import React, { useContext, useRef } from "react";
+import {
+  bubbleChatAvailable,
+  isBubbleChatEnabled,
+  setBubbleChatEnabled,
+  bubblesAllowedBySystem,
+  openBubbleSystemSettings,
+} from "../../../services/bubble/nativeBubble";
+import React, { useContext, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -98,6 +105,16 @@ export default function SettingsScreen({ navigation }) {
   const [runningUpdate, setRunningUpdate] = React.useState(() => getRunningUpdateInfo());
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
+  // Android 11+ only (system bubbles); hidden elsewhere and on old builds.
+  const [bubbleChatOn, setBubbleChatOn] = useState(() => bubbleChatAvailable && isBubbleChatEnabled());
+  const toggleBubbleChat = (on) => {
+    if (on && !bubblesAllowedBySystem()) {
+      Toast.show({ type: "info", text1: t("settings.bubbleChat"), text2: t("settings.bubbleChatSystemOff"), topOffset: 60 });
+      openBubbleSystemSettings();
+    }
+    setBubbleChatEnabled(on);
+    setBubbleChatOn(on);
+  };
   const { t, i18n } = useTranslation();
 
   // Tapping the version text 5 times within 3s toggles on the hidden
@@ -405,6 +422,15 @@ export default function SettingsScreen({ navigation }) {
             value={shakeToReportEnabled}
             onPress={setShakeToReportEnabled}
           />
+          {bubbleChatAvailable && (
+            <SettingItem
+              icon="chatbubble-ellipses-outline"
+              title={t("settings.bubbleChat")}
+              isSwitch
+              value={bubbleChatOn}
+              onPress={toggleBubbleChat}
+            />
+          )}
           <SettingItem
             icon="apps-outline"
             title={t("settings.appIcon", "Biểu tượng ứng dụng")}

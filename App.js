@@ -166,6 +166,7 @@ const FADE_ANIMATION = Platform.OS === "ios" ? "none" : "fade";
  * Supported formats:
  *   com.fatties.youth://post/<postId>          → PostScreen
  *   com.fatties.youth://post/<postId>-<slug>   → PostScreen
+ *   com.fatties.youth://chat/<conversationId>  → ConversationScreen
  *   com.fatties.youth://story/<storyId>        → HomeScreen (storyId param)
  */
 const parseDeepLink = (url) => {
@@ -220,7 +221,7 @@ const parseDeepLink = (url) => {
       const queryPart = customSchemeMatch[4] || "";
 
       if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "quiz" || firstSegment === "game") {
+        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "quiz" || firstSegment === "game" || firstSegment === "chat") {
           pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
           host = "";
         } else {
@@ -263,7 +264,7 @@ const parseDeepLink = (url) => {
       // shared quiz link opening the wrong content).
       if (
         (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") &&
-        (host === "post" || host === "story" || host === "group" || host === "quiz" || host === "game")
+        (host === "post" || host === "story" || host === "group" || host === "quiz" || host === "game" || host === "chat")
       ) {
         pathSegment = `${host}/${pathSegment}`;
         host = "";
@@ -296,6 +297,10 @@ const parseDeepLink = (url) => {
       if (pathSegment.startsWith("group/")) {
         const token = pathSegment.slice(6).split("?")[0];
         if (token) return { screen: "GroupJoin", params: { token } };
+      }
+      if (pathSegment.startsWith("chat/")) {
+        const conversationId = pathSegment.slice(5).split("?")[0];
+        if (conversationId) return { screen: "ConversationScreen", params: { conversationId: Number(conversationId) || conversationId } };
       }
       if (pathSegment.startsWith("quiz/")) {
         const quizSetId = pathSegment.slice(5).split("?")[0];

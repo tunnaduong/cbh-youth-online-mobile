@@ -1,5 +1,6 @@
 import "./app/services/ota/patchLocalAssets";
 import React from "react";
+import { AppRegistry } from "react-native";
 import { registerRootComponent } from "expo";
 import * as SplashScreen from "expo-splash-screen";
 import { LogBox } from "react-native";
@@ -120,3 +121,10 @@ function Root() {
 // It also ensures that whether you load the app in Expo Go or in a native build,
 // the environment is set up appropriately
 registerRootComponent(Root);
+
+// Second root for the Android chat bubble window (modules/hmy-bubble). The
+// component is only required when that window opens.
+AppRegistry.registerComponent("BubbleChat", () => (props) => {
+  const BubbleChatRoot = require("./app/bubble/BubbleChatRoot").default;
+  return <BubbleChatRoot {...props} />;
+});

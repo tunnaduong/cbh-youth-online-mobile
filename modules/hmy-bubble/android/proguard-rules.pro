@@ -1,0 +1,1 @@
+-keep class hhh.hmy.bubble.** { *; }

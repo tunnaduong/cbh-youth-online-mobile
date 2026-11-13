@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'hhh.hmy.bubble'
+version = '1.0.0'
+
+android {
+  namespace "hhh.hmy.bubble"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+    consumerProguardFiles 'proguard-rules.pro'
+  }
+}
+
+dependencies {
+  // BubbleMetadata, MessagingStyle, ShortcutManagerCompat.
+  implementation 'androidx.core:core:1.17.0'
+}

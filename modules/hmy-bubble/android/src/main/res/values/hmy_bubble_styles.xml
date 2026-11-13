@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- The bubble hosts the app's own chat screen (React Native), so it only needs a plain window theme. -->
+  <style name="HmyBubbleTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowBackground">@android:color/transparent</item>
+  </style>
+</resources>
