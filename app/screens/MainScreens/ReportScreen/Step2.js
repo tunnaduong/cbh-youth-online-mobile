@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: "500", marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 13,
     fontSize: 15,
   },
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 13,
   },
   dateText: { fontSize: 15 },
@@ -961,7 +961,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 12,
     fontSize: 15,
   },
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
   suggestionItem: { padding: 13, borderBottomWidth: StyleSheet.hairlineWidth },
   suggestionText: { fontSize: 15 },
   addCustomButton: {
-    borderRadius: 12,
+    borderRadius: 999,
     padding: 14,
     alignItems: "center",
     marginTop: 12,
