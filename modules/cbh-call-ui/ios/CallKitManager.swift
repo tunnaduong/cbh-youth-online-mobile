@@ -95,10 +95,16 @@ final class CallKitManager: NSObject, CXProviderDelegate, PKPushRegistryDelegate
     request.setValue("application/json", forHTTPHeaderField: "Accept")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.httpBody = try? JSONSerialization.data(withJSONObject: ["reason": "rejected"])
-    var task: UIBackgroundTaskIdentifier = .invalid
-    task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+    // A little background time so the request finishes even if the app was
+    // only woken up for the call.
+    let app = UIApplication.shared
+    let taskId = app.beginBackgroundTask(expirationHandler: nil)
     URLSession.shared.dataTask(with: request) { _, _, _ in
-      DispatchQueue.main.async { UIApplication.shared.endBackgroundTask(task) }
+      DispatchQueue.main.async {
+        if taskId != .invalid {
+          app.endBackgroundTask(taskId)
+        }
+      }
     }.resume()
   }
 
@@ -129,9 +135,11 @@ final class CallKitManager: NSObject, CXProviderDelegate, PKPushRegistryDelegate
     update.supportsDTMF = false
     calls[callId] = CbhCall(id: callId, uuid: uuid, json: json)
     provider?.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
-      if error != nil {
-        // Already known to CallKit (or Do Not Disturb / blocked): forget it.
-        if (error as NSError?)?.code != CXErrorCodeIncomingCallError.callUUIDAlreadyExists.rawValue {
+      if let error = error {
+        // Already known to CallKit (the VoIP push and the socket for the same
+        // call) is fine; anything else (Do Not Disturb, blocked): forget it.
+        let alreadyExists = (error as? CXErrorCodeIncomingCallError)?.code == .callUUIDAlreadyExists
+        if !alreadyExists {
           self?.calls.removeValue(forKey: callId)
         }
       }
