@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal, ActivityIndicator } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
+import { tint } from './settings/SettingsUI';
 
 const ReportModal = ({ visible, onClose, onSubmit, title }) => {
   const [reason, setReason] = useState('');
@@ -42,12 +44,15 @@ const ReportModal = ({ visible, onClose, onSubmit, title }) => {
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.container}>
                 <TouchableWithoutFeedback>
-                  <View style={[styles.content, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+                  <View style={[styles.content, { backgroundColor: theme.surface || theme.cardBackground, borderColor: isDarkMode ? '#282B34' : '#E2E8F0' }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+                    <View style={[styles.iconHolder, { backgroundColor: tint('#EF4444', isDarkMode) }]}>
+                      <Ionicons name="flag" size={24} color="#EF4444" />
+                    </View>
                     <Text style={[styles.title, { color: theme.text }]}>{title || t('report.modalTitle')}</Text>
                     <TextInput
                       style={[styles.input, {
-                        backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
-                        borderColor: theme.border,
+                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#F8FAFC',
+                        borderColor: isDarkMode ? '#282B34' : '#E2E8F0',
                         color: theme.text
                       }]}
                       placeholder={t('report.reasonPlaceholder')}
@@ -59,12 +64,16 @@ const ReportModal = ({ visible, onClose, onSubmit, title }) => {
                       editable={!submitting}
                     />
                     <View style={styles.buttons}>
-                      <TouchableOpacity onPress={handleClose} style={styles.cancelButton} disabled={submitting}>
-                        <Text style={[styles.cancelText, { color: theme.subText }]}>{t('report.cancel')}</Text>
+                      <TouchableOpacity
+                        onPress={handleClose}
+                        style={[styles.cancelButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }]}
+                        disabled={submitting}
+                      >
+                        <Text style={[styles.cancelText, { color: theme.text }]}>{t('report.cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={handleSubmit}
-                        style={[styles.submitButton, { backgroundColor: theme.primary }, (!reason.trim() || submitting) && styles.disabled]}
+                        style={[styles.submitButton, { backgroundColor: '#EF4444' }, (!reason.trim() || submitting) && styles.disabled]}
                         disabled={!reason.trim() || submitting}
                       >
                         {submitting ? (
@@ -99,56 +108,68 @@ const styles = StyleSheet.create({
     flex: 1
   },
   content: {
-    width: '85%',
-    borderRadius: 14,
-    padding: 20,
-    shadowColor: "#000",
+    width: '88%',
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 22,
+    alignItems: 'stretch',
+    shadowColor: "#0F172A",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 8,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  iconHolder: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: '800',
+    marginBottom: 16,
     textAlign: 'center',
   },
   input: {
     height: 120,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 14,
     textAlignVertical: 'top',
-    marginBottom: 20,
-    fontSize: 16
+    marginBottom: 18,
+    fontSize: 15
   },
   buttons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12
+    gap: 10
   },
   cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 999,
   },
   submitButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 999
   },
   disabled: {
     opacity: 0.5,
   },
   cancelText: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
   submitText: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: 'white'
   }
 });
