@@ -69,8 +69,10 @@ const SettingItem = ({
         {iconComponent || <Ionicons name={icon} size={20} color={theme.primary} />}
       </View>
       {subtitle ? (
-        <View style={{ flex: 1, flexShrink: 1 }}>
-          <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+        // Title + description share one column; the 12px gap to the icon is on
+        // the column, so both lines start at the same x.
+        <View style={{ flex: 1, flexShrink: 1, marginLeft: 12 }}>
+          <Text style={[styles.settingItemText, { color: theme.text, marginLeft: 0 }]}>{title}</Text>
           <Text style={{ fontSize: 12, lineHeight: 16, color: theme.subText, marginTop: 2 }}>{subtitle}</Text>
         </View>
       ) : (
@@ -82,6 +84,7 @@ const SettingItem = ({
         value={value}
         onValueChange={onPress}
         trackColor={{ true: theme.primary }}
+        style={subtitle ? { marginLeft: 12 } : undefined}
       />
     ) : value ? (
       <View style={styles.settingItemRight}>
@@ -488,7 +491,6 @@ export default function SettingsScreen({ navigation }) {
               icon="battery-charging-outline"
               title={t("settings.batteryBackground")}
               subtitle={batteryIgnoring ? t("settings.batteryBackgroundOn") : t("settings.batteryBackgroundOff")}
-              value={batteryIgnoring ? t("settings.batteryAllowed") : t("settings.batteryRestricted")}
               chevron={!batteryIgnoring}
               onPress={() => {
                 if (!batteryIgnoring) batteryApi.request();
