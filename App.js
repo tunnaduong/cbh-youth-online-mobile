@@ -88,6 +88,9 @@ import GamesScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen";
 import GamePlayScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen/GamePlayScreen";
 import QuizScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen";
 import UniversityScreen from "./app/screens/MainScreens/ExploreScreen/UniversityScreen";
+import ScoreLookupScreen from "./app/screens/MainScreens/ExploreScreen/ScoreLookupScreen";
+import ScoreLookupThptScreen from "./app/screens/MainScreens/ExploreScreen/ScoreLookupScreen/ThptScreen";
+import ScoreLookupGrade10Screen from "./app/screens/MainScreens/ExploreScreen/ScoreLookupScreen/Grade10Screen";
 import CustomQuizCreateScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen/CustomQuizCreateScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
@@ -1160,6 +1163,21 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="UniversityScreen"
                 component={UniversityScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ScoreLookupScreen"
+                component={ScoreLookupScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ScoreLookupThptScreen"
+                component={ScoreLookupThptScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ScoreLookupGrade10Screen"
+                component={ScoreLookupGrade10Screen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

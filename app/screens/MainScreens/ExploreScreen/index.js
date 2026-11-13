@@ -51,7 +51,7 @@ const FEATURE_CARDS = [
     lightBorder: "#DBEAFE",
     darkBg: "#112038",
     darkBorder: "#193155",
-    route: null,
+    route: "ScoreLookupScreen",
   },
   {
     id: "findUniversities",

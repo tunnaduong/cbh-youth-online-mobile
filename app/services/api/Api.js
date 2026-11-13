@@ -1022,6 +1022,26 @@ export const searchUniversities = (q, autocomplete = false, config = {}) => {
   return Api.getRequest(`/v1.0/universities/search?${query}`, config);
 };
 
+// Exam score lookup (API proxies the Sở GD&ĐT sites)
+export const getExamScoreConfig = (source, config = {}) => {
+  return Api.getRequest(`/v1.0/exam-scores/${source}/config`, config);
+};
+
+export const getExamScoreCaptcha = (source, config = {}) => {
+  return Api.getRequest(`/v1.0/exam-scores/${source}/captcha`, config);
+};
+
+export const searchExamScore = (source, params, config = {}) => {
+  return Api.postRequest(`/v1.0/exam-scores/${source}/search`, params, config);
+};
+
+export const searchGrade10Score = (sbd, config = {}) => {
+  return Api.getRequest(
+    `/v1.0/exam-scores/ninh-binh-10/search?sbd=${encodeURIComponent(sbd)}`,
+    config
+  );
+};
+
 // Quiz
 export const getQuizTopics = (config = {}) => {
   return Api.getRequest("/v1.0/quiz/topics", config);

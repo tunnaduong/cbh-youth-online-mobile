@@ -42,7 +42,7 @@ How they connect:
 - **Notifications**: moderation notices (`content_warning` opens the content, `content_deleted` only informs), Expo push (`services/notifications/ExpoNotificationService.js`, `NotificationContext`), unread badges (`UnreadCountsContext`), tap routing (`utils/notificationRouting.js`).
 - **Profile**: profile/detail screens, edit profile, photo gallery (a "Photos" view of the Posts tab: `components/profile/ProfilePhotoGallery.js`, `GET /v1.0/users/{username}/photos`), Discord-style customization (avatar frames, name fonts/effects, profile effects, and at the Pro tier a name icon and a `@username` styled like the name; `ProfileCustomizerScreen`, `components/profile` - `UserNameRow` / `NameIcon` / `StyledUsername` draw a user's name everywhere, `utils/profileTheme.js`), points milestones, member ranking.
 - **Points**: point wallet, deposit/withdraw, gift points (`GiftPointsModal`).
-- **Explore**: games (web, in WebView), quizzes + custom quizzes, universities, study materials (view/upload).
+- **Explore**: games (web, in WebView), quizzes + custom quizzes, universities, study materials (view/upload), exam score lookup (`ExploreScreen/ScoreLookupScreen/`: picker → THPT graduation with captcha / grade 10, Ninh Bình, via the API's `/v1.0/exam-scores/*`).
 - **Reports & feedback**: reporting posts, comments (long-press), stories, chat messages and users (`ReportModal` → `reportUser`, `POST /v1.0/reports`), multi-step student/class violation reports (`ReportScreen/ReportNavigator`, sent to `POST /v1.0/violation-reports`), bug report / feedback screen, shake-to-report with screenshot (`ShakeToReport`).
 - **Web apps in the app**: sidebar entries **Gift shop** (everyone) and **Admin** (only `userInfo.role === "admin"`), both `WebAppScreen` (see §5).
 - **Settings**: theme (light/dark/system, liquid glass toggle, video autoplay), language, security, blocked users, notification settings, student verification, about, terms/privacy, dev console, easter egg (long-press About).
@@ -87,7 +87,7 @@ app/
       ChatScreen/          Conversation list, ConversationScreen, groups, MediaGalleryScreen
         conversation/      Pieces of ConversationScreen: ConversationHeader, ChatComposer, ChatGlassBar, MessagesListContent, MessageRow, SeenByModal, TypingIndicator, chatUtils, styles...
       ProfileScreen, ProfileDetailScreen, EditProfileScreen, ProfileCustomizerScreen
-      ExploreScreen/       Games, Quiz, University, StudyMaterial*, Upload
+      ExploreScreen/       Games, Quiz, University, StudyMaterial*, Upload, ScoreLookupScreen/
       ReportScreen/        Step1-3 + Success (own stack)
       SettingsScreen/      Settings + sub-screens (About, Security, TwoFactor, Devices, Privacy, EasterEgg, DevConsole, ...)
       PointWalletScreen/   Wallet, Deposit, Withdraw
@@ -376,6 +376,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 > **Size rules - read before adding an entry.** Max 10 entries, each max 3 lines (~300 chars); adding one drops the oldest (`git log -p -- INFO.md` keeps everything). No file-by-file changelogs or step lists - commits hold that. Record only what the code cannot tell a future agent: rules, gotchas, "needs a new native build", API dependencies. A lasting rule goes in Conventions / Design system, not here. Keep this whole file under ~500 lines / 60 KB; trim in the same commit if you push past it.
 
+- **Exam score lookup** (`ScoreLookupScreen/`; JS only, OTA is enough; needs the API's `ExamScoreController`; not run on a device, no real SBD tested): THPT shows the site's SVG captcha with `SvgXml` and asks the user to type it (one lookup per captcha, refreshed after each); grade 10 has no captcha. Sources are HTTP-only/3rd-party, so always go through the API.
 - **dhphuc builds use the `preview` OTA channel; OTA "OK" relaunches** (`build-android/ios.yml` run `set-ota-channel.js preview`; only a merge to main writes `production`). `reloadApp` retries `reloadAsync`, then Android `CbhCallUi.restartApp` (alarm + kill; **needs a new native build**, else exits).
 - **Incoming calls in the OS call UI** (`modules/cbh-call-ui`, `CallContext.js`; Kotlin/Swift not compiled here - **needs a new native build**, an OTA alone keeps the old banner): Android shows a ringing CallStyle notification + full-screen intent (opens over the lock screen; Android 14 may need the "full-screen notifications" permission, asked once); iOS rings through CallKit from VoIP pushes - needs the API's `APNS_*` settings.
 - **Long posts no longer lag the feed** (`components/PostHtml.js`; JS only, OTA is enough; not benchmarked on a device yet): a collapsed card renders only the start of the post (`truncateHtmlForPreview`), every post body shares one render engine (`PostHtmlEngineProvider` in `contexts/index.js`) and parsed trees are cached by HTML. No chunked loading - expanding renders the whole post at once.
@@ -385,4 +386,3 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Feed posts: collapsed text fades into "Xem thêm"** (`PostItem.js`): 90px `LinearGradient` over the clipped text, `pointerEvents="none"`.
 - **Calls: no more lagging/doubled voice** (`WebRtcBridge.js`, `CallContext.js`): one audio output, HTTP audio relay only after 3 s of transport down, call poll every 5 s once connected. Clear calls over mobile data still need `WEBRTC_TURN_SERVER` in the API `.env`.
 - **Markdown tables in posts** (`components/MarkdownTable.js`): `tableRenderers` spread into each `RenderHTML`; needs the API's `TableExtension`; old posts keep old HTML until edited.
-- **OTA prompt no longer on every launch** (`services/ota/otaService.js`): an update whose `createdAt` is not newer than the running bundle is `up_to_date`; "Để sau" remembers the update id; a reload that did not take stays quiet.
