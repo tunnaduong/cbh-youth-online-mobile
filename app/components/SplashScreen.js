@@ -24,12 +24,12 @@ const SplashScreen = ({ onFinish }) => {
       animation.current.play();
     }
 
-    // Set a timeout to finish the splash screen (typically 2-3 seconds)
+    // Short branded splash (was 2.5s): the app is ready much sooner than that.
     const timer = setTimeout(() => {
       if (onFinish) {
         onFinish();
       }
-    }, 2500);
+    }, 1200);
 
     return () => {
       clearTimeout(timer);
@@ -54,6 +54,7 @@ const SplashScreen = ({ onFinish }) => {
             source={require("../assets/splash.json")}
             style={styles.animation}
             autoPlay={false}
+            speed={2}
             loop={false}
           />
           <View style={{ alignItems: "center", opacity: fontsReady ? 1 : 0 }}>

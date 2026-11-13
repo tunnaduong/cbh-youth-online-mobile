@@ -165,6 +165,17 @@ export const AuthProvider = ({ children }) => {
           setEmailVerifiedAt(null);
         }
 
+        // Local data is enough to render the app: unblock the UI now and let
+        // the network syncs below finish in the background (they used to be
+        // awaited here, holding the splash for as long as the API took).
+        if (token) {
+          try {
+            const cachedBlocked = await AsyncStorage.getItem("blocked_users");
+            if (cachedBlocked) setBlockedUsers(JSON.parse(cachedBlocked));
+          } catch {}
+        }
+        setIsLoading(false);
+
         // Sync Blocked Users from API if logged in
         if (token) {
           try {
