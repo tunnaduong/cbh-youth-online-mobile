@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { ACCENT, tint } from "../../../components/settings/SettingsUI";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -32,9 +33,9 @@ const MAX_IMAGES = 4;
 const MIN_LENGTH = 10;
 
 const TYPES = [
-  { value: "bug", icon: "bug-outline", labelKey: "feedback.typeBug", descKey: "feedback.typeBugDesc", placeholderKey: "feedback.placeholderBug" },
-  { value: "suggestion", icon: "bulb-outline", labelKey: "feedback.typeSuggestion", descKey: "feedback.typeSuggestionDesc", placeholderKey: "feedback.placeholderSuggestion" },
-  { value: "other", icon: "chatbubble-ellipses-outline", labelKey: "feedback.typeOther", descKey: "feedback.typeOtherDesc", placeholderKey: "feedback.placeholderOther" },
+  { value: "bug", icon: "bug-outline", color: "#EF4444", labelKey: "feedback.typeBug", descKey: "feedback.typeBugDesc", placeholderKey: "feedback.placeholderBug" },
+  { value: "suggestion", icon: "bulb-outline", color: "#F59E0B", labelKey: "feedback.typeSuggestion", descKey: "feedback.typeSuggestionDesc", placeholderKey: "feedback.placeholderSuggestion" },
+  { value: "other", icon: "chatbubble-ellipses-outline", color: "#3B82F6", labelKey: "feedback.typeOther", descKey: "feedback.typeOtherDesc", placeholderKey: "feedback.placeholderOther" },
 ];
 
 function getOtaVersionString() {
@@ -249,11 +250,25 @@ export default function FeedbackScreen({ navigation, route }) {
           contentContainerStyle={{ padding: 16, paddingTop: 64 + topInset, paddingBottom: insets.bottom + 32 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={[styles.subtitle, { color: theme.subText }]}>{t("feedback.subtitle")}</Text>
+          <LinearGradient
+            colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          >
+            <View style={styles.heroCircle} />
+            <View style={{ flex: 1, zIndex: 1 }}>
+              <Text style={[styles.heroTitle, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("feedback.title")}</Text>
+              <Text style={[styles.heroSubtitle, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("feedback.subtitle")}</Text>
+            </View>
+            <View style={[styles.heroIcon, { backgroundColor: tint("#EF4444", isDarkMode) }]}>
+              <Ionicons name="bug" size={26} color="#EF4444" />
+            </View>
+          </LinearGradient>
 
           {shakeScreenshot && images.includes(shakeScreenshot) && (
-            <View style={[styles.shakeBanner, { backgroundColor: isDarkMode ? "#1f3320" : "#EEF7ED", borderColor: theme.primary }]}>
-              <Ionicons name="camera-outline" size={18} color={theme.primary} />
+            <View style={[styles.shakeBanner, { backgroundColor: tint(ACCENT.profile, isDarkMode), borderColor: "transparent" }]}>
+              <Ionicons name="camera-outline" size={18} color={ACCENT.profile} />
               <Text style={[styles.shakeBannerText, { color: theme.text }]}>
                 {screenName ? t("feedback.shakeAttachedWithScreen", { screen: screenName }) : t("feedback.shakeAttached")}
               </Text>
@@ -271,20 +286,23 @@ export default function FeedbackScreen({ navigation, route }) {
                 style={[
                   styles.typeCard,
                   {
-                    borderColor: active ? theme.primary : theme.border,
-                    backgroundColor: active ? (isDarkMode ? "#1f3320" : "#EEF7ED") : theme.surface,
+                    borderColor: active ? item.color : isDarkMode ? "#282B34" : "#E2E8F0",
+                    borderWidth: active ? 1.5 : StyleSheet.hairlineWidth,
+                    backgroundColor: active ? tint(item.color, isDarkMode) : theme.surface,
                   },
                 ]}
               >
-                <Ionicons name={item.icon} size={22} color={active ? theme.primary : theme.subText} />
+                <View style={[styles.typeIcon, { backgroundColor: tint(item.color, isDarkMode) }]}>
+                  <Ionicons name={item.icon} size={20} color={item.color} />
+                </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={[styles.typeTitle, { color: theme.text }]}>{t(item.labelKey)}</Text>
                   <Text style={[styles.typeDesc, { color: theme.subText }]}>{t(item.descKey)}</Text>
                 </View>
                 <Ionicons
-                  name={active ? "radio-button-on" : "radio-button-off"}
-                  size={20}
-                  color={active ? theme.primary : theme.subText}
+                  name={active ? "checkmark-circle" : "ellipse-outline"}
+                  size={22}
+                  color={active ? item.color : theme.subText}
                 />
               </TouchableOpacity>
             );
@@ -402,13 +420,35 @@ const styles = StyleSheet.create({
   headerActionButton: { width: "auto", minWidth: 64, paddingHorizontal: 14 },
   headerAction: { fontSize: 15, fontWeight: "700" },
   subtitle: { fontSize: 14, marginBottom: 8 },
+  heroCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  heroCircle: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(34,197,94,0.10)",
+    top: -45,
+    right: 50,
+  },
+  heroTitle: { fontSize: 19, fontWeight: "800", marginBottom: 4 },
+  heroSubtitle: { fontSize: 13, lineHeight: 18 },
+  heroIcon: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", marginLeft: 12, zIndex: 1 },
+  typeIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   shakeBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 14,
+    padding: 12,
     marginTop: 4,
   },
   shakeBannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
@@ -417,16 +457,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   typeTitle: { fontSize: 15, fontWeight: "600" },
   typeDesc: { fontSize: 12, marginTop: 2 },
-  textArea: { minHeight: 140, borderRadius: 12, padding: 12, fontSize: 15 },
+  textArea: { minHeight: 140, borderRadius: 16, padding: 14, fontSize: 15 },
   counter: { fontSize: 11, textAlign: "right", marginTop: 4 },
   imageRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  imageWrap: { width: 76, height: 76, borderRadius: 10, overflow: "hidden" },
+  imageWrap: { width: 76, height: 76, borderRadius: 14, overflow: "hidden" },
   image: { width: "100%", height: "100%" },
   removeImage: {
     position: "absolute",
@@ -451,14 +491,14 @@ const styles = StyleSheet.create({
   addImage: {
     width: 76,
     height: 76,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
   },
-  input: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: Platform.OS === "ios" ? 12 : 8, fontSize: 15 },
+  input: { borderRadius: 16, paddingHorizontal: 14, paddingVertical: Platform.OS === "ios" ? 13 : 9, fontSize: 15 },
   note: { fontSize: 12, marginTop: 12 },
-  submit: { marginTop: 20, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  submit: { marginTop: 20, borderRadius: 999, paddingVertical: 15, alignItems: "center" },
   submitText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

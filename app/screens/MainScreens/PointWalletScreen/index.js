@@ -16,6 +16,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { tint } from "../../../components/settings/SettingsUI";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -227,43 +228,50 @@ export default function PointWalletScreen({ navigation }) {
         scrollEventThrottle={16}
       >
         <LinearGradient
-          colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]}
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
+          style={[styles.balanceCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
+          <View style={styles.balanceCircle} />
           <View style={styles.balanceTopRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.balanceLabel}>{t("wallet.currentBalance")}</Text>
-              <Text style={styles.balanceValue}>{t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}</Text>
-              <Text style={styles.balanceVnd}>{t("wallet.approxVnd", { value: balance?.formatted_vnd || "0 VND" })}</Text>
+              <Text style={[styles.balanceLabel, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("wallet.currentBalance")}</Text>
+              <Text style={[styles.balanceValue, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}</Text>
+              <View style={styles.balanceVndChip}>
+                <Text style={styles.balanceVnd}>{t("wallet.approxVnd", { value: balance?.formatted_vnd || "0 VND" })}</Text>
+              </View>
             </View>
             <View style={styles.walletIcon}>
-              <Ionicons name="wallet-outline" size={36} color="#FFFFFF" />
+              <Ionicons name="wallet" size={30} color="#16A34A" />
             </View>
           </View>
         </LinearGradient>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: isDarkMode ? "rgba(20,118,198,0.16)" : "#E8F4FF" }]} onPress={() => navigation.navigate("DepositScreen")}>
-            <Ionicons name="add-circle-outline" size={20} color="#1476C6" />
-            <Text style={[styles.actionText, { color: "#1476C6" }]}>{t("wallet.deposit")}</Text>
+          <TouchableOpacity activeOpacity={0.7} style={[styles.actionButton, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]} onPress={() => navigation.navigate("DepositScreen")}>
+            <View style={[styles.actionIcon, { backgroundColor: tint("#0EA5E9", isDarkMode) }]}>
+              <Ionicons name="add" size={22} color="#0EA5E9" />
+            </View>
+            <Text style={[styles.actionText, { color: theme.text }]}>{t("wallet.deposit")}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: isDarkMode ? "rgba(22,131,72,0.16)" : "#EAF8EE" }]} onPress={() => navigation.navigate("WithdrawScreen")}>
-            <Ionicons name="cash-outline" size={20} color="#168348" />
-            <Text style={[styles.actionText, { color: "#168348" }]}>{t("wallet.withdraw")}</Text>
+          <TouchableOpacity activeOpacity={0.7} style={[styles.actionButton, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]} onPress={() => navigation.navigate("WithdrawScreen")}>
+            <View style={[styles.actionIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="cash-outline" size={20} color="#22C55E" />
+            </View>
+            <Text style={[styles.actionText, { color: theme.text }]}>{t("wallet.withdraw")}</Text>
           </TouchableOpacity>
         </View>
 
-        <SectionTitle icon="swap-vertical-outline" title={t("wallet.transactionHistory")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+        <SectionTitle icon="swap-vertical-outline" color="#6366F1" title={t("wallet.transactionHistory")} theme={theme} isDarkMode={isDarkMode} />
+        <View style={[styles.section, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
           {transactions.length === 0 ? (
             <EmptyState text={t("wallet.emptyTransactions")} theme={theme} />
           ) : (
             transactions.map((transaction, index) => (
-              <View key={transaction.id || `${transaction.created_at}-${index}`} style={[styles.transactionRow, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "#FFFFFF" }, index < transactions.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}> 
-                <View style={[styles.transactionIcon, { backgroundColor: transaction.amount > 0 ? "#EAF8EE" : "#FEF0F0" }]}> 
-                  <Ionicons name={transaction.amount > 0 ? "arrow-down-outline" : "arrow-up-outline"} size={18} color={transaction.amount > 0 ? "#168348" : "#DC2626"} />
+              <View key={transaction.id || `${transaction.created_at}-${index}`} style={[styles.transactionRow, index < transactions.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" }]}> 
+                <View style={[styles.transactionIcon, { backgroundColor: tint(transaction.amount > 0 ? "#22C55E" : "#EF4444", isDarkMode) }]}> 
+                  <Ionicons name={transaction.amount > 0 ? "arrow-down-outline" : "arrow-up-outline"} size={18} color={transaction.amount > 0 ? "#16A34A" : "#EF4444"} />
                 </View>
                 <View style={styles.transactionInfo}>
                   <Text style={[styles.transactionDescription, { color: theme.text }]} numberOfLines={2}>{transaction.description || t("wallet.defaultTransactionDescription")}</Text>
@@ -290,13 +298,13 @@ export default function PointWalletScreen({ navigation }) {
           )}
         </View>
 
-        <SectionTitle icon="time-outline" title={t("wallet.withdrawalRequests")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+        <SectionTitle icon="time-outline" color="#F59E0B" title={t("wallet.withdrawalRequests")} theme={theme} isDarkMode={isDarkMode} />
+        <View style={[styles.section, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
           {withdrawalRequests.length === 0 ? (
             <EmptyState text={t("wallet.emptyWithdrawalRequests")} theme={theme} />
           ) : (
             withdrawalRequests.map((request, index) => (
-              <View key={request.id || index} style={[styles.withdrawalRow, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "#FFFFFF" }, index < withdrawalRequests.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}> 
+              <View key={request.id || index} style={[styles.withdrawalRow, index < withdrawalRequests.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" }]}> 
                 <View style={styles.withdrawalHeader}>
                   <Text style={[styles.withdrawalAmount, { color: theme.text }]}>{t("wallet.withdrawAmount", { value: formatNumber(request.amount, lang) })}</Text>
                   <Text style={{ color: statusColors[request.status] || theme.subText, fontWeight: "700", fontSize: 12 }}>{t(`wallet.status.${request.status}`, { defaultValue: request.status })}</Text>
@@ -317,11 +325,11 @@ export default function PointWalletScreen({ navigation }) {
   );
 }
 
-function SectionTitle({ icon, title, theme }) {
+function SectionTitle({ icon, color, title, theme, isDarkMode }) {
   return (
     <View style={styles.sectionTitleRow}>
-      <Ionicons name={icon} size={20} color={theme.primary} />
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+      <Ionicons name={icon} size={15} color={color || theme.primary} />
+      <Text style={[styles.sectionTitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>{title}</Text>
     </View>
   );
 }
@@ -360,35 +368,35 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: "700" },
   largeTitle: { fontSize: 28, fontWeight: "800", marginBottom: 14 },
   balanceCard: {
-    borderRadius: 24,
+    borderRadius: 22,
+    borderWidth: 1,
     padding: 20,
-    marginBottom: 16,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    marginBottom: 14,
+    overflow: "hidden",
+    shadowColor: "#16A34A",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
+  balanceCircle: { position: "absolute", width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(34,197,94,0.10)", top: -55, right: 40 },
   balanceTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  balanceLabel: { color: "#C7F5D7", fontSize: 14, marginBottom: 6 },
-  balanceValue: { color: "#FFFFFF", fontSize: 28, fontWeight: "800" },
-  balanceVnd: { color: "#C7F5D7", fontSize: 14, marginTop: 5 },
-  walletIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(255,255,255,0.16)", justifyContent: "center", alignItems: "center" },
-  actionsRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
-  actionButton: { flex: 1, minHeight: 50, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  balanceLabel: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
+  balanceValue: { fontSize: 30, fontWeight: "800" },
+  balanceVndChip: { alignSelf: "flex-start", marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(34,197,94,0.15)" },
+  balanceVnd: { color: "#16A34A", fontSize: 12, fontWeight: "700" },
+  walletIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(34,197,94,0.15)", justifyContent: "center", alignItems: "center" },
+  actionsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
+  actionButton: { flex: 1, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  actionIcon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   actionText: { fontSize: 15, fontWeight: "700" },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
-  sectionTitle: { fontSize: 17, fontWeight: "700" },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10, marginLeft: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
   section: {
     borderRadius: 18,
-    marginBottom: 22,
+    marginBottom: 24,
     overflow: "hidden",
-    borderWidth: 1,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   transactionRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
   transactionIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center" },
@@ -399,8 +407,8 @@ const styles = StyleSheet.create({
   withdrawalRow: { padding: 14 },
   withdrawalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   withdrawalAmount: { fontSize: 15, fontWeight: "700", flex: 1 },
-  cancelButton: { alignSelf: "flex-start", marginTop: 10, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#FEF0F0" },
-  cancelText: { color: "#DC2626", fontSize: 12, fontWeight: "700" },
+  cancelButton: { alignSelf: "flex-start", marginTop: 10, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, backgroundColor: "rgba(239,68,68,0.12)" },
+  cancelText: { color: "#EF4444", fontSize: 12, fontWeight: "700" },
   emptyState: { alignItems: "center", paddingVertical: 28, gap: 8 },
   emptyText: { fontSize: 14 },
 });
