@@ -478,9 +478,10 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
             >
               {active ? (
                 <>
-                  {/* Same structure as the inactive pill (Text straight
-                      inside the touchable, colour passed inline); the
-                      gradient is only a background layer. */}
+                  {/* Solid background + gradient overlay. No overflow:"hidden"
+                      on the parent (tabActive) so Android never clips the Text
+                      node when this pill is re-rendered after a category switch.
+                      The gradient sits in absoluteFill so it never overflows. */}
                   <LinearGradient
                     colors={
                       isDarkMode
@@ -489,7 +490,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                     }
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
+                    style={[StyleSheet.absoluteFill, { borderRadius: 999 }]}
                     pointerEvents="none"
                   />
                   <Text
@@ -750,7 +751,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
     shadowRadius: 5,
     elevation: 0,
-    overflow: "hidden",
+    // No overflow:"hidden" — that clips Text/children on Android when
+    // the pill is re-rendered after a category switch. The LinearGradient
+    // absoluteFill gets borderRadius:999 directly, so no clipping needed.
   },
   tabGradient: {
     height: 36,
