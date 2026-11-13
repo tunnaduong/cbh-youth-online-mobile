@@ -348,24 +348,6 @@ export default function SettingsScreen({ navigation }) {
         </SettingSection>
 
         {/* Language and content */}
-        <SettingSection title={t("settings.groupLanguage")} theme={theme}>
-          <SettingItem
-            icon="apps-outline"
-            color={ACCENT.appIcon}
-            title={t("settings.appIcon", "Biểu tượng ứng dụng")}
-            onPress={() => navigation.navigate("AppIconScreen")}
-          />
-          <SettingItem
-            icon="sparkles-outline"
-            color={ACCENT.glass}
-            title={t("settings.liquidGlassEffect")}
-            isSwitch
-            value={liquidGlassEnabled}
-            onPress={setLiquidGlassEnabled}
-          />
-        </SettingSection>
-
-        {/* Language and content */}
         <SettingSection icon="globe-outline" color={ACCENT.language} title={t("settings.groupLanguage")} theme={theme} isDarkMode={isDarkMode}>
           {/* Language dropdown */}
           <View style={[styles.dropdownRow, { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" }]}>
