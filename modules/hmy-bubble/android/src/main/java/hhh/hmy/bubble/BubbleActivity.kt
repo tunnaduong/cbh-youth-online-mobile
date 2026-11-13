@@ -4,7 +4,6 @@ import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-import expo.modules.ReactActivityDelegateWrapper
 import java.lang.ref.WeakReference
 
 /**
@@ -26,13 +25,10 @@ class BubbleActivity : ReactActivity() {
   }
 
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-    ReactActivityDelegateWrapper(
-      this, true,
-      object : DefaultReactActivityDelegate(this, mainComponentName, true) {
-        override fun getLaunchOptions(): Bundle =
-          Bundle().apply { putString("conversationId", intent?.getStringExtra("conversationId")) }
-      }
-    )
+    object : DefaultReactActivityDelegate(this, mainComponentName, true) {
+      override fun getLaunchOptions(): Bundle =
+        Bundle().apply { putString("conversationId", plainActivity.intent?.getStringExtra("conversationId")) }
+    }
 
   companion object {
     @Volatile var current: WeakReference<BubbleActivity>? = null

@@ -18,4 +18,6 @@ android {
 dependencies {
   // BubbleMetadata, MessagingStyle, ShortcutManagerCompat.
   implementation 'androidx.core:core:1.17.0'
+  // ReactActivity for the bubble window; the version comes from the app's React Native.
+  implementation 'com.facebook.react:react-android'
 }
