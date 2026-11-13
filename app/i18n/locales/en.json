@@ -4,7 +4,16 @@
     "body": "Try opening it again. If it keeps happening, copy the text below and send it to the CBH Youth Online team.",
     "copy": "Copy error",
     "copied": "Copied",
-    "reload": "Open again"
+    "reload": "Open again",
+    "otaChecking": "Looking for a fix update...",
+    "otaNone": "No new update yet. The app will check again when you come back.",
+    "otaFailed": "Couldn't check for updates. Check your connection.",
+    "otaBlocked": "The update was installed but the app still fails.",
+    "otaCheck": "Check",
+    "otaRetry": "Install again",
+    "otaDownloading": "Downloading a fix update...",
+    "otaApplying": "Restarting with the new version...",
+    "otaWait": "The app will reopen by itself when done. Don't close it."
   },
   "time": {
     "justNow": "Just now",

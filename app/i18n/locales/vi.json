@@ -4,7 +4,16 @@
     "body": "Hãy thử mở lại. Nếu lỗi vẫn còn, sao chép nội dung bên dưới và gửi cho đội ngũ CBH Youth Online.",
     "copy": "Sao chép lỗi",
     "copied": "Đã sao chép",
-    "reload": "Mở lại"
+    "reload": "Mở lại",
+    "otaChecking": "Đang tìm bản cập nhật sửa lỗi...",
+    "otaNone": "Chưa có bản cập nhật mới. Ứng dụng sẽ tự kiểm tra lại khi bạn quay lại.",
+    "otaFailed": "Không kiểm tra được bản cập nhật. Hãy kiểm tra kết nối mạng.",
+    "otaBlocked": "Bản cập nhật đã được cài nhưng ứng dụng vẫn lỗi.",
+    "otaCheck": "Kiểm tra",
+    "otaRetry": "Cài lại",
+    "otaDownloading": "Đang tải bản cập nhật sửa lỗi...",
+    "otaApplying": "Đang khởi động lại với bản mới...",
+    "otaWait": "Ứng dụng sẽ tự mở lại khi xong. Đừng tắt ứng dụng."
   },
   "time": {
     "justNow": "Vừa xong",

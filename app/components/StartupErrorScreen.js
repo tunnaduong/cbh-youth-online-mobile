@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   useColorScheme,
+  ActivityIndicator,
+  AppState,
 } from "react-native";
 
 // Shown by index.js instead of crashing when a fatal error reaches the root
@@ -31,6 +33,100 @@ const reload = async () => {
     } catch {}
   }
 };
+
+// Self-repair: a broken bundle that reached users through OTA would otherwise
+// leave them on this screen until they reinstall. While it is shown, ask the
+// update server for a newer bundle and, if there is one, download it and
+// reload into it. expo-updates is used directly - not services/ota/otaService,
+// which imports MMKV storage and the rest of the app (any of which may be what
+// failed, as with "createMMKV ... Value is undefined"). The channel override
+// set from Settings is persisted natively, so the check uses the user's channel.
+//
+// Loop guard (AsyncStorage, not MMKV): each update id is applied automatically
+// once. If the app comes back here still not running it, the update did not
+// take or crashes too, and the user gets a button instead of an endless reload.
+const ATTEMPT_KEY = "startup_error_ota_attempt";
+
+const readAttempt = async () => {
+  try {
+    const AsyncStorage = require("@react-native-async-storage/async-storage").default;
+    return JSON.parse((await AsyncStorage.getItem(ATTEMPT_KEY)) || "null");
+  } catch {
+    return null;
+  }
+};
+
+const writeAttempt = async (id) => {
+  try {
+    const AsyncStorage = require("@react-native-async-storage/async-storage").default;
+    await AsyncStorage.setItem(ATTEMPT_KEY, JSON.stringify({ id, at: Date.now() }));
+  } catch {}
+};
+
+// status: idle | checking | downloading | applying | none | failed | blocked | unsupported
+function useRecoveryUpdate() {
+  const [status, setStatus] = React.useState("idle");
+  const busy = React.useRef(false);
+
+  const run = React.useCallback(async (manual = false) => {
+    if (busy.current) return;
+    let Updates;
+    try {
+      Updates = require("expo-updates");
+    } catch {
+      setStatus("unsupported");
+      return;
+    }
+    if (__DEV__ || !Updates?.isEnabled) {
+      setStatus("unsupported");
+      return;
+    }
+    busy.current = true;
+    try {
+      setStatus("checking");
+      const check = await Updates.checkForUpdateAsync();
+      const targetId = check?.isRollBackToEmbedded
+        ? "rollback-to-embedded"
+        : check?.manifest?.id || null;
+      const runningId = Updates.isEmbeddedLaunch ? null : Updates.updateId || null;
+      if (!check?.isAvailable && !check?.isRollBackToEmbedded) {
+        setStatus("none");
+        return;
+      }
+      if (targetId && targetId === runningId) {
+        setStatus("none");
+        return;
+      }
+      const last = await readAttempt();
+      if (!manual && last?.id && last.id === targetId) {
+        // Already applied once and we are back here: let the user decide.
+        setStatus("blocked");
+        return;
+      }
+      setStatus("downloading");
+      await Updates.fetchUpdateAsync();
+      setStatus("applying");
+      await writeAttempt(targetId);
+      await Updates.reloadAsync();
+    } catch {
+      setStatus("failed");
+    } finally {
+      busy.current = false;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    run(false);
+    // The fix may be published while the screen is open: check again when the
+    // user comes back to the app.
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") run(false);
+    });
+    return () => sub?.remove?.();
+  }, [run]);
+
+  return { status, retry: () => run(true) };
+}
 
 const copy = async (text) => {
   try {
@@ -121,6 +217,8 @@ const diagnostics = () => {
 export default function StartupErrorScreen({ error }) {
   const dark = useColorScheme() === "dark";
   const [copied, setCopied] = React.useState(false);
+  const { status: otaStatus, retry: retryOta } = useRecoveryUpdate();
+  const updating = otaStatus === "downloading" || otaStatus === "applying";
   const details = React.useMemo(
     () =>
       [
@@ -147,6 +245,7 @@ export default function StartupErrorScreen({ error }) {
           "Hãy thử mở lại. Nếu lỗi vẫn còn, sao chép nội dung bên dưới và gửi cho đội ngũ CBH Youth Online."
         )}
       </Text>
+      <OtaStatusCard status={otaStatus} dark={dark} onRetry={retryOta} />
       <ScrollView style={[styles.details, { borderColor: dark ? "#333" : "#ddd" }]}>
         <Text selectable style={[styles.mono, { color: fg }]}>
           {details}
@@ -167,6 +266,49 @@ export default function StartupErrorScreen({ error }) {
           </Text>
         </TouchableOpacity>
       </View>
+      {updating ? (
+        <View style={[styles.overlay, { backgroundColor: dark ? "#111" : "#fff" }]}>
+          <ActivityIndicator size="large" color="#319527" />
+          <Text style={[styles.overlayTitle, { color: fg }]}>
+            {otaStatus === "applying"
+              ? tr("startupError.otaApplying", "Đang khởi động lại với bản mới...")
+              : tr("startupError.otaDownloading", "Đang tải bản cập nhật sửa lỗi...")}
+          </Text>
+          <Text style={[styles.overlayBody, { color: sub }]}>
+            {tr("startupError.otaWait", "Ứng dụng sẽ tự mở lại khi xong. Đừng tắt ứng dụng.")}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// One line under the intro saying what the update check found.
+function OtaStatusCard({ status, dark, onRetry }) {
+  if (status === "idle" || status === "unsupported" || status === "downloading" || status === "applying") {
+    return null;
+  }
+  const sub = dark ? "#aaa" : "#555";
+  const text = {
+    checking: tr("startupError.otaChecking", "Đang tìm bản cập nhật sửa lỗi..."),
+    none: tr("startupError.otaNone", "Chưa có bản cập nhật mới. Ứng dụng sẽ tự kiểm tra lại khi bạn quay lại."),
+    failed: tr("startupError.otaFailed", "Không kiểm tra được bản cập nhật. Hãy kiểm tra kết nối mạng."),
+    blocked: tr("startupError.otaBlocked", "Bản cập nhật đã được cài nhưng ứng dụng vẫn lỗi."),
+  }[status];
+  const canRetry = status === "none" || status === "failed" || status === "blocked";
+  return (
+    <View style={[styles.otaCard, { borderColor: "#319527" }]}>
+      {status === "checking" ? <ActivityIndicator size="small" color="#319527" /> : null}
+      <Text style={[styles.otaText, { color: sub }]}>{text}</Text>
+      {canRetry ? (
+        <TouchableOpacity onPress={onRetry} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.otaAction}>
+            {status === "blocked"
+              ? tr("startupError.otaRetry", "Cài lại")
+              : tr("startupError.otaCheck", "Kiểm tra")}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -181,4 +323,23 @@ const styles = StyleSheet.create({
   button: { flex: 1, height: 46, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   secondary: { borderWidth: 1.5 },
   buttonText: { fontSize: 15, fontWeight: "600" },
+  otaCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 16,
+  },
+  otaText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  otaAction: { color: "#319527", fontSize: 14, fontWeight: "700" },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  overlayTitle: { fontSize: 17, fontWeight: "700", marginTop: 16, textAlign: "center" },
+  overlayBody: { fontSize: 14, lineHeight: 20, marginTop: 8, textAlign: "center" },
 });
