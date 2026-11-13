@@ -732,11 +732,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabActive: {
+    // Android: a solid fill under the gradient (the pill is clipped with
+    // overflow hidden + elevation, and without a background the selected
+    // tab rendered as white text on nothing - "disappeared"). The elevation
+    // shadow is iOS-only here for the same reason.
+    backgroundColor: "#16A34A",
     shadowColor: "#15803D",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.28,
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 0,
     overflow: "hidden",
   },
   tabGradient: {
@@ -745,6 +750,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     justifyContent: "center",
     alignItems: "center",
+    minWidth: 48,
   },
   tabInactive: {
     height: 36,
