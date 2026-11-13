@@ -145,7 +145,7 @@
       "fallbackToCacheTimeout": 0,
       "disableAntiBrickingMeasures": false,
       "requestHeaders": {
-        "expo-channel-name": "production"
+        "expo-channel-name": "preview"
       }
     },
     "plugins": [
