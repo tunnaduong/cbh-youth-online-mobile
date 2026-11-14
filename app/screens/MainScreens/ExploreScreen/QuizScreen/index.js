@@ -26,6 +26,8 @@ import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import UserNameRow from "../../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../../components/profile/AvatarFrame";
 import { apiErrorMessage } from "../../../../utils/apiMessage";
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
 import {
   startQuiz,
   answerQuizQuestion,
@@ -42,6 +44,15 @@ const GRADES = ["10", "11", "12"];
 // Matches QuizController::RANDOM_TOPIC / OTHER_TOPIC on the backend exactly
 const RANDOM_TOPIC = "Ngẫu nhiên";
 const OTHER_TOPIC = "Khác";
+
+const FieldLabel = ({ icon, color, title, theme, isDarkMode, style }) => (
+  <View style={[{ flexDirection: "row", alignItems: "center", marginBottom: 10 }, style]}>
+    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 8 }}>
+      <Ionicons name={icon} size={15} color={color} />
+    </View>
+    <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, flex: 1 }}>{title}</Text>
+  </View>
+);
 
 const QuizScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -401,15 +412,29 @@ const QuizScreen = ({ navigation, route }) => {
           >
             {phase === "setup" && (
               <>
-                <Text style={[styles.description, { color: theme.subText }]}>
-                  {t("quiz.subtitle", "Trả lời câu hỏi trắc nghiệm do AI tạo ra, thử thách kiến thức của bạn.")}
-                </Text>
+                <LinearGradient
+                  colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.hero, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+                >
+                  <BannerWatermark icon="bulb" size={140} />
+                  <View style={[styles.heroIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+                    <Ionicons name="bulb" size={24} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={[styles.heroTitle, { color: theme.text }]} numberOfLines={1}>
+                      {t("exploreScreen.trivia")}
+                    </Text>
+                    <Text style={[styles.heroText, { color: theme.subText }]}>
+                      {t("quiz.subtitle", "Trả lời câu hỏi trắc nghiệm do AI tạo ra, thử thách kiến thức của bạn.")}
+                    </Text>
+                  </View>
+                </LinearGradient>
 
                 {/* Setup Card */}
-                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.fieldLabel, { color: theme.text }]}>
-                    {t("quiz.questionCount", "Số câu hỏi")}
-                  </Text>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
+                  <FieldLabel icon="list" color="#3B82F6" title={t("quiz.questionCount", "Số câu hỏi")} theme={theme} isDarkMode={isDarkMode} />
                   <View style={styles.chipRow}>
                     {COUNT_PRESETS.map((c) => {
                       const active = !useCustomCount && count === c;
@@ -423,16 +448,12 @@ const QuizScreen = ({ navigation, route }) => {
                           activeOpacity={0.8}
                           style={[
                             styles.chip,
-                            { backgroundColor: active ? theme.primary : theme.iconBackground },
+                            { backgroundColor: active ? theme.primary : theme.surface, borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0" },
                           ]}
                         >
                           <Text
-                            style={{
-                              color: active ? "#fff" : theme.text,
-                              fontWeight: "600",
-                              fontSize: 12,
-                              lineHeight: 16,
-                            }}
+                            numberOfLines={1}
+                            style={[styles.chipText, { color: active ? "#fff" : theme.text }]}
                           >
                             {c} {t("quiz.questionsUnit", "câu")}
                           </Text>
@@ -444,16 +465,12 @@ const QuizScreen = ({ navigation, route }) => {
                       activeOpacity={0.8}
                       style={[
                         styles.chip,
-                        { backgroundColor: useCustomCount ? theme.primary : theme.iconBackground },
+                        { backgroundColor: useCustomCount ? theme.primary : theme.surface, borderColor: useCustomCount ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0" },
                       ]}
                     >
                       <Text
-                        style={{
-                          color: useCustomCount ? "#fff" : theme.text,
-                          fontWeight: "600",
-                          fontSize: 12,
-                          lineHeight: 16,
-                        }}
+                        numberOfLines={1}
+                        style={[styles.chipText, { color: useCustomCount ? "#fff" : theme.text }]}
                       >
                         {t("quiz.custom", "Tùy chỉnh")}
                       </Text>
@@ -469,14 +486,12 @@ const QuizScreen = ({ navigation, route }) => {
                       placeholderTextColor={theme.subText}
                       style={[
                         styles.input,
-                        { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+                        { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.background },
                       ]}
                     />
                   )}
 
-                  <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
-                    {t("quiz.topicLabel", "Chủ đề")}
-                  </Text>
+                  <FieldLabel icon="bookmark" color="#8B5CF6" title={t("quiz.topicLabel", "Chủ đề")} theme={theme} isDarkMode={isDarkMode} style={{ marginTop: 18 }} />
                   <View style={styles.chipRow}>
                     {[RANDOM_TOPIC, ...topics, OTHER_TOPIC].map((tp) => {
                       const active = topic === tp;
@@ -487,16 +502,12 @@ const QuizScreen = ({ navigation, route }) => {
                           activeOpacity={0.8}
                           style={[
                             styles.chip,
-                            { backgroundColor: active ? theme.primary : theme.iconBackground },
+                            { backgroundColor: active ? theme.primary : theme.surface, borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0" },
                           ]}
                         >
                           <Text
-                            style={{
-                              color: active ? "#fff" : theme.text,
-                              fontWeight: "600",
-                              fontSize: 12,
-                              lineHeight: 16,
-                            }}
+                            numberOfLines={1}
+                            style={[styles.chipText, { color: active ? "#fff" : theme.text }]}
                           >
                             {getTopicLabel(tp)}
                           </Text>
@@ -517,14 +528,12 @@ const QuizScreen = ({ navigation, route }) => {
                       maxLength={256}
                       style={[
                         styles.input,
-                        { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+                        { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.background },
                       ]}
                     />
                   )}
 
-                  <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
-                    {t("quiz.gradeLabel", "Lớp")}
-                  </Text>
+                  <FieldLabel icon="school" color="#F59E0B" title={t("quiz.gradeLabel", "Lớp")} theme={theme} isDarkMode={isDarkMode} style={{ marginTop: 18 }} />
                   <View style={styles.chipRow}>
                     {GRADES.map((g) => {
                       const active = grade === g;
@@ -535,16 +544,12 @@ const QuizScreen = ({ navigation, route }) => {
                           activeOpacity={0.8}
                           style={[
                             styles.chip,
-                            { backgroundColor: active ? theme.primary : theme.iconBackground },
+                            { backgroundColor: active ? theme.primary : theme.surface, borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0" },
                           ]}
                         >
                           <Text
-                            style={{
-                              color: active ? "#fff" : theme.text,
-                              fontWeight: "600",
-                              fontSize: 12,
-                              lineHeight: 16,
-                            }}
+                            numberOfLines={1}
+                            style={[styles.chipText, { color: active ? "#fff" : theme.text }]}
                           >
                             {t(`quiz.grade_${g}`, `Lớp ${g}`)}
                           </Text>
@@ -553,9 +558,7 @@ const QuizScreen = ({ navigation, route }) => {
                     })}
                   </View>
 
-                  <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
-                    {t("quiz.difficulty", "Độ khó")}
-                  </Text>
+                  <FieldLabel icon="speedometer" color="#EF4444" title={t("quiz.difficulty", "Độ khó")} theme={theme} isDarkMode={isDarkMode} style={{ marginTop: 18 }} />
                   <SegmentedControl
                     value={difficulty}
                     onChange={setDifficulty}
@@ -591,15 +594,15 @@ const QuizScreen = ({ navigation, route }) => {
                     styles.customQuizCard,
                     {
                       backgroundColor: theme.surface,
-                      borderColor: theme.border,
+                      borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
                       borderWidth: StyleSheet.hairlineWidth,
                     },
                   ]}
                   activeOpacity={0.85}
                   onPress={() => navigation.navigate("CustomQuizCreateScreen")}
                 >
-                  <View style={[styles.customQuizIcon, { backgroundColor: `${theme.primary}1A` }]}>
-                    <Ionicons name="create-outline" size={20} color={theme.primary} />
+                  <View style={[styles.customQuizIcon, { backgroundColor: tint("#EC4899", isDarkMode) }]}>
+                    <Ionicons name="create" size={20} color="#EC4899" />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.customQuizTitle, { color: theme.text }]}>
@@ -615,13 +618,18 @@ const QuizScreen = ({ navigation, route }) => {
                 {/* Leaderboard Section */}
                 {leaderboard.length > 0 && (
                   <View style={styles.sectionWrap}>
-                    <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-                      {t("quiz.leaderboard", "Bảng xếp hạng đố vui")}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, marginLeft: 4 }}>
+                      <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: tint("#F59E0B", isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 8 }}>
+                        <Ionicons name="trophy" size={14} color="#F59E0B" />
+                      </View>
+                      <Text style={[styles.sectionTitle, { color: theme.subText, marginBottom: 0, marginLeft: 0 }]}>
+                        {t("quiz.leaderboard", "Bảng xếp hạng đố vui")}
+                      </Text>
+                    </View>
                     <View
                       style={[
                         styles.cardGroup,
-                        { backgroundColor: theme.surface, borderColor: theme.border },
+                        { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
                       ]}
                     >
                       {leaderboard.map((u, i, arr) => (
@@ -715,7 +723,7 @@ const QuizScreen = ({ navigation, route }) => {
                 </View>
 
                 {/* Question Card */}
-                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
                   <Text style={[styles.questionIndex, { color: theme.primary }]}>
                     {t("quiz.questionIndex", "Câu {{current}}/{{total}}", {
                       current: currentIndex + 1,
@@ -1142,8 +1150,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginHorizontal: 4,
   },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  heroIcon: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 18, fontWeight: "800" },
+  heroText: { fontSize: 13, lineHeight: 18, marginTop: 2 },
+  chipText: { fontSize: 13, fontWeight: "600", includeFontPadding: false, paddingRight: 1 },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: StyleSheet.hairlineWidth,
@@ -1159,15 +1180,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   input: {
     marginTop: 10,
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 12,
+    height: 46,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
     paddingHorizontal: 12,
     fontSize: 14,
   },
@@ -1176,7 +1198,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 12,
+    borderRadius: 999,
     padding: 14,
   },
   primaryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
@@ -1184,14 +1206,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     marginBottom: 20,
   },
   customQuizIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1208,7 +1230,7 @@ const styles = StyleSheet.create({
   },
   cardGroup: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
   },
   rowItem: {
@@ -1249,9 +1271,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderWidth: 1.5,
   },
   optionBadge: {
@@ -1276,14 +1298,14 @@ const styles = StyleSheet.create({
   navRow: { flexDirection: "row", justifyContent: "space-between", gap: 10, marginBottom: 16 },
   navButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 13,
     alignItems: "center",
     justifyContent: "center",
   },
   navButtonPrimary: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 13,
     alignItems: "center",
     justifyContent: "center",
@@ -1329,7 +1351,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 12,
   },
   actionButtonText: { fontSize: 14, fontWeight: "bold" },
