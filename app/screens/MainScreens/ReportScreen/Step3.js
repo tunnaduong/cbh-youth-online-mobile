@@ -20,6 +20,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import { tint } from "../../../components/settings/SettingsUI";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -38,11 +39,14 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
                 styles.stepNumber,
                 {
                   backgroundColor:
-                    step.id <= currentStep
-                      ? theme.primary
-                      : isDarkMode
-                      ? "#374151"
-                      : "#E5E5E5",
+                    step.id <= currentStep ? theme.primary : theme.iconBackground,
+                },
+                step.id === currentStep && {
+                  borderWidth: 4,
+                  borderColor: tint("#22C55E", isDarkMode),
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
                 },
               ]}
             >
@@ -66,8 +70,8 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
               style={[
                 styles.stepText,
                 {
-                  color:
-                    step.id <= currentStep ? theme.primary : theme.subText,
+                  color: step.id <= currentStep ? theme.text : theme.subText,
+                  fontWeight: step.id === currentStep ? "700" : "500",
                 },
               ]}
             >
@@ -80,11 +84,7 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
                 styles.stepLine,
                 {
                   backgroundColor:
-                    step.id < currentStep
-                      ? theme.primary
-                      : isDarkMode
-                      ? "#374151"
-                      : "#E5E5E5",
+                    step.id < currentStep ? theme.primary : theme.iconBackground,
                 },
               ]}
             />
@@ -286,22 +286,20 @@ export default function Step3({ navigation, route }) {
           style={[
             styles.warningBanner,
             {
-              backgroundColor: isDarkMode
-                ? "rgba(255,193,7,0.18)"
-                : "rgba(255,193,7,0.10)",
-              borderLeftColor: "#FFC107",
+              backgroundColor: tint("#F59E0B", isDarkMode),
+              borderColor: "rgba(245,158,11,0.3)",
             },
           ]}
         >
           <Ionicons
-            name="alert-circle-outline"
+            name="alert-circle"
             size={20}
-            color={isDarkMode ? "#FFC107" : "#856404"}
+            color={isDarkMode ? "#FBBF24" : "#B45309"}
           />
           <Text
             style={[
               styles.warningText,
-              { color: isDarkMode ? "#fef3c7" : "#856404" },
+              { color: isDarkMode ? "#FDE68A" : "#92400E" },
             ]}
           >
             {t("report.confirmDiscard")}
@@ -348,9 +346,7 @@ export default function Step3({ navigation, route }) {
           style={[
             styles.confirmCard,
             {
-              backgroundColor: isDarkMode
-                ? "rgba(255,255,255,0.04)"
-                : theme.surface,
+              backgroundColor: theme.surface,
               borderColor: theme.border,
             },
             // Android's `elevation` shadow always renders dark/black and
@@ -386,9 +382,7 @@ export default function Step3({ navigation, route }) {
           style={[
             styles.notesCard,
             {
-              backgroundColor: isDarkMode
-                ? "rgba(255,255,255,0.04)"
-                : theme.surface,
+              backgroundColor: theme.surface,
               borderColor: theme.border,
             },
             isDarkMode && { elevation: 0, shadowOpacity: 0 },
@@ -405,9 +399,7 @@ export default function Step3({ navigation, route }) {
               styles.notesText,
               {
                 color: notes ? theme.text : theme.subText,
-                backgroundColor: isDarkMode
-                  ? "rgba(255,255,255,0.06)"
-                  : "#FFFFFF",
+                backgroundColor: theme.background,
                 borderColor: theme.border,
               },
             ]}
@@ -468,9 +460,9 @@ const styles = StyleSheet.create({
   warningBanner: {
     flexDirection: "row",
     alignItems: "center",
-    borderLeftWidth: 4,
-    borderRadius: 12,
-    padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 14,
     gap: 10,
   },
@@ -478,14 +470,10 @@ const styles = StyleSheet.create({
   gradientCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 22,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     marginBottom: 6,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    overflow: "hidden",
   },
   gradientTitle: {
     fontSize: 20,
@@ -495,10 +483,12 @@ const styles = StyleSheet.create({
   },
   gradientSubtitle: { fontSize: 13, color: "#C7F5D7" },
   gradientIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 6,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -509,9 +499,9 @@ const styles = StyleSheet.create({
   },
   stepItem: { alignItems: "center", flex: 1 },
   stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,

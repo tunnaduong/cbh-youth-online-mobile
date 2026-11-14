@@ -27,12 +27,14 @@ const VIOLATION_TYPES = [
   {
     id: "student",
     icon: "person",
+    accent: "#3B82F6",
     titleKey: "report.studentViolation",
     descKey: "report.studentViolationDesc",
   },
   {
     id: "class",
     icon: "people",
+    accent: "#8B5CF6",
     titleKey: "report.classViolation",
     descKey: "report.classViolationDesc",
   },
@@ -49,11 +51,14 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
                 styles.stepNumber,
                 {
                   backgroundColor:
-                    step.id <= currentStep
-                      ? theme.primary
-                      : isDarkMode
-                      ? "#374151"
-                      : "#E5E5E5",
+                    step.id <= currentStep ? theme.primary : theme.iconBackground,
+                },
+                step.id === currentStep && {
+                  borderWidth: 4,
+                  borderColor: tint("#22C55E", isDarkMode),
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
                 },
               ]}
             >
@@ -77,8 +82,8 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
               style={[
                 styles.stepText,
                 {
-                  color:
-                    step.id <= currentStep ? theme.primary : theme.subText,
+                  color: step.id <= currentStep ? theme.text : theme.subText,
+                  fontWeight: step.id === currentStep ? "700" : "500",
                 },
               ]}
             >
@@ -91,11 +96,7 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
                 styles.stepLine,
                 {
                   backgroundColor:
-                    step.id < currentStep
-                      ? theme.primary
-                      : isDarkMode
-                      ? "#374151"
-                      : "#E5E5E5",
+                    step.id < currentStep ? theme.primary : theme.iconBackground,
                 },
               ]}
             />
@@ -202,22 +203,20 @@ export default function ReportScreen({ navigation, route }) {
           style={[
             styles.warningBanner,
             {
-              backgroundColor: isDarkMode
-                ? "rgba(255,193,7,0.18)"
-                : "rgba(255,193,7,0.10)",
-              borderLeftColor: "#FFC107",
+              backgroundColor: tint("#F59E0B", isDarkMode),
+              borderColor: isDarkMode ? "rgba(245,158,11,0.35)" : "rgba(245,158,11,0.3)",
             },
           ]}
         >
           <Ionicons
-            name="alert-circle-outline"
+            name="alert-circle"
             size={20}
-            color={isDarkMode ? "#FFC107" : "#856404"}
+            color={isDarkMode ? "#FBBF24" : "#B45309"}
           />
           <Text
             style={[
               styles.warningText,
-              { color: isDarkMode ? "#fef3c7" : "#856404" },
+              { color: isDarkMode ? "#FDE68A" : "#92400E" },
             ]}
           >
             {t("report.previewMode")}
@@ -270,15 +269,9 @@ export default function ReportScreen({ navigation, route }) {
               styles.card,
               {
                 backgroundColor:
-                  selectedType === type.id
-                    ? isDarkMode
-                      ? "#1a3d28"
-                      : "#E8F8E5"
-                    : isDarkMode
-                    ? "rgba(255,255,255,0.04)"
-                    : "#FFFFFF",
+                  selectedType === type.id ? tint(type.accent, isDarkMode) : theme.surface,
                 borderColor:
-                  selectedType === type.id ? theme.primary : theme.border,
+                  selectedType === type.id ? type.accent : isDarkMode ? "#282B34" : "#E2E8F0",
                 borderWidth: selectedType === type.id ? 1.5 : StyleSheet.hairlineWidth,
                 // Android's `elevation` shadow is always rendered dark/black,
                 // ignoring shadowColor. Against a dark theme background
@@ -288,8 +281,7 @@ export default function ReportScreen({ navigation, route }) {
                 // looks like a normal drop shadow). The border already
                 // gives the card definition, so just drop the shadow in
                 // dark mode instead.
-                ...(isDarkMode ? { elevation: 0, shadowOpacity: 0 } : null),
-              },
+                              },
             ]}
             onPress={() => setSelectedType(type.id)}
             activeOpacity={0.75}
@@ -298,14 +290,11 @@ export default function ReportScreen({ navigation, route }) {
               style={[
                 styles.cardIcon,
                 {
-                  backgroundColor:
-                    selectedType === type.id
-                      ? theme.primary + "26"
-                      : tint("#22C55E", isDarkMode),
+                  backgroundColor: tint(type.accent, isDarkMode),
                 },
               ]}
             >
-              <Ionicons name={type.icon} size={24} color={theme.primary} />
+              <Ionicons name={type.icon} size={24} color={type.accent} />
             </View>
             <View style={styles.cardContent}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>
@@ -321,8 +310,8 @@ export default function ReportScreen({ navigation, route }) {
             {selectedType === type.id && (
               <Ionicons
                 name="checkmark-circle"
-                size={22}
-                color={theme.primary}
+                size={24}
+                color={type.accent}
               />
             )}
           </TouchableOpacity>
@@ -376,9 +365,9 @@ const styles = StyleSheet.create({
   warningBanner: {
     flexDirection: "row",
     alignItems: "center",
-    borderLeftWidth: 4,
-    borderRadius: 12,
-    padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 14,
     gap: 10,
   },
@@ -386,14 +375,10 @@ const styles = StyleSheet.create({
   gradientCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 22,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     marginBottom: 6,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    overflow: "hidden",
   },
   gradientTitle: {
     fontSize: 20,
@@ -403,10 +388,12 @@ const styles = StyleSheet.create({
   },
   gradientSubtitle: { fontSize: 13, color: "#C7F5D7" },
   gradientIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 6,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -417,9 +404,9 @@ const styles = StyleSheet.create({
   },
   stepItem: { alignItems: "center", flex: 1 },
   stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
@@ -433,19 +420,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 18,
+    borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
   },
   cardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -465,11 +447,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 999,
     gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
   },
   continueButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

@@ -236,10 +236,12 @@ export default function TimetableEditScreen({ navigation }) {
     marginBottom: 12,
   };
   const chip = (active) => ({
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: active ? theme.primary : theme.iconBackground,
+    backgroundColor: active ? theme.primary : theme.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0",
   });
   const timeButton = {
     flex: 1,
@@ -335,38 +337,22 @@ export default function TimetableEditScreen({ navigation }) {
             {t("timetable.editIntro")}
           </Text>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setAiOpen(true)}
-            accessibilityRole="button"
-            style={[
-              card,
-              {
-                flexDirection: "row",
-                alignItems: "center",
-                padding: 14,
-                borderColor: isDarkMode ? "#1B472C" : "#D5EBD7",
-                backgroundColor: isDarkMode ? "rgba(34,197,94,0.10)" : "rgba(34,197,94,0.06)",
-              },
-            ]}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                backgroundColor: tint("#22C55E", isDarkMode),
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+          <TouchableOpacity activeOpacity={0.85} onPress={() => setAiOpen(true)} accessibilityRole="button" style={{ marginBottom: 14 }}>
+            <LinearGradient
+              colors={isDarkMode ? ["#4C1D95", "#9D174D"] : ["#8B5CF6", "#EC4899"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 22, overflow: "hidden" }}
             >
-              <Ionicons name="sparkles" size={22} color={theme.primary} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: theme.text }}>{t("timetable.ai.title")}</Text>
-              <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>{t("timetable.ai.cardHint")}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="sparkles" size={24} color="#fff" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: "800", color: "#fff" }}>{t("timetable.ai.title")}</Text>
+                <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>{t("timetable.ai.cardHint")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
 
           {aiNote ? (

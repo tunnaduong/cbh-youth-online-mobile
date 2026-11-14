@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { tint } from "../../../components/settings/SettingsUI";
 import LiquidButton from "../../../components/LiquidButton";
 import CustomLoading from "../../../components/CustomLoading";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -249,15 +250,30 @@ export default function TimetableScreen({ navigation }) {
           </View>
         </LinearGradient>
 
-        <View style={card}>
-          <InfoRow label={t("timetable.elapsed")} value={status?.elapsed != null ? formatDuration(status.elapsed) : "--:--"} big />
-          <InfoRow label={t("timetable.next")} value={nextText()} />
-          <InfoRow
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+          <StatTile
+            icon="hourglass-outline"
+            color="#3B82F6"
+            label={t("timetable.elapsed")}
+            value={status?.elapsed != null ? formatDuration(status.elapsed) : "--:--"}
+          />
+          <StatTile
+            icon="timer-outline"
+            color="#F59E0B"
             label={status?.next ? t("timetable.remainingNext") : t("timetable.remaining")}
             value={status?.remaining != null ? formatDuration(status.remaining) : "--:--"}
-            big
-            last
           />
+        </View>
+        <View style={[card, { flexDirection: "row", alignItems: "center", padding: 14 }]}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: tint("#8B5CF6", isDarkMode), alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="play-forward-outline" size={20} color="#8B5CF6" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={{ fontSize: 12, color: theme.subText }}>{t("timetable.next")}</Text>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: theme.text, marginTop: 1 }} numberOfLines={2}>
+              {nextText()}
+            </Text>
+          </View>
         </View>
 
         <Text style={sectionTitle}>{t("timetable.week")}</Text>
@@ -276,10 +292,12 @@ export default function TimetableScreen({ navigation }) {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
                   borderRadius: 999,
-                  backgroundColor: active ? theme.primary : theme.iconBackground,
+                  backgroundColor: active ? theme.primary : theme.surface,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0",
                 }}
               >
                 <Text style={{ fontSize: 13, fontWeight: "600", color: active ? "#fff" : theme.text }}>
@@ -308,15 +326,27 @@ export default function TimetableScreen({ navigation }) {
                     backgroundColor: running ? (isDarkMode ? "#1f3320" : "#EEF7ED") : "transparent",
                   }}
                 >
-                  <View style={{ width: 56 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: theme.text, fontVariant: ["tabular-nums"] }}>{b.start}</Text>
-                    <Text style={{ fontSize: 12, color: theme.subText, fontVariant: ["tabular-nums"] }}>{b.end}</Text>
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: b.type === "hoc" ? tint(running ? "#22C55E" : "#3B82F6", isDarkMode) : theme.iconBackground,
+                    }}
+                  >
+                    {b.type === "hoc" ? (
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: running ? theme.primary : "#3B82F6" }}>{b.period}</Text>
+                    ) : (
+                      <Ionicons name="cafe-outline" size={18} color={theme.subText} />
+                    )}
                   </View>
-                  <View style={{ flex: 1, marginLeft: 8 }}>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text
                       style={{
                         fontSize: 16,
-                        fontWeight: b.type === "hoc" ? "500" : "400",
+                        fontWeight: b.type === "hoc" ? "600" : "400",
                         color: b.type === "hoc" ? theme.text : theme.subText,
                         fontStyle: b.type === "nghi" ? "italic" : "normal",
                       }}
@@ -324,9 +354,9 @@ export default function TimetableScreen({ navigation }) {
                     >
                       {blockLabel(b)}
                     </Text>
-                    {b.period ? (
-                      <Text style={{ fontSize: 12, color: theme.subText }}>{t("timetable.period", { period: b.period })}</Text>
-                    ) : null}
+                    <Text style={{ fontSize: 12, color: theme.subText, fontVariant: ["tabular-nums"], marginTop: 1 }}>
+                      {b.start} – {b.end}
+                    </Text>
                   </View>
                   {running ? (
                     <View style={{ backgroundColor: theme.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
@@ -426,28 +456,26 @@ export default function TimetableScreen({ navigation }) {
   );
 }
 
-function InfoRow({ label, value, big, last }) {
-  const { theme } = useTheme();
+function StatTile({ icon, color, label, value }) {
+  const { theme, isDarkMode } = useTheme();
   return (
     <View
       style={{
-        paddingVertical: 13,
-        paddingHorizontal: 16,
-        borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        borderBottomColor: theme.border,
+        flex: 1,
+        backgroundColor: theme.surface,
+        borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 18,
+        padding: 14,
       }}
     >
-      <Text style={{ fontSize: 13, color: theme.subText }}>{label}</Text>
-      <Text
-        style={{
-          fontSize: big ? 28 : 17,
-          fontWeight: big ? "800" : "600",
-          color: theme.text,
-          marginTop: 2,
-          fontVariant: ["tabular-nums"],
-        }}
-        numberOfLines={2}
-      >
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+        <Ionicons name={icon} size={18} color={color} />
+      </View>
+      <Text style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>
+        {label}
+      </Text>
+      <Text style={{ fontSize: 26, fontWeight: "800", color: theme.text, marginTop: 2, fontVariant: ["tabular-nums"] }} numberOfLines={1}>
         {value}
       </Text>
     </View>

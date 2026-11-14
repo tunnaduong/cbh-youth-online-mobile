@@ -16,6 +16,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import { tint } from "../../../components/settings/SettingsUI";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -163,13 +164,12 @@ export default function Success({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={styles.successGradient}
           >
-            <View
-              style={[
-                styles.checkCircle,
-                { backgroundColor: theme.primary },
-              ]}
-            >
-              <Ionicons name="checkmark" size={44} color="#fff" />
+            <View style={[styles.haloOuter, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <View style={[styles.haloInner, { backgroundColor: isDarkMode ? "rgba(34,197,94,0.28)" : "rgba(34,197,94,0.22)" }]}>
+                <View style={[styles.checkCircle, { backgroundColor: theme.primary }]}>
+                  <Ionicons name="checkmark" size={44} color="#fff" />
+                </View>
+              </View>
             </View>
             <Text style={[styles.successTitle, { color: theme.text }]}>
               {t("report.submitSuccess")}
@@ -177,6 +177,13 @@ export default function Success({ navigation }) {
             <Text style={[styles.successSubtitle, { color: theme.subText }]}>
               {t("report.schoolName")}
             </Text>
+            <View style={styles.badgeRow}>
+              {[["shield-checkmark", "#3B82F6"], ["school", "#8B5CF6"], ["heart", "#EC4899"]].map(([icon, color]) => (
+                <View key={icon} style={[styles.badge, { backgroundColor: tint(color, isDarkMode) }]}>
+                  <Ionicons name={icon} size={18} color={color} />
+                </View>
+              ))}
+            </View>
           </LinearGradient>
         </View>
       </Animated.ScrollView>
@@ -229,14 +236,10 @@ const styles = StyleSheet.create({
   gradientCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 22,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     marginBottom: 6,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    overflow: "hidden",
   },
   gradientTitle: {
     fontSize: 20,
@@ -246,10 +249,12 @@ const styles = StyleSheet.create({
   },
   gradientSubtitle: { fontSize: 13, color: "#C7F5D7" },
   gradientIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 6,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -260,9 +265,9 @@ const styles = StyleSheet.create({
   },
   stepItem: { alignItems: "center", flex: 1 },
   stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
@@ -287,12 +292,11 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
   },
+  haloOuter: { width: 150, height: 150, borderRadius: 75, alignItems: "center", justifyContent: "center" },
+  haloInner: { width: 116, height: 116, borderRadius: 58, alignItems: "center", justifyContent: "center" },
+  badgeRow: { flexDirection: "row", gap: 10, marginTop: 6 },
+  badge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   successTitle: { fontSize: 22, fontWeight: "800", textAlign: "center" },
   successSubtitle: { fontSize: 14, textAlign: "center" },
   bottomBar: {
@@ -307,11 +311,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 999,
     gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
   },
   returnButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
