@@ -14,9 +14,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { tint } from "../../../components/settings/SettingsUI";
 import { apiErrorMessage } from "../../../utils/apiMessage";
 import { aiImportTimetable } from "../../../services/api/Api";
 import { readTimetableClass, writeTimetableClass, normalizeClassName, isValidClassName } from "../../../utils/timetable";
@@ -26,7 +28,7 @@ import { readTimetableClass, writeTimetableClass, normalizeClassName, isValidCla
 // editor - the user checks it and saves as usual.
 export default function AiImportModal({ visible, onClose, current, onResult }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState(null); // { uri }
@@ -103,6 +105,26 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
       onRequestClose={close}
     >
       <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Top ambient green glow */}
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top + 160,
+            zIndex: 0,
+          }}
+          pointerEvents="none"
+        />
+
         <View
           style={{
             flexDirection: "row",
@@ -110,6 +132,7 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
             paddingHorizontal: 16,
             paddingTop: Platform.OS === "android" ? insets.top + 8 : 12,
             paddingBottom: 8,
+            zIndex: 1,
           }}
         >
           <TouchableOpacity
@@ -139,9 +162,9 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
           <View
             style={{
               backgroundColor: theme.surface,
-              borderColor: theme.border,
+              borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
               borderWidth: StyleSheet.hairlineWidth,
-              borderRadius: 16,
+              borderRadius: 20,
               padding: 16,
               marginBottom: 16,
             }}
@@ -161,13 +184,14 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
               placeholder={t("timetable.ai.classPlaceholder")}
               placeholderTextColor={theme.subText}
               style={{
-                height: 44,
-                borderWidth: 1,
+                height: 46,
+                borderWidth: StyleSheet.hairlineWidth,
                 borderColor: className && !isValidClassName(className) ? "#FF3B30" : theme.border,
-                borderRadius: 8,
-                paddingHorizontal: 10,
+                borderRadius: 14,
+                paddingHorizontal: 12,
                 fontSize: 16,
                 color: theme.text,
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                 marginBottom: className && !isValidClassName(className) ? 4 : 16,
               }}
             />
@@ -186,12 +210,13 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
               textAlignVertical="top"
               style={{
                 minHeight: 160,
-                borderWidth: 1,
+                borderWidth: StyleSheet.hairlineWidth,
                 borderColor: theme.border,
-                borderRadius: 8,
-                padding: 10,
-                fontSize: 16,
+                borderRadius: 14,
+                padding: 12,
+                fontSize: 15,
                 color: theme.text,
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
               }}
             />
 
@@ -233,12 +258,14 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
                       flex: 1,
                       alignItems: "center",
                       paddingVertical: 14,
-                      borderRadius: 12,
-                      backgroundColor: theme.iconBackground,
+                      borderRadius: 14,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: theme.border,
+                      backgroundColor: tint("#22C55E", isDarkMode),
                     }}
                   >
                     <Ionicons name={icon} size={22} color={theme.primary} />
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: theme.text, marginTop: 4 }}>{label}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: theme.text, marginTop: 4 }}>{label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -252,10 +279,10 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
               disabled={busy || (!text.trim() && !photo)}
               accessibilityRole="button"
               style={{
-                marginTop: 16,
+                marginTop: 18,
                 backgroundColor: theme.primary,
-                borderRadius: 12,
-                padding: 14,
+                borderRadius: 999,
+                padding: 15,
                 alignItems: "center",
                 flexDirection: "row",
                 justifyContent: "center",

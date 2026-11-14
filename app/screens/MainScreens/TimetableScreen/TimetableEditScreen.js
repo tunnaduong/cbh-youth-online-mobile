@@ -13,12 +13,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { tint } from "../../../components/settings/SettingsUI";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { apiErrorMessage } from "../../../utils/apiMessage";
@@ -227,9 +229,9 @@ export default function TimetableEditScreen({ navigation }) {
 
   const card = {
     backgroundColor: theme.surface,
-    borderColor: theme.border,
+    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "hidden",
     marginBottom: 12,
   };
@@ -241,10 +243,11 @@ export default function TimetableEditScreen({ navigation }) {
   });
   const timeButton = {
     flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 8,
+    height: 42,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: isDarkMode ? "#282B34" : "#CBD5E1",
+    borderRadius: 12,
+    backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
     alignItems: "center",
     justifyContent: "center",
   };
@@ -254,14 +257,34 @@ export default function TimetableEditScreen({ navigation }) {
     justifyContent: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 12,
+    borderColor: isDarkMode ? "#1B472C" : "#A7F3D0",
+    backgroundColor: isDarkMode ? "rgba(34,197,94,0.10)" : "rgba(34,197,94,0.08)",
+    borderRadius: 999,
     paddingVertical: 12,
     flex: 1,
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Top ambient green glow */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 160,
+          zIndex: 0,
+        }}
+        pointerEvents="none"
+      />
       <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
         <View
           style={{
@@ -316,13 +339,31 @@ export default function TimetableEditScreen({ navigation }) {
             activeOpacity={0.7}
             onPress={() => setAiOpen(true)}
             accessibilityRole="button"
-            style={[card, { flexDirection: "row", alignItems: "center", padding: 14, borderColor: theme.primary, borderWidth: 1 }]}
+            style={[
+              card,
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                padding: 14,
+                borderColor: isDarkMode ? "#1B472C" : "#D5EBD7",
+                backgroundColor: isDarkMode ? "rgba(34,197,94,0.10)" : "rgba(34,197,94,0.06)",
+              },
+            ]}
           >
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="sparkles" size={24} color={theme.primary} />
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                backgroundColor: tint("#22C55E", isDarkMode),
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="sparkles" size={22} color={theme.primary} />
             </View>
             <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>{t("timetable.ai.title")}</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: theme.text }}>{t("timetable.ai.title")}</Text>
               <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>{t("timetable.ai.cardHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
@@ -414,12 +455,13 @@ export default function TimetableEditScreen({ navigation }) {
                 style={{
                   marginTop: 10,
                   height: 44,
-                  borderWidth: 1,
+                  borderWidth: StyleSheet.hairlineWidth,
                   borderColor: theme.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  fontSize: 16,
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  fontSize: 15,
                   color: theme.text,
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                 }}
               />
             </View>
@@ -436,7 +478,7 @@ export default function TimetableEditScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <Text style={{ fontSize: 13, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, color: theme.subText, marginBottom: 8, marginLeft: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, color: theme.subText, marginBottom: 8, marginLeft: 4 }}>
             {t("timetable.more")}
           </Text>
           <View style={card}>
@@ -500,7 +542,7 @@ export default function TimetableEditScreen({ navigation }) {
 }
 
 function ActionRow({ icon, label, hint, onPress, destructive, last }) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const color = destructive ? "#FF3B30" : theme.primary;
   return (
     <TouchableOpacity
@@ -516,7 +558,7 @@ function ActionRow({ icon, label, hint, onPress, destructive, last }) {
         borderBottomColor: theme.border,
       }}
     >
-      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center" }}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>

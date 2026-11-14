@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -88,17 +89,17 @@ export default function TimetableScreen({ navigation }) {
 
   const card = {
     backgroundColor: theme.surface,
-    borderColor: theme.border,
+    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "hidden",
     marginBottom: 16,
   };
   const sectionTitle = {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     color: theme.subText,
     marginBottom: 8,
     marginLeft: 4,
@@ -147,14 +148,17 @@ export default function TimetableScreen({ navigation }) {
   let body;
   if (!payload && loadError) {
     body = (
-      <View style={{ alignItems: "center", marginTop: 24 }}>
-        <Text style={{ color: theme.subText }}>{t("timetable.loadError")}</Text>
+      <View style={{ alignItems: "center", marginTop: 32 }}>
+        <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: isDarkMode ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.10)", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+          <Ionicons name="alert-circle-outline" size={28} color={isDarkMode ? "#F87171" : "#EF4444"} />
+        </View>
+        <Text style={{ color: theme.subText, fontSize: 14, textAlign: "center" }}>{t("timetable.loadError")}</Text>
         <TouchableOpacity
           onPress={load}
           activeOpacity={0.7}
-          style={{ marginTop: 12, borderWidth: 1, borderColor: theme.primary, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 8 }}
+          style={{ marginTop: 14, backgroundColor: isDarkMode ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.12)", borderRadius: 999, paddingHorizontal: 22, paddingVertical: 10 }}
         >
-          <Text style={{ color: theme.primary, fontWeight: "700" }}>{t("timetable.retry")}</Text>
+          <Text style={{ color: theme.primary, fontWeight: "700", fontSize: 14 }}>{t("timetable.retry")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -174,51 +178,76 @@ export default function TimetableScreen({ navigation }) {
             style={{
               flexDirection: "row",
               gap: 8,
-              borderWidth: 1,
+              borderLeftWidth: 3,
               borderRadius: 12,
-              padding: 10,
-              borderColor: theme.primary,
+              padding: 12,
+              borderLeftColor: "#F59E0B",
+              backgroundColor: isDarkMode ? "rgba(245,158,11,0.10)" : "#FFFBEB",
               marginBottom: 16,
               alignItems: "center",
             }}
           >
-            <Ionicons name="information-circle-outline" size={18} color={theme.primary} />
+            <Ionicons name="information-circle-outline" size={18} color={isDarkMode ? "#FBBF24" : "#B45309"} />
             <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: theme.text }}>{t("timetable.demoNotice")}</Text>
           </TouchableOpacity>
         ) : null}
 
-        {/* Live clock + where we are in the day */}
-        <View style={[card, { padding: 16, alignItems: "center" }]}>
-          <Text style={{ fontSize: 44, fontWeight: "800", color: theme.text, fontVariant: ["tabular-nums"] }}>
-            {`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`}
-          </Text>
-          <Text style={{ fontSize: 14, color: theme.subText, marginTop: 2 }}>{t(`timetable.dayLong.${today}`)}</Text>
-          <View
-            style={{
-              marginTop: 14,
-              backgroundColor: pillColors.bg,
-              borderRadius: 999,
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              maxWidth: "100%",
-            }}
-          >
-            <Text style={{ color: pillColors.fg, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
-              {statusText()}
+        {/* Live clock + where we are in the day — green hero card */}
+        <LinearGradient
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          style={{
+            borderRadius: 22,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDarkMode ? "#1B472C" : "#D5EBD7",
+            padding: 18,
+            marginBottom: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            overflow: "hidden",
+          }}
+        >
+          {/* Left: clock + status */}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 44, fontWeight: "800", color: theme.text, fontVariant: ["tabular-nums"] }}>
+              {`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`}
             </Text>
-          </View>
-          {status?.current ? (
-            <View style={{ alignSelf: "stretch", marginTop: 14 }}>
-              <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.iconBackground, overflow: "hidden" }}>
-                <View style={{ width: `${Math.round(status.progress * 100)}%`, height: 6, backgroundColor: pillColors.fg }} />
+            <Text style={{ fontSize: 14, color: theme.subText, marginTop: 2 }}>{t(`timetable.dayLong.${today}`)}</Text>
+            <View
+              style={{
+                marginTop: 10,
+                backgroundColor: pillColors.bg,
+                borderRadius: 999,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                alignSelf: "flex-start",
+                maxWidth: "100%",
+              }}
+            >
+              <Text style={{ color: pillColors.fg, fontSize: 14, fontWeight: "700" }} numberOfLines={1}>
+                {statusText()}
+              </Text>
+            </View>
+            {status?.current ? (
+              <View style={{ marginTop: 12 }}>
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                  <View style={{ width: `${Math.round(status.progress * 100)}%`, height: 6, backgroundColor: pillColors.fg }} />
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>{status.current.start}</Text>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>{status.current.end}</Text>
+                </View>
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                <Text style={{ fontSize: 12, color: theme.subText }}>{status.current.start}</Text>
-                <Text style={{ fontSize: 12, color: theme.subText }}>{status.current.end}</Text>
+            ) : null}
+          </View>
+          {/* Right: decorative circle with calendar icon */}
+          <View style={{ marginLeft: 12, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(34,197,94,0.10)", alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(34,197,94,0.15)", alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="calendar-outline" size={26} color={theme.primary} />
               </View>
             </View>
-          ) : null}
-        </View>
+          </View>
+        </LinearGradient>
 
         <View style={card}>
           <InfoRow label={t("timetable.elapsed")} value={status?.elapsed != null ? formatDuration(status.elapsed) : "--:--"} big />
@@ -317,6 +346,26 @@ export default function TimetableScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Top ambient green glow */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 160,
+          zIndex: 0,
+        }}
+        pointerEvents="none"
+      />
+
       <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
         <View
           style={{
