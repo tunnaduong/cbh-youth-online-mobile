@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import {
   ActivityIndicator,
@@ -197,17 +198,11 @@ export default function PointWalletScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74 }]} pointerEvents="box-none">
-        <LiquidButton providerId="PointWalletScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
-          {t("wallet.title")}
-        </Animated.Text>
+      <FloatingScreenHeader title={t("wallet.title")} onBack={() => navigation.goBack()} scrollY={scrollY} right={
         <LiquidButton providerId="PointWalletScreen" size={44} scrollY={scrollY} onPress={() => loadData(true)} roundedOnScroll>
           <Ionicons name="refresh-outline" size={21} color={theme.primary} />
         </LiquidButton>
-      </View>
+      } />
 
       <AndroidGlassBackdrop providerId="PointWalletScreen" style={{ flex: 1 }}>
         <LinearGradient

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import { Animated, View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -394,35 +395,8 @@ export default function TimetableScreen({ navigation }) {
         pointerEvents="none"
       />
 
-      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingBottom: 8,
-            paddingTop: insets.top,
-            height: 64 + insets.top,
-          }}
-        >
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} accessibilityLabel={t("timetable.back")}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              textAlign: "center",
-              fontSize: 18,
-              fontWeight: "600",
-              color: theme.primary,
-              opacity: headerTitleOpacity,
-              marginHorizontal: 12,
-            }}
-          >
-            {t("timetable.title")}
-          </Animated.Text>
-          <LiquidButton
+      <FloatingScreenHeader title={t("timetable.title")} onBack={() => navigation.goBack()} scrollY={scrollY} right={
+        <LiquidButton
             size={44}
             scrollY={scrollY}
             disabled={!payload}
@@ -434,8 +408,7 @@ export default function TimetableScreen({ navigation }) {
               {t("timetable.edit")}
             </Text>
           </LiquidButton>
-        </View>
-      </View>
+      } />
 
       <AndroidGlassBackdrop style={{ flex: 1 }}>
         <Animated.ScrollView

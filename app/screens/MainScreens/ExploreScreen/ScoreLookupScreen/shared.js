@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import FloatingScreenHeader from "../../../../components/FloatingScreenHeader";
 import {
   Animated,
   View,
@@ -34,46 +35,7 @@ export function ScoreScreen({ navigation, title, children }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <View
-        pointerEvents="box-none"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingBottom: 8,
-            paddingTop: insets.top,
-            height: 64 + insets.top,
-          }}
-        >
-          <View style={{ width: 44 }}>
-            <LiquidButton
-              size={44}
-              scrollY={scrollY}
-              onPress={() => navigation.goBack()}
-              accessibilityLabel={t("scoreLookup.back")}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              textAlign: "center",
-              fontSize: 18,
-              fontWeight: "600",
-              color: theme.primary,
-              opacity: headerTitleOpacity,
-            }}
-          >
-            {title}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={title} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={

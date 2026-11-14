@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
@@ -576,38 +577,7 @@ export default function Step2({ navigation, route }) {
         pointerEvents="none"
       />
       {/* Floating header */}
-      <View
-        pointerEvents="box-none"
-        style={[styles.floatingHeader, { height: headerHeight }]}
-      >
-        <View
-          style={{
-            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
-            paddingBottom: 8,
-            paddingHorizontal: 16,
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-        >
-          <View style={{ width: 44 }}>
-            <LiquidButton
-              providerId="ReportStep2"
-              size={44}
-              scrollY={scrollY}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: titleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("report.createReport")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader topInset={Platform.OS === "ios" ? 0 : undefined} title={t("report.createReport")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop providerId="ReportStep2" style={{ flex: 1 }}>
       <Animated.ScrollView

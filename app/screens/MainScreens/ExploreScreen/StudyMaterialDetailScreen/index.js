@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../../components/FloatingScreenHeader";
 import FastImage from "../../../../components/FastImage";
 import {
   ActivityIndicator,
@@ -555,24 +556,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
-        <LiquidButton providerId="StudyMaterialDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text
-          style={[
-            styles.headerTitle,
-            {
-              color: theme.primary,
-              opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
-            },
-          ]}
-          numberOfLines={1}
-        >
-          {t("studyMaterial.detailTitle")}
-        </Animated.Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <FloatingScreenHeader title={t("studyMaterial.detailTitle")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={

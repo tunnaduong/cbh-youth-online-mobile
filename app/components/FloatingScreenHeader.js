@@ -24,8 +24,11 @@ export default function FloatingScreenHeader({
   icon = "chevron-back",
   backLabel,
   hideBack = false,
+  // Screens presented as an iOS modal sheet already start below the notch: pass 0.
+  topInset,
 }) {
   const insets = useSafeAreaInsets();
+  const top = topInset ?? insets.top;
   const { isDarkMode } = useTheme();
   const { t } = useTranslation();
   const green = isDarkMode ? "#4ADE80" : "#15803D";
@@ -40,7 +43,7 @@ export default function FloatingScreenHeader({
 
   return (
     <View pointerEvents="box-none" style={styles.wrap}>
-      <View style={[styles.row, { paddingTop: insets.top, height: 64 + insets.top }]}>
+      <View style={[styles.row, { paddingTop: top, height: 64 + top }]}>
         {hideBack ? null : (
           <View style={styles.backSlot}>
             <Animated.View

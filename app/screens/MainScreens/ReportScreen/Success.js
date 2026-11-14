@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
@@ -71,35 +72,7 @@ export default function Success({ navigation }) {
         pointerEvents="none"
       />
       {/* Floating header - same pattern as the other report steps */}
-      <View
-        pointerEvents="box-none"
-        style={[styles.floatingHeader, { height: headerHeight }]}
-      >
-        <View
-          style={[
-            styles.header,
-            { paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8 },
-          ]}
-        >
-          <View style={{ width: 44 }}>
-            <LiquidButton
-              providerId="ReportSuccess"
-              size={44}
-              scrollY={scrollY}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("report.createReport")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader topInset={Platform.OS === "ios" ? 0 : undefined} title={t("report.createReport")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop providerId="ReportSuccess" style={{ flex: 1 }}>
       <Animated.ScrollView

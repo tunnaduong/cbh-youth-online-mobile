@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import {
   ActivityIndicator,
@@ -118,15 +119,7 @@ export default function DepositScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74, backgroundColor: "transparent" }]} pointerEvents="box-none">
-        <LiquidButton providerId="DepositScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
-          {t("wallet.depositScreen.title")}
-        </Animated.Text>
-        <View style={{ width: 44 }} />
-      </View>
+      <FloatingScreenHeader title={t("wallet.depositScreen.title")} onBack={() => navigation.goBack()} scrollY={scrollY} />
       <LinearGradient
         colors={
           isDarkMode

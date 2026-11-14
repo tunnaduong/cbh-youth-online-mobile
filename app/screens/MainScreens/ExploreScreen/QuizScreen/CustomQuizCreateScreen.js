@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import FloatingScreenHeader from "../../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -203,47 +204,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating Transparent Header */}
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingBottom: 8,
-            paddingTop: insets.top,
-            height: 64 + insets.top,
-          }}
-        >
-          <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              textAlign: "center",
-              fontSize: 18,
-              fontWeight: "600",
-              color: theme.primary,
-              opacity: headerTitleOpacity,
-            }}
-          >
-            {t("customQuiz.title", "Tạo bộ đề tùy chỉnh")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("customQuiz.title", "Tạo bộ đề tùy chỉnh")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       {/* Atmospheric Top Gradient */}
       <LinearGradient

@@ -151,7 +151,7 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 - **Strings**: every user-facing string goes through i18next (`useTranslation`, `t("section.key")`) with keys added to **all three** of `app/i18n/locales/en.json`, `vi.json`, `ru.json`. When editing those files, insert keys textually — re-serializing the JSON reformats unrelated one-line blocks.
 - **Theme**: colors come from `useTheme()` (`theme.primary/text/subText/background/surface/border`, `isDarkMode`, `liquidGlassEnabled`). No hard-coded palette except brand accents already in use.
 - **Headers**:
-  - Native screens: floating header — `LiquidButton` (pass `scrollY`) + title that fades on scroll, content in an `Animated.ScrollView` with top padding, wrapped in `AndroidGlassBackdrop` (see `PrivacyPolicyScreen`, `FeedbackScreen`, `ReportScreen`).
+  - Native screens: `components/FloatingScreenHeader` (`title`, `onBack`, `scrollY`, optional `right`) - the Home/Forum look (green-tinted round back button, big green title + sparkle) with the legacy floating rules: absolute over the content, title fades on scroll, the button turns into glass once scrolled. Content in an `Animated.ScrollView` with `paddingTop: 64 + insets.top`, wrapped in `AndroidGlassBackdrop`. Screens whose header scrolls with the page use `components/HomeStyleHeader` (+ `HeaderIconButton`) instead; WebView screens use `WebViewHeader` (same look, solid bar).
   - WebView screens (gift shop, admin, games, easter egg): `WebViewHeader` (solid, always visible, plain back button). Don't put floating glass over web content.
 - **Status bar**: `useStatusBarStyle(style, bgColor)` on focus.
 - **Storage**: auth token + `user_info` in AsyncStorage (`auth_token` is read by the axios interceptor); prefs/caches (theme, avatar versions, handoff flag) in MMKV (`app/global/storage.js`).
@@ -213,11 +213,10 @@ Hard-coded colours that are allowed because they are the same in both themes:
 
 Every native screen: `theme.background` container, a **floating transparent header**, and the content in a scroll view that starts under it.
 
-Header behaviour - exactly this, on every screen:
-- The header has **no background and no border**. It is `position: "absolute"` over the content (`zIndex: 10`, `pointerEvents="box-none"`), height `64 + insets.top`, `paddingTop: insets.top`, `paddingHorizontal: 16`, `paddingBottom: 8`.
-- **Title fades out as the content scrolls down**: `Animated.Text`, `fontSize: 18`, `fontWeight: "600"`, `color: theme.primary`, centred (`flex: 1, textAlign: "center"`), `numberOfLines={1}`, opacity `scrollY.interpolate({ inputRange: [0, 10, 50], outputRange: [1, 1, 0], extrapolate: "clamp" })`.
-- **Buttons are `LiquidButton size={44}` with `scrollY={scrollY}`**: at the top of the page they have no surface at all (just the icon); once the content has scrolled more than 20px under them they get their liquid-glass surface. Never fade or hide the buttons themselves. Back = `Ionicons "chevron-back"` 24 in `theme.primary`; a screen presented as a modal uses `"close"` instead.
-- Keep the title centred with a `width: 44` spacer on the side that has no button. A text action on the right (Save / Send / Post) is a second `LiquidButton` with `style={{ width: "auto", minWidth: 64, paddingHorizontal: 14 }}` and a `fontSize: 15, fontWeight: "700"` label in `theme.primary` (`theme.subText` while disabled); give the title `marginHorizontal: 12`.
+Header behaviour - use `components/FloatingScreenHeader` (never hand-roll it):
+- **Look** (same as Home / Forum): a green-tinted round back button (`rgba(34,197,94,.12/.16)`), then a left-aligned title in `#15803D` / `#4ADE80`, 24 / `"800"`, with the yellow `✦` after it; optional `right` node (a `LiquidButton` with the same `scrollY`, a text action...). A modal screen passes `icon="close"`.
+- **Floating rules (unchanged)**: no background, no border; `position: "absolute"` over the content (`zIndex: 10`), height `64 + insets.top`. The title fades out as the content scrolls (`[0, 10, 50]` -> `[1, 1, 0]`). The back button shows the green tint at the top and becomes the liquid-glass surface once the content has scrolled more than 20px under it (`LiquidButton`'s rule). Never fade or hide the buttons themselves.
+- A text action on the right (Save / Send / Post) is a second `LiquidButton` with `style={{ width: "auto", minWidth: 64, paddingHorizontal: 14 }}` and a `fontSize: 15, fontWeight: "700"` label in `theme.primary` (`theme.subText` while disabled).
 - The scroll view must feed `scrollY`: `Animated.ScrollView` with `scrollEventThrottle={16}` and `onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}`. A scroll view that is not React Native's `Animated` one (e.g. `KeyboardAwareScrollView`) uses `onScroll={(e) => scrollY.setValue(e.nativeEvent.contentOffset.y)}`.
 - Content: `contentContainerStyle={{ padding: 16, paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 24 }}`, `showsVerticalScrollIndicator={false}`, and `keyboardShouldPersistTaps="handled"` when there is an input. Wrap the scroll view in `<AndroidGlassBackdrop style={{ flex: 1 }}>`.
 - Modal screens (`presentation: "modal"`): `FeedbackScreen` uses `topInset = Platform.OS === "android" ? insets.top : 0`; the post composer uses the real `insets.top` on both platforms. Use the real inset unless the sheet is known to start below the status bar.
@@ -232,27 +231,10 @@ export default function ExampleScreen({ navigation }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 10, 50], outputRange: [1, 1, 0], extrapolate: "clamp",
-  });
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 8,
-                       paddingTop: insets.top, height: 64 + insets.top }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text numberOfLines={1} style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600",
-                                                    color: theme.primary, opacity: headerTitleOpacity }}>
-            {t("example.title")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("example.title")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop style={{ flex: 1 }}>
         <Animated.ScrollView

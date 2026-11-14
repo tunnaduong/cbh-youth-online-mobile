@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../../components/FloatingScreenHeader";
 import {
   ActivityIndicator,
   Animated,
@@ -307,23 +308,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
-        <LiquidButton providerId="UploadStudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text
-          style={[
-            styles.headerTitle,
-            {
-              color: theme.primary,
-              opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
-            },
-          ]}
-        >
-          {t("studyMaterial.uploadTitle")}
-        </Animated.Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <FloatingScreenHeader title={t("studyMaterial.uploadTitle")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={
