@@ -5,6 +5,7 @@ import React, {
   useRef,
   useContext,
 } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -117,8 +118,9 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
   const { username, profileName, blockUser: blockUserInContext, getAvatarUrl, getCoverUrl } = React.useContext(AuthContext);
   const userId = route?.params?.username || username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
+  // The floating header is always 64 + the status bar tall.
+  const headerHeight = 64 + insets.top;
   const { recentPostsProfile, setRecentPostsProfile } = useContext(FeedContext);
   const recentPostsRef = useRef(recentPostsProfile);
   recentPostsRef.current = recentPostsProfile;
@@ -1429,73 +1431,23 @@ const ProfileScreen = ({ route, navigation, isTab = false, scrollTriggerRef }) =
     <>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         
-        {/* Floating header - always shows buttons, fades in bg + title on scroll */}
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-          }}
-          onLayout={(event) => {
-            const { height } = event.nativeEvent.layout;
-            setHeaderHeight(height);
-          }}
-        >
-          {/* Animated background layer */}
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: theme.background,
-              opacity: headerBgOpacity,
-            }}
-          />
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
-              backgroundColor: theme.background,
-              opacity: statusBarBgOpacity,
-            }}
-          />
-
-          {/* Header content */}
-          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
-            {/* Left: Back button (hidden when mounted as the bottom-tab Profile screen) */}
-            <View style={{ width: 44 }}>
-              {!isTab && (
-                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
-                  <Ionicons name="chevron-back" size={24} color={theme.text} />
-                </LiquidButton>
-              )}
-            </View>
-
-            {/* Center: animated title */}
-            <Animated.Text
-              style={[styles.headerTitle, {
-                color: theme.text,
-                flex: 1,
-                textAlign: 'center',
-                opacity: headerTitleOpacity,
-              }]}
-              numberOfLines={1}
-            >
-              {isCurrentUser ? t('profile.title') : userData?.profile?.profile_name}
-            </Animated.Text>
-
-            {/* Right: Settings or options button */}
-            <View style={{ width: 44, alignItems: 'flex-end' }}>
-              {isCurrentUser ? (
-                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
-                  <Ionicons name="settings-outline" size={22} color={theme.text} />
-                </LiquidButton>
-              ) : (
-                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={showOptions}>
-                  <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
-                </LiquidButton>
-              )}
-            </View>
-          </View>
-        </View>
+        <FloatingScreenHeader
+          hideBack={isTab}
+          title={isCurrentUser ? t('profile.title') : userData?.profile?.profile_name}
+          onBack={() => navigation.goBack()}
+          scrollY={scrollY}
+          right={
+            isCurrentUser ? (
+              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
+                <Ionicons name="settings-outline" size={22} color={theme.text} />
+              </LiquidButton>
+            ) : (
+              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={showOptions}>
+                <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
+              </LiquidButton>
+            )
+          }
+        />
 
         <Modal
           visible={showMilestonesModal}
