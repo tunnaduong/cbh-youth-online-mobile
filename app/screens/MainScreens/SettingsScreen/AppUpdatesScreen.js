@@ -34,7 +34,8 @@ import {
 } from "../../../services/ota/otaService";
 import UpdatePromptModal from "../../../components/ota/UpdatePromptModal";
 
-import { SettingSection } from "../../../components/settings/SettingsUI";
+import { SettingSection, tint } from "../../../components/settings/SettingsUI";
+import BannerWatermark from "../../../components/BannerWatermark";
 
 // SettingSection clips its content to the rounded card and adds no padding, so
 // the rows here touched/were cut by the corners: pad them inside the card.
@@ -289,16 +290,36 @@ export default function AppUpdatesScreen({ navigation }) {
             paddingBottom: insets.bottom + 32,
           }}
         >
-          {/* Hero Icon */}
-          <View style={styles.heroSection}>
-            <View style={[styles.heroIconWrap, { backgroundColor: theme.iconBackground }]}>
-              <Ionicons name="cloud-download" size={48} color={theme.primary} />
+          {/* Hero banner */}
+          <LinearGradient
+            colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          >
+            <BannerWatermark icon="cloud-download" size={150} />
+            <View style={[styles.heroIconWrap, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="cloud-download" size={32} color={theme.primary} />
             </View>
-            <Text style={[styles.heroTitle, { color: theme.text }]}>CBH Online</Text>
-            <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
-              {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.7.4"} ({Application.nativeBuildVersion || "1103"})
-            </Text>
-          </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={[styles.heroTitle, { color: theme.text }]}>CBH Online</Text>
+              <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
+                {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.7.4"} ({Application.nativeBuildVersion || "1103"})
+              </Text>
+              <View style={[styles.heroChip, { backgroundColor: tint(runningUpdate.isOtaActive ? "#22C55E" : "#64748B", isDarkMode) }]}>
+                <Ionicons
+                  name={runningUpdate.isOtaActive ? "flash" : "cube"}
+                  size={12}
+                  color={runningUpdate.isOtaActive ? theme.primary : theme.subText}
+                />
+                <Text style={{ fontSize: 12, fontWeight: "700", color: runningUpdate.isOtaActive ? theme.primary : theme.subText }}>
+                  {runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
+                    ? `Build ${runningUpdate.activeBuildNumber} (OTA)`
+                    : t("about.embeddedBuild", "Bản cài gốc (Embedded)")}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
 
           {/* Forced OTA Banner (when remote server mandates an update) */}
           {remoteForceOta?.force && (
@@ -306,10 +327,10 @@ export default function AppUpdatesScreen({ navigation }) {
               style={{
                 marginHorizontal: 16,
                 marginBottom: 16,
-                padding: 14,
-                borderRadius: 14,
+                padding: 16,
+                borderRadius: 20,
                 backgroundColor: isDarkMode ? "rgba(220, 38, 38, 0.15)" : "#FEF2F2",
-                borderWidth: 1,
+                borderWidth: StyleSheet.hairlineWidth,
                 borderColor: isDarkMode ? "rgba(220, 38, 38, 0.35)" : "#FECACA",
                 flexDirection: "row",
                 alignItems: "center",
@@ -344,21 +365,21 @@ export default function AppUpdatesScreen({ navigation }) {
                 {(remoteForceOta.channel || remoteForceOta.min_version || remoteForceOta.max_version || remoteForceOta.min_build || remoteForceOta.max_build) && (
                   <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                     {remoteForceOta.channel && (
-                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
+                      <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
                         <Text style={{ fontSize: 11, fontWeight: "600", color: isDarkMode ? "#FCA5A5" : "#991B1B" }}>
                           {remoteForceOta.channel === "all" ? "Tất cả các nhánh" : `Nhánh: ${remoteForceOta.channel}`}
                         </Text>
                       </View>
                     )}
                     {(remoteForceOta.min_version || remoteForceOta.min_build) && (
-                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
+                      <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
                         <Text style={{ fontSize: 11, fontWeight: "600", color: isDarkMode ? "#FCA5A5" : "#991B1B" }}>
                           ≥ {remoteForceOta.min_version || remoteForceOta.min_build}
                         </Text>
                       </View>
                     )}
                     {(remoteForceOta.max_version || remoteForceOta.max_build) && (
-                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
+                      <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: isDarkMode ? "rgba(239,68,68,0.2)" : "#FEE2E2" }}>
                         <Text style={{ fontSize: 11, fontWeight: "600", color: isDarkMode ? "#FCA5A5" : "#991B1B" }}>
                           ≤ {remoteForceOta.max_version || remoteForceOta.max_build}
                         </Text>
@@ -371,13 +392,13 @@ export default function AppUpdatesScreen({ navigation }) {
           )}
 
           {/* Update Settings Section */}
-          <Section title={t("about.updateSettings", "Cài đặt cập nhật")} theme={theme}>
+          <Section icon="settings" color="#6366F1" title={t("about.updateSettings", "Cài đặt cập nhật")} theme={theme}>
             <View style={styles.toggleRow}>
-              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+              <View style={[styles.channelIconWrap, { backgroundColor: tint(otaEnabled ? "#10B981" : "#64748B", isDarkMode) }]}>
                 <Ionicons
                   name={otaEnabled ? "cloud-done" : "cloud-offline-outline"}
                   size={20}
-                  color={otaEnabled ? theme.primary : theme.subText}
+                  color={otaEnabled ? "#10B981" : theme.subText}
                 />
               </View>
               <View style={styles.toggleContent}>
@@ -391,18 +412,18 @@ export default function AppUpdatesScreen({ navigation }) {
               <Switch
                 value={otaEnabled}
                 onValueChange={handleToggleOta}
-                trackColor={{ false: theme.border, true: theme.primary }}
+                trackColor={{ true: "#10B981" }}
               />
             </View>
 
             <View style={[styles.channelDivider, { backgroundColor: theme.border }]} />
 
             <View style={[styles.toggleRow, !otaEnabled && { opacity: 0.5 }]}>
-              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+              <View style={[styles.channelIconWrap, { backgroundColor: tint(startupCheckEnabled && otaEnabled ? "#6366F1" : "#64748B", isDarkMode) }]}>
                 <Ionicons
-                  name="play-forward-outline"
+                  name="play-forward"
                   size={20}
-                  color={startupCheckEnabled && otaEnabled ? theme.primary : theme.subText}
+                  color={startupCheckEnabled && otaEnabled ? "#6366F1" : theme.subText}
                 />
               </View>
               <View style={styles.toggleContent}>
@@ -417,24 +438,24 @@ export default function AppUpdatesScreen({ navigation }) {
                 value={startupCheckEnabled}
                 onValueChange={handleToggleStartupCheck}
                 disabled={!otaEnabled}
-                trackColor={{ false: theme.border, true: theme.primary }}
+                trackColor={{ true: "#6366F1" }}
               />
             </View>
           </Section>
 
           {/* Update Channel Selector */}
           <View style={!otaEnabled && { opacity: 0.5 }} pointerEvents={otaEnabled ? "auto" : "none"}>
-            <Section title={t("about.updateChannel", "Kênh cập nhật")} theme={theme}>
+            <Section icon="git-branch" color="#8B5CF6" title={t("about.updateChannel", "Kênh cập nhật")} theme={theme}>
             <TouchableOpacity
               style={styles.channelRow}
               onPress={() => handleSelectChannel(OTA_CHANNELS.PRODUCTION)}
               activeOpacity={0.7}
             >
-              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+              <View style={[styles.channelIconWrap, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
                 <Ionicons
-                  name={selectedChannel === OTA_CHANNELS.PRODUCTION ? "checkmark-circle" : "shield-checkmark-outline"}
+                  name={selectedChannel === OTA_CHANNELS.PRODUCTION ? "shield-checkmark" : "shield-checkmark-outline"}
                   size={20}
-                  color={selectedChannel === OTA_CHANNELS.PRODUCTION ? theme.primary : theme.subText}
+                  color="#22C55E"
                 />
               </View>
               <View style={styles.channelContent}>
@@ -442,7 +463,7 @@ export default function AppUpdatesScreen({ navigation }) {
                   <Text style={[styles.channelTitle, { color: theme.text }]}>
                     {t("about.channelProduction", "Chính thức (Production)")}
                   </Text>
-                  <View style={[styles.channelBadge, { backgroundColor: theme.primary + "18" }]}>
+                  <View style={[styles.channelBadge, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
                     <Text style={[styles.channelBadgeText, { color: theme.primary }]}>
                       {t("about.channelDefaultBadge", "Mặc định")}
                     </Text>
@@ -467,11 +488,11 @@ export default function AppUpdatesScreen({ navigation }) {
               onPress={() => handleSelectChannel(OTA_CHANNELS.PREVIEW)}
               activeOpacity={0.7}
             >
-              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+              <View style={[styles.channelIconWrap, { backgroundColor: tint("#F59E0B", isDarkMode) }]}>
                 <Ionicons
                   name={selectedChannel === OTA_CHANNELS.PREVIEW ? "flask" : "flask-outline"}
                   size={20}
-                  color={selectedChannel === OTA_CHANNELS.PREVIEW ? theme.primary : theme.subText}
+                  color="#F59E0B"
                 />
               </View>
               <View style={styles.channelContent}>
@@ -479,7 +500,7 @@ export default function AppUpdatesScreen({ navigation }) {
                   <Text style={[styles.channelTitle, { color: theme.text }]}>
                     {t("about.channelPreview", "Thử nghiệm (Preview)")}
                   </Text>
-                  <View style={[styles.channelBadge, { backgroundColor: "#f59e0b20" }]}>
+                  <View style={[styles.channelBadge, { backgroundColor: tint("#F59E0B", isDarkMode) }]}>
                     <Text style={[styles.channelBadgeText, { color: "#f59e0b" }]}>
                       dhphuc
                     </Text>
@@ -500,9 +521,10 @@ export default function AppUpdatesScreen({ navigation }) {
           </View>
 
           {/* Version Info Section */}
-          <Section title={t("about.versionDetails", "Thông tin phiên bản")} theme={theme}>
+          <Section icon="information-circle" color="#3B82F6" title={t("about.versionDetails", "Thông tin phiên bản")} theme={theme}>
             <View style={styles.updateRow}>
-              <Text style={[styles.updateLabel, { color: theme.subText }]}>
+              <View style={[styles.rowIcon, { backgroundColor: tint("#3B82F6", isDarkMode) }]}><Ionicons name="cube" size={16} color="#3B82F6" /></View>
+              <Text style={[styles.updateLabel, { color: theme.subText, flex: 1 }]}>
                 {t("about.baseAppVersion", "Phiên bản gốc (Base)")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
@@ -511,7 +533,8 @@ export default function AppUpdatesScreen({ navigation }) {
             </View>
 
             <View style={[styles.updateRow, { marginTop: 14 }]}>
-              <Text style={[styles.updateLabel, { color: theme.subText }]}>
+              <View style={[styles.rowIcon, { backgroundColor: tint("#10B981", isDarkMode) }]}><Ionicons name="flash" size={16} color="#10B981" /></View>
+              <Text style={[styles.updateLabel, { color: theme.subText, flex: 1 }]}>
                 {t("about.realOtaVersion", "Bản cập nhật OTA")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
@@ -522,7 +545,8 @@ export default function AppUpdatesScreen({ navigation }) {
             </View>
 
             <View style={[styles.updateRow, { marginTop: 14 }]}>
-              <Text style={[styles.updateLabel, { color: theme.subText }]}>
+              <View style={[styles.rowIcon, { backgroundColor: tint("#8B5CF6", isDarkMode) }]}><Ionicons name="git-branch" size={16} color="#8B5CF6" /></View>
+              <Text style={[styles.updateLabel, { color: theme.subText, flex: 1 }]}>
                 {t("about.updateChannel", "Kênh cập nhật")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
@@ -534,7 +558,8 @@ export default function AppUpdatesScreen({ navigation }) {
 
             {lastCheckTime ? (
               <View style={[styles.updateRow, { marginTop: 14 }]}>
-                <Text style={[styles.updateLabel, { color: theme.subText }]}>
+                <View style={[styles.rowIcon, { backgroundColor: tint("#F59E0B", isDarkMode) }]}><Ionicons name="time" size={16} color="#F59E0B" /></View>
+                <Text style={[styles.updateLabel, { color: theme.subText, flex: 1 }]}>
                   {t("about.lastChecked", "Lần kiểm tra gần nhất")}
                 </Text>
                 <Text style={[styles.updateValue, { color: theme.subText, fontSize: 13 }]}>
@@ -561,7 +586,8 @@ export default function AppUpdatesScreen({ navigation }) {
           </Section>
 
           {/* Explanation note */}
-          <View style={styles.noteWrapper}>
+          <View style={[styles.noteWrapper, { backgroundColor: tint("#3B82F6", isDarkMode) }]}>
+            <Ionicons name="information-circle" size={18} color="#3B82F6" style={{ marginTop: 1 }} />
             <Text style={[styles.noteText, { color: theme.subText }]}>
               {t("about.otaExplanation", "Bản cập nhật OTA (Over-The-Air) cho phép bạn nhanh chóng nhận các tính năng mới và bản sửa lỗi ngay khi khởi động ứng dụng mà không cần cài đặt lại từ đầu.")}
             </Text>
@@ -585,17 +611,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  heroSection: {
+  heroCard: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 28,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    overflow: "hidden",
   },
   heroIconWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+  },
+  heroChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  rowIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
   heroTitle: {
     fontSize: 22,
@@ -651,9 +700,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   channelIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -673,9 +722,9 @@ const styles = StyleSheet.create({
   },
   channelBadge: {
     marginLeft: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 999,
   },
   channelBadgeText: {
     fontSize: 11,
@@ -707,9 +756,9 @@ const styles = StyleSheet.create({
   },
   checkUpdateButton: {
     marginTop: 20,
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -725,12 +774,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   noteWrapper: {
-    marginHorizontal: 20,
-    marginTop: 8,
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 4,
+    padding: 12,
+    borderRadius: 16,
   },
   noteText: {
+    flex: 1,
     fontSize: 13,
     lineHeight: 18,
-    textAlign: "center",
   },
 });
