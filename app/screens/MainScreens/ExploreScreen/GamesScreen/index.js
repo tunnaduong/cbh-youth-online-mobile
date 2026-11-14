@@ -22,6 +22,8 @@ import LiquidButton from "../../../../components/LiquidButton";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import UserNameRow from "../../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../../components/profile/AvatarFrame";
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
 import { getGames, getRandomGame, getGameNowPlaying, getGameLeaderboard, isRequestCanceled } from "../../../../services/api/Api";
 
 // Category values are backend-defined (English) - only these get translated;
@@ -38,9 +40,19 @@ const CATEGORY_KEYS = [
 ];
 
 const CARD_GAP = 12;
+
+// Section title with a tinted round icon.
+const SectionTitle = ({ icon, color, title, theme, isDarkMode }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, marginLeft: 4 }}>
+    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 8 }}>
+      <Ionicons name={icon} size={14} color={color} />
+    </View>
+    <Text style={{ fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, color: theme.subText, flex: 1 }}>{title}</Text>
+  </View>
+);
 const GAMES_PAGE_SIZE = 16;
 
-const GameCard = React.memo(({ game, width, t, onPress, theme, rank, badge }) => (
+const GameCard = React.memo(({ game, width, t, onPress, theme, rank, badge, isDarkMode }) => (
   <TouchableOpacity
     style={{ width, marginBottom: 16 }}
     activeOpacity={0.85}
@@ -51,7 +63,7 @@ const GameCard = React.memo(({ game, width, t, onPress, theme, rank, badge }) =>
         styles.cardImageWrap,
         {
           backgroundColor: theme.iconBackground,
-          borderColor: theme.border,
+          borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
           borderWidth: StyleSheet.hairlineWidth,
         },
       ]}
@@ -71,7 +83,7 @@ const GameCard = React.memo(({ game, width, t, onPress, theme, rank, badge }) =>
     <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
       {game.name}
     </Text>
-    <View style={[styles.categoryPill, { backgroundColor: theme.iconBackground }]}>
+    <View style={[styles.categoryPill, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
       <Text style={[styles.categoryPillText, { color: theme.primary }]}>
         {t(`games.category_${game.category}`, game.category)}
       </Text>
@@ -208,10 +220,10 @@ const GamesScreen = ({ navigation }) => {
   const renderGameItem = useCallback(
     ({ item: g }) => (
       <View style={{ width: "48%" }}>
-        <GameCard game={g} width="100%" t={t} theme={theme} onPress={() => openGame(g)} />
+        <GameCard game={g} width="100%" t={t} theme={theme} isDarkMode={isDarkMode} onPress={() => openGame(g)} />
       </View>
     ),
-    [t, theme, openGame]
+    [t, theme, isDarkMode, openGame]
   );
 
   const keyExtractor = useCallback((item, index) => String(item?.id ?? item?.slug ?? index), []);
@@ -219,35 +231,43 @@ const GamesScreen = ({ navigation }) => {
   const listHeader = useMemo(
     () => (
       <View style={{ paddingHorizontal: 16 }}>
-        <Text style={[styles.description, { color: theme.subText }]}>
-          {t("games.subtitle", "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!")}
-        </Text>
-
-        {/* Random Game Hero Action */}
-        <TouchableOpacity
-          style={[styles.randomButton, { backgroundColor: theme.primary }]}
-          onPress={handleRandom}
-          disabled={rolling}
-          activeOpacity={0.85}
+        <LinearGradient
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
-          {rolling ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Ionicons name="shuffle" size={18} color="#fff" />
-          )}
-          <Text style={styles.randomButtonText}>{t("games.random", "Game ngẫu nhiên")}</Text>
-        </TouchableOpacity>
+          <BannerWatermark icon="game-controller" size={140} />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={[styles.heroIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="game-controller" size={24} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={[styles.heroTitle, { color: theme.text }]} numberOfLines={1}>{t("games.title", "Game")}</Text>
+              <Text style={[styles.heroText, { color: theme.subText }]}>
+                {t("games.subtitle", "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!")}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.randomButton, { backgroundColor: theme.primary }]}
+            onPress={handleRandom}
+            disabled={rolling}
+            activeOpacity={0.85}
+          >
+            {rolling ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="shuffle" size={18} color="#fff" />}
+            <Text style={styles.randomButtonText}>{t("games.random", "Game ngẫu nhiên")}</Text>
+          </TouchableOpacity>
+        </LinearGradient>
 
         {/* Now Playing Section */}
         {nowPlaying.length > 0 && (
           <View style={styles.sectionWrap}>
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-              {t("games.nowPlaying", "Đang chơi")}
-            </Text>
+            <SectionTitle icon="pulse" color="#10B981" title={t("games.nowPlaying", "Đang chơi")} theme={theme} isDarkMode={isDarkMode} />
             <View
               style={[
                 styles.cardGroup,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
               ]}
             >
               {nowPlaying.slice(0, 8).map((p, i, arr) => (
@@ -255,7 +275,7 @@ const GamesScreen = ({ navigation }) => {
                   key={`${p.user_id}-${i}`}
                   style={[
                     styles.rowItem,
-                    i < arr.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                    i < arr.length - 1 && { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9", borderBottomWidth: StyleSheet.hairlineWidth },
                   ]}
                 >
                   <AvatarFrameWrap theme={p.profile_theme} size={36} style={{ marginRight: 12 }}>
@@ -284,13 +304,11 @@ const GamesScreen = ({ navigation }) => {
         {/* Leaderboard Section */}
         {leaderboard.length > 0 && (
           <View style={styles.sectionWrap}>
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-              {t("games.leaderboard", "Bảng xếp hạng XP")}
-            </Text>
+            <SectionTitle icon="trophy" color="#F59E0B" title={t("games.leaderboard", "Bảng xếp hạng XP")} theme={theme} isDarkMode={isDarkMode} />
             <View
               style={[
                 styles.cardGroup,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
               ]}
             >
               {leaderboard.map((u, i, arr) => (
@@ -300,7 +318,7 @@ const GamesScreen = ({ navigation }) => {
                   onPress={() => navigation.navigate("ProfileScreen", { username: u.username })}
                   style={[
                     styles.rowItem,
-                    i < arr.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                    i < arr.length - 1 && { borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9", borderBottomWidth: StyleSheet.hairlineWidth },
                   ]}
                 >
                   <View
@@ -343,9 +361,7 @@ const GamesScreen = ({ navigation }) => {
         {/* Most Played Carousel */}
         {mostPlayed.length > 0 && (
           <View style={styles.sectionWrap}>
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-              {t("games.mostPlayed", "Game được chơi nhiều nhất")}
-            </Text>
+            <SectionTitle icon="flame" color="#EF4444" title={t("games.mostPlayed", "Game được chơi nhiều nhất")} theme={theme} isDarkMode={isDarkMode} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -358,6 +374,7 @@ const GamesScreen = ({ navigation }) => {
                     width={cardWidth}
                     t={t}
                     theme={theme}
+                    isDarkMode={isDarkMode}
                     rank={i + 1}
                     onPress={() => openGame(g)}
                   />
@@ -370,9 +387,7 @@ const GamesScreen = ({ navigation }) => {
         {/* Newest Games Carousel */}
         {newest.length > 0 && (
           <View style={styles.sectionWrap}>
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
-              {t("games.newest", "Game mới cập nhật")}
-            </Text>
+            <SectionTitle icon="sparkles" color="#3B82F6" title={t("games.newest", "Game mới cập nhật")} theme={theme} isDarkMode={isDarkMode} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -385,6 +400,7 @@ const GamesScreen = ({ navigation }) => {
                     width={cardWidth}
                     t={t}
                     theme={theme}
+                    isDarkMode={isDarkMode}
                     badge={g.is_new ? t("games.newBadge", "MỚI") : null}
                     onPress={() => openGame(g)}
                   />
@@ -401,7 +417,7 @@ const GamesScreen = ({ navigation }) => {
               styles.searchBox,
               {
                 backgroundColor: theme.surface,
-                borderColor: theme.border,
+                borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
               },
             ]}
           >
@@ -420,13 +436,11 @@ const GamesScreen = ({ navigation }) => {
             )}
           </View>
 
-          <Text style={[styles.sectionTitle, { color: theme.subText, marginTop: 4 }]}>
-            {t("games.byCategory", "Game theo thể loại")}
-          </Text>
+          <SectionTitle icon="apps" color="#8B5CF6" title={t("games.byCategory", "Game theo thể loại")} theme={theme} isDarkMode={isDarkMode} />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+            contentContainerStyle={{ paddingHorizontal: 4, paddingRight: 24, gap: 8 }}
             style={{ marginBottom: 16 }}
           >
             {CATEGORY_KEYS.map((cat) => {
@@ -439,16 +453,19 @@ const GamesScreen = ({ navigation }) => {
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: active ? theme.primary : theme.iconBackground,
+                      backgroundColor: active ? theme.primary : theme.surface,
+                      borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0",
                     },
                   ]}
                 >
                   <Text
+                    numberOfLines={1}
                     style={{
                       color: active ? "#fff" : theme.text,
                       fontWeight: "600",
-                      fontSize: 12,
-                      lineHeight: 16,
+                      fontSize: 13,
+                      includeFontPadding: false,
+                      paddingRight: 1,
                     }}
                   >
                     {t(`games.category_${cat}`, cat === "all" ? "Tất cả" : cat)}
@@ -474,6 +491,7 @@ const GamesScreen = ({ navigation }) => {
       newest,
       search,
       activeCategory,
+      isDarkMode,
     ]
   );
 
@@ -600,14 +618,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginHorizontal: 4,
   },
+  hero: {
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    marginBottom: 24,
+    overflow: "hidden",
+  },
+  heroIcon: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 18, fontWeight: "800" },
+  heroText: { fontSize: 13, lineHeight: 18, marginTop: 2 },
   randomButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 24,
+    borderRadius: 999,
+    padding: 13,
+    marginTop: 16,
   },
   randomButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   sectionWrap: {
@@ -623,7 +651,7 @@ const styles = StyleSheet.create({
   },
   cardGroup: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
   },
   rowItem: {
@@ -663,11 +691,11 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 14,
+    height: 46,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   searchInput: {
     flex: 1,
@@ -676,9 +704,11 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 0,
   },
   grid: {
     flexDirection: "row",
@@ -688,7 +718,7 @@ const styles = StyleSheet.create({
   cardImageWrap: {
     width: "100%",
     aspectRatio: 4 / 3,
-    borderRadius: 14,
+    borderRadius: 18,
     overflow: "hidden",
   },
   cardImage: { width: "100%", height: "100%" },
@@ -710,20 +740,20 @@ const styles = StyleSheet.create({
     top: 6,
     left: 6,
     zIndex: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   newBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
   cardTitle: { fontSize: 14, fontWeight: "600", marginTop: 8 },
   categoryPill: {
     alignSelf: "flex-start",
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 6,
   },
-  categoryPillText: { fontSize: 11, fontWeight: "600", lineHeight: 15 },
+  categoryPillText: { fontSize: 11, fontWeight: "700", lineHeight: 15 },
   emptyText: { textAlign: "center", width: "100%", marginTop: 30, fontSize: 14 },
 });
 
