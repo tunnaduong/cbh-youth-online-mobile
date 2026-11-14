@@ -271,13 +271,6 @@ const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
-  // Picker mode: floating header whose title fades out as the page scrolls.
-  const pickerScrollY = useRef(new Animated.Value(0)).current;
-  const pickerTitleOpacity = pickerScrollY.interpolate({
-    inputRange: [0, 10, 50],
-    outputRange: [1, 1, 0],
-    extrapolate: "clamp",
-  });
 
   // Media
   const [originalImage, setOriginalImage] = useState(null);
@@ -1169,48 +1162,7 @@ const CreateStoryScreen = ({ navigation }) => {
               <View style={{ width: 40 }} />
             )}
           </View>
-        ) : (
-          <View
-            pointerEvents="box-none"
-            style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}
-          >
-            <View
-              style={{
-                paddingTop: insets.top,
-                paddingBottom: 8,
-                height: 64 + insets.top,
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 16,
-              }}
-            >
-              <View style={{ width: 44 }}>
-                <LiquidButton
-                  size={44}
-                  scrollY={pickerScrollY}
-                  onPress={() => navigation.goBack()}
-                  accessibilityLabel={t("common.back", "Quay lại")}
-                >
-                  <Ionicons name="chevron-back" size={24} color={theme.primary} />
-                </LiquidButton>
-              </View>
-              <Animated.Text
-                numberOfLines={1}
-                style={{
-                  fontSize: 18,
-                  fontWeight: "600",
-                  color: theme.primary,
-                  textAlign: "center",
-                  flex: 1,
-                  opacity: pickerTitleOpacity,
-                }}
-              >
-                {t("story.createStory")}
-              </Animated.Text>
-              <View style={{ width: 44 }} />
-            </View>
-          </View>
-        )}
+        ) : null}
 
         {hasContent ? (
           <View style={{ flex: 1 }}>
@@ -1432,15 +1384,41 @@ const CreateStoryScreen = ({ navigation }) => {
               style={{ flex: 1 }}
               contentContainerStyle={{
                 paddingHorizontal: 16,
-                paddingTop: 64 + insets.top,
+                paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8),
                 paddingBottom: insets.bottom + 28,
               }}
               showsVerticalScrollIndicator={false}
-              scrollEventThrottle={16}
-              onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: pickerScrollY } } }], {
-                useNativeDriver: false,
-              })}
             >
+              {/* Top header, same as the Home feed: round tinted button, big
+                  green title with the sparkle, grey subtitle, and the frog
+                  mascot on the right. */}
+              <View style={styles.pickerHeaderRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerHeaderButton,
+                    { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)" },
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => navigation.goBack()}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.back", "Quay lại")}
+                >
+                  <Ionicons name="chevron-back" size={22} color={isDarkMode ? "#4ADE80" : "#15803D"} />
+                </TouchableOpacity>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={[styles.pickerBrandTitle, { color: isDarkMode ? "#4ADE80" : "#15803D" }]} numberOfLines={1}>
+                      {t("story.createStory")}
+                    </Text>
+                    <Text style={styles.pickerSparkle}>✦</Text>
+                  </View>
+                  <Text style={[styles.pickerBrandSubtitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]} numberOfLines={1}>
+                    {t("story.heroHours")}
+                  </Text>
+                </View>
+                <Image source={require("../../../assets/logo.png")} style={styles.pickerMascot} resizeMode="contain" />
+              </View>
+
               {/* Header Hero Banner */}
               <LinearGradient
                 colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
@@ -1668,6 +1646,22 @@ const CreateStoryScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   // Initial Picker Screen Styles
+  pickerHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingBottom: 14,
+  },
+  pickerHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pickerBrandTitle: { fontSize: 24, fontWeight: "800", letterSpacing: -0.3, flexShrink: 1 },
+  pickerSparkle: { fontSize: 16, color: "#EAB308", marginLeft: 4, marginTop: -8 },
+  pickerBrandSubtitle: { fontSize: 12.5, fontWeight: "500", marginTop: 1 },
+  pickerMascot: { width: 40, height: 40, marginLeft: 8 },
   heroBanner: {
     borderRadius: 24,
     padding: 20,
