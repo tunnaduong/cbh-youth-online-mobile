@@ -21,6 +21,9 @@ object BubbleHook {
       Log.d("HmyBubble", "chat push ignored: bubbles not allowed by the system")
       return false
     }
+    if (BubbleNotifier.bubblePreference(ctx) == 2) {
+      Log.d("HmyBubble", "bubble setting is 'selected conversations only': shown as a notification until the user bubbles it")
+    }
     return try {
       val body = JSONObject(bodyJson ?: return false)
       if (body.optString("type") != "chat_message") return false

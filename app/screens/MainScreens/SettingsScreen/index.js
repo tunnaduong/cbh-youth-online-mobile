@@ -3,6 +3,7 @@ import {
   isBubbleChatEnabled,
   setBubbleChatEnabled,
   bubblesAllowedBySystem,
+  bubblePreferenceBySystem,
   openBubbleSystemSettings,
 } from "../../../services/bubble/nativeBubble";
 import BannerWatermark from "../../../components/BannerWatermark";
@@ -50,6 +51,10 @@ export default function SettingsScreen({ navigation }) {
   const toggleBubbleChat = (on) => {
     if (on && !bubblesAllowedBySystem()) {
       Toast.show({ type: "info", text1: t("settings.bubbleChat"), text2: t("settings.bubbleChatSystemOff"), topOffset: 60 });
+      openBubbleSystemSettings();
+    } else if (on && bubblePreferenceBySystem() === 2) {
+      // "Selected conversations only": a new message would stay a notification.
+      Toast.show({ type: "info", text1: t("settings.bubbleChat"), text2: t("settings.bubbleChatSelectedOnly"), topOffset: 60 });
       openBubbleSystemSettings();
     }
     setBubbleChatEnabled(on);

@@ -45,6 +45,11 @@ export function bubblesAllowedBySystem() {
   return bubbleChatAvailable ? safe(() => Native.areBubblesAllowed(), false) : false;
 }
 
+/** 0 none, 1 all conversations may bubble, 2 only selected ones; -1 unknown (old build). */
+export function bubblePreferenceBySystem() {
+  return bubbleChatAvailable ? safe(() => (Native.bubblePreference ? Native.bubblePreference() : -1), -1) : -1;
+}
+
 export function openBubbleSystemSettings() {
   if (bubbleChatAvailable) safe(() => Native.openBubbleSettings());
 }

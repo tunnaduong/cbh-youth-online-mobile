@@ -24,7 +24,10 @@ import java.net.URL
 
 /** Builds the chat notification that Android shows as a bubble (Android 11+). */
 object BubbleNotifier {
-  private const val CHANNEL = "chat_bubbles"
+  // v2: a channel keeps the settings it was first created with, so an older
+  // build that made "chat_bubbles" without bubble permission could never bubble.
+  private const val CHANNEL = "chat_bubbles_v2"
+  private const val OLD_CHANNEL = "chat_bubbles"
   private const val MAX_LINES = 8
 
   fun supported() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
@@ -32,6 +35,7 @@ object BubbleNotifier {
   fun ensureChannel(ctx: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
     val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
+    if (nm.getNotificationChannel(OLD_CHANNEL) != null) nm.deleteNotificationChannel(OLD_CHANNEL)
     if (nm.getNotificationChannel(CHANNEL) != null) return
     val ch = NotificationChannel(CHANNEL, "hmyen bubble", NotificationManager.IMPORTANCE_HIGH)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ch.setAllowBubbles(true)
@@ -42,6 +46,18 @@ object BubbleNotifier {
     if (!supported()) return false
     val nm = ctx.getSystemService(NotificationManager::class.java) ?: return false
     return nm.areBubblesAllowed()
+  }
+
+  /**
+   * The app's bubble setting: 0 none, 1 all conversations may bubble, 2 only the
+   * ones the user picked (then a new message is just a notification, never an
+   * automatic bubble). Below Android 12 only on/off is known.
+   */
+  fun bubblePreference(ctx: Context): Int {
+    if (!supported()) return 0
+    val nm = ctx.getSystemService(NotificationManager::class.java) ?: return 0
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) nm.bubblePreference
+    else if (nm.areBubblesAllowed()) 1 else 0
   }
 
   fun notificationId(conversationId: String) = 0x4B000000 or (conversationId.hashCode() and 0xFFFFFF)

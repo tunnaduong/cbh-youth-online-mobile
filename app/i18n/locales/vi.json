@@ -1281,6 +1281,7 @@
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
     "bubbleChat": "Bong bóng trò chuyện",
     "bubbleChatSystemOff": "Bong bóng đang tắt cho ứng dụng trong cài đặt hệ thống. Hãy bật ở đó.",
+    "bubbleChatSelectedOnly": "Bong bóng hiện đang chỉ mở cho các cuộc trò chuyện bạn chọn. Hãy chọn \"Tất cả cuộc trò chuyện có thể hiện bong bóng\" để tin nhắn mới tự nổi lên.",
     "groupAppearance": "Giao diện",
     "groupLanguage": "Ngôn ngữ & nội dung",
     "groupNotifications": "Thông báo & trò chuyện",

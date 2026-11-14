@@ -1294,6 +1294,7 @@
     "liquidGlassEffect": "Liquid glass effect",
     "bubbleChat": "Chat bubbles",
     "bubbleChatSystemOff": "Bubbles are off for this app in system settings. Turn them on there.",
+    "bubbleChatSelectedOnly": "Bubbles only open for conversations you pick. Choose \"All conversations can bubble\" so new messages pop up by themselves.",
     "groupAppearance": "Appearance",
     "groupLanguage": "Language & content",
     "groupNotifications": "Notifications & chat",

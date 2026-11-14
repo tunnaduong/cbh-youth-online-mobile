@@ -19,6 +19,9 @@ class HmyBubbleModule : Module() {
 
     Function("areBubblesAllowed") { BubbleNotifier.areBubblesAllowed(context) }
 
+    /** 0 none, 1 all conversations, 2 only selected ones (see BubbleNotifier.bubblePreference). */
+    Function("bubblePreference") { BubbleNotifier.bubblePreference(context) }
+
     Function("openBubbleSettings") {
       val intent = Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS)
         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
