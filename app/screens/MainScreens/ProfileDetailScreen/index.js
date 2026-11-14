@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -263,45 +264,12 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      {/* Floating Header */}
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-        }}
-      >
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: theme.background,
-            opacity: headerBgOpacity,
-          }}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
-            backgroundColor: theme.background,
-            opacity: statusBarBgOpacity,
-          }}
-        />
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top, justifyContent: 'space-between' }}>
-          <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            style={[styles.headerTitle, {
-              color: theme.primary,
-              flex: 1,
-              textAlign: 'center',
-              opacity: headerTitleOpacity,
-            }]}
-            numberOfLines={1}
-          >
-            {t('profile.title')}
-          </Animated.Text>
-          {isCurrentUser ? (
+      <FloatingScreenHeader
+        title={t('profile.title')}
+        onBack={() => navigation.goBack()}
+        scrollY={scrollY}
+        right={
+          isCurrentUser ? (
             <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.navigate("EditProfileScreen")}>
               <Ionicons name="create-outline" size={24} color={theme.primary} />
             </LiquidButton>
@@ -309,9 +277,9 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={showOptions}>
               <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
             </LiquidButton>
-          )}
-        </View>
-      </View>
+          )
+        }
+      />
 
       <LinearGradient
         colors={

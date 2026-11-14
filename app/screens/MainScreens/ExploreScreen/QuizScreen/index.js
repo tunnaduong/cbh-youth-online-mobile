@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import FloatingScreenHeader from "../../../../components/FloatingScreenHeader";
 import FastImage from "../../../../components/FastImage";
 import Svg, { Circle, G } from "react-native-svg";
 import {
@@ -322,62 +323,19 @@ const QuizScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating Transparent Header adhering to design system */}
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingBottom: 8,
-            paddingTop: insets.top,
-            height: 64 + insets.top,
-          }}
-        >
-          <View style={{ width: 44 }}>
-            <LiquidButton
-              size={44}
-              scrollY={scrollY}
-              onPress={() => (phase === "setup" ? navigation.goBack() : handleRestart())}
-            >
-              <Ionicons name={phase === "setup" ? "chevron-back" : "close"} size={24} color={theme.primary} />
+      <FloatingScreenHeader
+        title={t("quiz.title", "Đố vui")}
+        icon={phase === "setup" ? "chevron-back" : "close"}
+        onBack={() => (phase === "setup" ? navigation.goBack() : handleRestart())}
+        scrollY={scrollY}
+        right={
+          quiz?.quiz_set_id && (phase === "taking" || phase === "result") ? (
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => handleShare(quiz.quiz_set_id)}>
+              <Ionicons name="share-outline" size={20} color={theme.primary} />
             </LiquidButton>
-          </View>
-          <Animated.Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              textAlign: "center",
-              fontSize: 18,
-              fontWeight: "600",
-              color: theme.primary,
-              opacity: headerTitleOpacity,
-            }}
-          >
-            {t("quiz.title", "Đố vui")}
-          </Animated.Text>
-          <View style={{ width: 44 }}>
-            {quiz?.quiz_set_id && (phase === "taking" || phase === "result") && (
-              <LiquidButton
-                size={44}
-                scrollY={scrollY}
-                onPress={() => handleShare(quiz.quiz_set_id)}
-              >
-                <Ionicons name="share-outline" size={20} color={theme.primary} />
-              </LiquidButton>
-            )}
-          </View>
-        </View>
-      </View>
+          ) : null
+        }
+      />
 
       {/* Atmospheric Top Gradient */}
       <LinearGradient

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   Animated,
   View,
@@ -287,26 +288,13 @@ export default function TimetableEditScreen({ navigation }) {
         }}
         pointerEvents="none"
       />
-      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingBottom: 8,
-            paddingTop: insets.top,
-            height: 64 + insets.top,
-          }}
-        >
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} accessibilityLabel={t("timetable.close")}>
-            <Ionicons name="close" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            numberOfLines={1}
-            style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600", color: theme.primary, opacity: headerTitleOpacity, marginHorizontal: 12 }}
-          >
-            {t("timetable.editTitle")}
-          </Animated.Text>
+      <FloatingScreenHeader
+        icon="close"
+        title={t("timetable.editTitle")}
+        backLabel={t("timetable.close")}
+        onBack={() => navigation.goBack()}
+        scrollY={scrollY}
+        right={
           <LiquidButton
             size={44}
             scrollY={scrollY}
@@ -321,8 +309,8 @@ export default function TimetableEditScreen({ navigation }) {
               <Text style={{ fontSize: 15, fontWeight: "700", color: theme.primary }}>{t("timetable.save")}</Text>
             )}
           </LiquidButton>
-        </View>
-      </View>
+        }
+      />
 
       <AndroidGlassBackdrop style={{ flex: 1 }}>
         <Animated.ScrollView

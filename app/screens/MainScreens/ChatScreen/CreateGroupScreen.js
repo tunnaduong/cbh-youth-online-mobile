@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -62,24 +63,16 @@ const CreateGroupScreen = ({ navigation }) => {
     }
   };
 
-  const headerHeight = 58 + insets.top;
+  const headerHeight = 64 + insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
-        pointerEvents="box-none"
-      >
-        <LiquidButton providerId="CreateGroupScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
-          numberOfLines={1}
-        >
-          {t("chatConversation.createGroup", "Tạo nhóm")}
-        </Animated.Text>
-        <TouchableOpacity onPress={handleCreate} disabled={!canCreate} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <FloatingScreenHeader
+        title={t("chatConversation.createGroup", "Tạo nhóm")}
+        onBack={() => navigation.goBack()}
+        scrollY={scrollY}
+        right={
+          <TouchableOpacity onPress={handleCreate} disabled={!canCreate} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           {creating ? (
             <ActivityIndicator size="small" color={theme.primary} />
           ) : (
@@ -88,7 +81,8 @@ const CreateGroupScreen = ({ navigation }) => {
             </Text>
           )}
         </TouchableOpacity>
-      </View>
+        }
+      />
 
       <LinearGradient
         colors={

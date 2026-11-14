@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -103,23 +104,21 @@ export default function DevConsoleScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating header: glass buttons appear once the log list scrolls under it */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 8, height: 64 + insets.top }}>
-          <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]} numberOfLines={1}>
-            {t("devConsole.title")}
-          </Animated.Text>
-          <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={handleCopyAll}>
-            <Ionicons name="copy-outline" size={20} color={theme.text} />
-          </LiquidButton>
-          <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={handleClear}>
-            <Ionicons name="trash-outline" size={22} color={theme.text} />
-          </LiquidButton>
-        </View>
-      </View>
+      <FloatingScreenHeader
+        title={t("devConsole.title")}
+        onBack={() => navigation.goBack()}
+        scrollY={scrollY}
+        right={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={handleCopyAll}>
+              <Ionicons name="copy-outline" size={20} color={theme.text} />
+            </LiquidButton>
+            <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={handleClear}>
+              <Ionicons name="trash-outline" size={22} color={theme.text} />
+            </LiquidButton>
+          </View>
+        }
+      />
 
       <LinearGradient
         colors={

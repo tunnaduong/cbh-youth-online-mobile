@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { HeaderIconButton } from "../../components/HomeStyleHeader";
 import {
   ScrollView,
   View,
@@ -232,9 +233,9 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.container, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}
         >
-            <LiquidButton size={44} onPress={() => navigation.goBack()} containerStyle={styles.backButton}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
+            <View style={styles.backButton}>
+              <HeaderIconButton icon="chevron-back" onPress={() => navigation.goBack()} label={t("common.back", "Quay lại")} />
+            </View>
 
             <View style={styles.content}>
               <Text style={[styles.title, { color: theme.text }]}>

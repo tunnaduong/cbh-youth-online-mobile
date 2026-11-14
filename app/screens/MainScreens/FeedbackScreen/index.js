@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
@@ -201,18 +202,13 @@ export default function FeedbackScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating header: glass buttons appear once content scrolls under it */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.header, { paddingTop: topInset, height: 64 + topInset }]}>
-          <LiquidButton size={44} scrollY={scrollY} providerId="FeedbackScreen" onPress={close} disabled={submitting}>
-            <Ionicons name="close" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("feedback.title")}
-          </Animated.Text>
+      <FloatingScreenHeader
+        icon="close"
+        title={t("feedback.title")}
+        onBack={close}
+        scrollY={scrollY}
+        topInset={topInset}
+        right={
           <LiquidButton
             size={44}
             scrollY={scrollY}
@@ -227,8 +223,8 @@ export default function FeedbackScreen({ navigation, route }) {
               <Text style={[styles.headerAction, { color: theme.primary }]}>{t("feedback.submit")}</Text>
             )}
           </LiquidButton>
-        </View>
-      </View>
+        }
+      />
 
       <AndroidGlassBackdrop providerId="FeedbackScreen" style={{ flex: 1 }}>
         <LinearGradient

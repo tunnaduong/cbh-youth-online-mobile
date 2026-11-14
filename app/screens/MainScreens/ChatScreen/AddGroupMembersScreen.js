@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,24 +49,16 @@ const AddGroupMembersScreen = ({ navigation, route }) => {
     }
   };
 
-  const headerHeight = 58 + insets.top;
+  const headerHeight = 64 + insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
-        pointerEvents="box-none"
-      >
-        <LiquidButton providerId="AddGroupMembersScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
-          numberOfLines={1}
-        >
-          {t("chatConversation.addMembers", "Thêm thành viên")}
-        </Animated.Text>
-        <TouchableOpacity onPress={handleAdd} disabled={!canSubmit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <FloatingScreenHeader
+        title={t("chatConversation.addMembers", "Thêm thành viên")}
+        onBack={() => navigation.goBack()}
+        scrollY={scrollY}
+        right={
+          <TouchableOpacity onPress={handleAdd} disabled={!canSubmit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           {saving ? (
             <ActivityIndicator size="small" color={theme.primary} />
           ) : (
@@ -74,7 +67,8 @@ const AddGroupMembersScreen = ({ navigation, route }) => {
             </Text>
           )}
         </TouchableOpacity>
-      </View>
+        }
+      />
 
       <LinearGradient
         colors={

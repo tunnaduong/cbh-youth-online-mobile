@@ -1,4 +1,5 @@
 import React from "react";
+import FloatingScreenHeader from "../../components/FloatingScreenHeader";
 import { ScrollView, View, Text, Switch, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -43,15 +44,7 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
       {/* Back to the language screen. replace(), like the way here: these
           setup screens replace each other, so there is nothing to pop - and
           on a launch that resumed here this screen is the only one. */}
-      <View style={[styles.backRow, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
-        <LiquidButton
-          providerId="FirstLaunchSettingsScreen"
-          size={44}
-          onPress={() => navigation.replace("LanguageSelect")}
-        >
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-      </View>
+      <FloatingScreenHeader onBack={() => navigation.replace("LanguageSelect")} />
 
       <AndroidGlassBackdrop providerId="FirstLaunchSettingsScreen" style={{ flex: 1 }}>
         {/* Scrolls when the content is taller than the screen (small iPhones,
