@@ -156,7 +156,7 @@ export default function AboutScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7", marginTop: 8 }]}
         >
-          <BannerWatermark icon="phone-portrait" color="#22C55E" size={130} />
+          <BannerWatermark icon="phone-portrait" color="#22C55E" size={130} style={{ top: 34 }} />
           <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
             <Image
               source={require("../../../assets/logo.png")}
