@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from "react";
+import useGradualList from "../../../hooks/useGradualList";
 import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
