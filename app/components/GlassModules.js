@@ -251,14 +251,27 @@ const GatedLiquidGlassView = ({
       ? flatSurface(isDarkMode)
       : tintColor;
 
+  // Transparent mode on iOS: a soft blur behind the translucent panel keeps
+  // it legible over busy content.
+  const softBlur = Platform.OS === "ios" && BlurView && fallbackColor === flatSurface(isDarkMode);
+
   return (
     <View
       style={[
         style,
         { backgroundColor: fallbackColor },
+        softBlur && { overflow: "hidden" },
         borderRadius != null && { borderRadius },
       ]}
     >
+      {softBlur ? (
+        <BlurView
+          pointerEvents="none"
+          intensity={isDarkMode ? 36 : 44}
+          tint={isDarkMode ? "systemThinMaterialDark" : "systemThinMaterialLight"}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {children}
     </View>
   );
@@ -290,8 +303,13 @@ const glassTint = (isDarkMode) =>
 // Flat surface used in place of glassTint when the user turns Liquid glass
 // off. There is no blur in that mode, so it has to be nearly opaque to read
 // as a panel - close to One UI's frosted bars/drawers.
+//
+// More see-through than before (was 0.9): on iOS a light blur sits behind it
+// (see the flat branch of GatedLiquidGlassView) so 0.5 still reads as a
+// panel; on Android there is no blur, so it stays a little denser (0.7).
+const flatAlpha = () => (Platform.OS === "ios" && BlurView ? 0.5 : 0.7);
 const flatSurface = (isDarkMode) =>
-  isDarkMode ? "rgba(24, 24, 26, 0.9)" : "rgba(250, 250, 252, 0.9)";
+  isDarkMode ? `rgba(24, 24, 26, ${flatAlpha()})` : `rgba(250, 250, 252, ${flatAlpha()})`;
 
 // On Android 13+ the library renders its full AGSL refraction shader every
 // single frame for every mounted <LiquidGlassView> - capture backdrop -> GPU
