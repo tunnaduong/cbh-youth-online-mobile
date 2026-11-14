@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
   Text,
@@ -315,6 +316,7 @@ export default function Step3({ navigation, route }) {
           end={{ x: 1, y: 1 }}
           style={styles.gradientCard}
         >
+          <BannerWatermark icon="clipboard" color="#FFFFFF" size={140} />
           <View style={{ flex: 1 }}>
             <Text style={styles.gradientTitle}>
               {t("report.reportViolation")}

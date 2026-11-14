@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   ActivityIndicator,
   Animated,
@@ -190,7 +191,7 @@ export default function DepositScreen({ navigation }) {
           <>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
             <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
-              <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>
+              <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}><BannerWatermark icon="qr-code" color="#FFFFFF" size={110} />
                 <Text style={[styles.mutedLabel, { color: "#C7F5D7" }]}>{t("wallet.depositScreen.amountToTransfer")}</Text>
                 <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd, lang)} VND</Text>
                 <Text style={[styles.expectedText, { color: "#FFFFFF" }]}> {t("wallet.depositScreen.expectedPoints", { value: formatNumber(depositInfo.expected_points || expectedPoints, lang) })}</Text>
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   infoText: { flex: 1, fontSize: 12, lineHeight: 18 },
   primaryButton: { minHeight: 52, borderRadius: 999, backgroundColor: "#168348", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   primaryText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
-  amountPanel: { alignItems: "center", padding: 16, borderRadius: 14, marginBottom: 18 },
+  amountPanel: { overflow: "hidden", alignItems: "center", padding: 16, borderRadius: 14, marginBottom: 18 },
   mutedLabel: { fontSize: 12 },
   amountValue: { fontSize: 25, fontWeight: "800", color: "#FFFFFF", marginVertical: 5 },
   expectedText: { fontSize: 13, fontWeight: "700" },

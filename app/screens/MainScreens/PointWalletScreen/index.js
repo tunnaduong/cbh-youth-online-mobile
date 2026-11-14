@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   ActivityIndicator,
   Alert,
@@ -233,7 +234,7 @@ export default function PointWalletScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={[styles.balanceCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
-          <View style={styles.balanceCircle} />
+          <BannerWatermark icon="cash" color="#22C55E" size={150} />
           <View style={styles.balanceTopRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.balanceLabel, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("wallet.currentBalance")}</Text>

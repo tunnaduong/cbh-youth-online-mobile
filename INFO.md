@@ -379,6 +379,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 ## 6. Recent work (newest first)
 
 > **Size rules - read before adding an entry.** Max 10 entries, each max 3 lines (~300 chars); adding one drops the oldest (`git log -p -- INFO.md` keeps everything). No file-by-file changelogs or step lists - commits hold that. Record only what the code cannot tell a future agent: rules, gotchas, "needs a new native build", API dependencies. A lasting rule goes in Conventions / Design system, not here. Keep this whole file under ~500 lines / 60 KB; trim in the same commit if you push past it.
+- **Banners get a content-shaped watermark** (`components/BannerWatermark.js`: faint big icon + sparkles, like Explore cards) instead of plain circles; Timetable banner has one icon holder; Ranking screen revamped (gold podium banner, card rows). JS only.
 - **Banner fixes**: banner icons match their content (Report megaphone/person/clipboard/shield, Withdraw arrow); banners/logo holders have no Android elevation shadow (dark smudge under About logo, Settings banner). Colours unchanged. JS only.
 - **Timetable & Report screens redone with more colour** (stat tiles + period badges, gradient AI card, per-type accents, halo step indicator, celebratory success; JS only).
 - **Timetable & Report screens revamped like Settings/Explore** (Timetable hero card, editor & AI modal; all Report steps with tinted chips, hairline cards, pill buttons; JS only).
@@ -388,4 +389,3 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Profile screen restyled like Settings/Explore** (`ProfileScreen/index.js`: rounded cover, filled edit button, coloured info card, stats in a card; JS only).
 - **Faster start**: `AuthContext` no longer awaits the blocked-users/refresh network calls before `isLoading=false` (cached blocked list seeds first); JS splash 2.5s -> 1.2s (Lottie `speed={2}`). Settings greeting, About, App icon restyled. JS only.
 - **Profile info (`ProfileDetailScreen`) and Blocked users restyled like Settings** (shared `SettingsUI` cards/accents; JS only). Not yet restyled: Devices, Passkeys, Two-factor, App icon, legal pages.
-- **Edit profile, Profile appearance, Student verification restyled like Settings** (shared `SettingsUI` accents/cards; JS only). Not yet restyled: Devices, Passkeys, Two-factor, App icon, Blocked users, legal pages.

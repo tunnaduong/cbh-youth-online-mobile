@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   ActivityIndicator,
   Animated,
@@ -119,6 +120,7 @@ export default function WithdrawScreen({ navigation }) {
       <AndroidGlassBackdrop providerId="WithdrawScreen" style={{ flex: 1 }}>
       <Animated.ScrollView contentContainerStyle={{ paddingTop: 78 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled" onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })} scrollEventThrottle={16}>
         <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+          <BannerWatermark icon="cash" color="#FFFFFF" size={130} />
           <View style={styles.balanceIcon}><Ionicons name="arrow-up-circle" size={26} color="#FFFFFF" /></View>
           <View style={styles.balanceCopy}>
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.withdrawScreen.currentBalance")}</Text>
@@ -158,7 +160,7 @@ const styles = StyleSheet.create({
   header: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 16, fontWeight: "700" },
   largeTitle: { fontSize: 28, fontWeight: "800", marginBottom: 12 },
-  balanceCard: { borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  balanceCard: { overflow: "hidden", borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   balanceIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" },
   balanceCopy: { flex: 1 },
   muted: { fontSize: 13 },

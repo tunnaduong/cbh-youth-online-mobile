@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
   Text,
@@ -120,6 +121,7 @@ export default function Success({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={[styles.gradientCard, { marginHorizontal: 16 }]}
         >
+          <BannerWatermark icon="shield-checkmark" color="#FFFFFF" size={140} />
           <View style={{ flex: 1 }}>
             <Text style={styles.gradientTitle}>
               {t("report.reportViolation")}
@@ -164,6 +166,7 @@ export default function Success({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={styles.successGradient}
           >
+            <BannerWatermark icon="ribbon" size={150} />
             <View style={[styles.haloOuter, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
               <View style={[styles.haloInner, { backgroundColor: isDarkMode ? "rgba(34,197,94,0.28)" : "rgba(34,197,94,0.22)" }]}>
                 <View style={[styles.checkCircle, { backgroundColor: theme.primary }]}>
@@ -280,6 +283,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   successGradient: {
+    overflow: "hidden",
     flex: 1,
     alignItems: "center",
     justifyContent: "center",

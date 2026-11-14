@@ -1,4 +1,5 @@
 import React from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
   Text,
@@ -106,7 +107,7 @@ export default function AboutScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
-          <View style={styles.heroCircle} />
+          <BannerWatermark icon="school" color="#22C55E" size={130} />
           <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
             <Image
               source={require("../../../assets/school-logo-removebg.png")}
@@ -155,7 +156,7 @@ export default function AboutScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7", marginTop: 8 }]}
         >
-          <View style={styles.heroCircle} />
+          <BannerWatermark icon="phone-portrait" color="#22C55E" size={130} />
           <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
             <Image
               source={require("../../../assets/logo.png")}

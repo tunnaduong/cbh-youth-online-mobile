@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
   Text,
@@ -155,7 +156,7 @@ export default function AppIconScreen({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
           >
-            <View style={styles.heroCircle} />
+            <BannerWatermark icon="apps" color="#22C55E" size={130} />
             <View style={styles.iconPreviewWrap}>
               <Image
                 key={activeIconItem.key}

@@ -5,6 +5,7 @@ import {
   bubblesAllowedBySystem,
   openBubbleSystemSettings,
 } from "../../../services/bubble/nativeBubble";
+import BannerWatermark from "../../../components/BannerWatermark";
 import React, { useContext, useRef, useState } from "react";
 import {
   View,
@@ -239,8 +240,8 @@ export default function SettingsScreen({ navigation }) {
           style={[styles.gradientCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
           {/* Decorative circles */}
-          <View style={styles.gradientCircle1} />
-          <View style={styles.gradientCircle2} />
+          <BannerWatermark icon="settings" color="#22C55E" size={140} />
+          <BannerWatermark icon="sparkles" color="#F59E0B" size={54} left={true} style={{ top: "auto", bottom: -6 }} />
 
           <View style={{ flex: 1, zIndex: 1 }}>
             <View style={styles.gradientBadge}>

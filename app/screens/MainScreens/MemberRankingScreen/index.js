@@ -22,6 +22,8 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 
 export default function MemberRankingScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
@@ -92,7 +94,13 @@ export default function MemberRankingScreen({ navigation }) {
     const [first, second, third] = rankingData;
 
     return (
-      <View style={[styles.top3Container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <LinearGradient
+        colors={isDarkMode ? ["rgba(245,158,11,0.28)", "rgba(245,158,11,0.10)"] : ["rgba(245,158,11,0.20)", "rgba(250,204,21,0.07)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.top3Container, { borderColor: isDarkMode ? "rgba(245,158,11,0.4)" : "rgba(245,158,11,0.3)" }]}
+      >
+        <BannerWatermark icon="trophy" color="#F59E0B" size={150} />
         {/* Second Place */}
         <TouchableOpacity
           style={[styles.top3Item, { marginTop: 40 }]}
@@ -120,6 +128,9 @@ export default function MemberRankingScreen({ navigation }) {
             containerStyle={styles.nameTopRow}
           />
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: second.total_points })}</Text>
+          <View style={[styles.podiumBase, { height: 26, backgroundColor: tint("#C0C0C0", isDarkMode) }]}>
+            <Ionicons name="medal" size={14} color="#C0C0C0" />
+          </View>
         </TouchableOpacity>
 
         {/* First Place */}
@@ -152,6 +163,9 @@ export default function MemberRankingScreen({ navigation }) {
             containerStyle={[styles.nameTopRow, { marginTop: 18 }]}
           />
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: first.total_points })}</Text>
+          <View style={[styles.podiumBase, { height: 44, backgroundColor: tint("#FFD700", isDarkMode) }]}>
+            <Ionicons name="trophy" size={14} color="#FFD700" />
+          </View>
         </TouchableOpacity>
 
         {/* Third Place */}
@@ -181,20 +195,26 @@ export default function MemberRankingScreen({ navigation }) {
             containerStyle={styles.nameTopRow}
           />
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: third.total_points })}</Text>
+          <View style={[styles.podiumBase, { height: 18, backgroundColor: tint("#CD7F32", isDarkMode) }]}>
+            <Ionicons name="medal" size={14} color="#CD7F32" />
+          </View>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
     );
   };
 
   const renderItem = ({ item, index }) => {
     return (
       <TouchableOpacity
-        style={[styles.rankItem, { borderBottomColor: theme.border, backgroundColor: theme.cardBackground }]}
+        activeOpacity={0.7}
+        style={[styles.rankItem, { borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.surface }]}
         onPress={() =>
           navigation.navigate("ProfileScreen", { username: item.username })
         }
       >
-        <Text style={[styles.rankNumber, { color: theme.subText }]}>#{index + 4}</Text>
+        <View style={[styles.rankNumberWrap, { backgroundColor: theme.iconBackground }]}>
+          <Text style={[styles.rankNumber, { color: theme.subText }]}>{index + 4}</Text>
+        </View>
         <AvatarFrameWrap theme={item.profile_theme} size={44} style={styles.itemAvatarWrap}>
           <FastImage
             source={{
@@ -218,7 +238,9 @@ export default function MemberRankingScreen({ navigation }) {
             numberOfLines={1}
           />
         </View>
-        <Text style={[styles.itemPoints, { color: theme.primary }]}>{t('profile.points', { count: item.total_points })}</Text>
+        <View style={[styles.pointsChip, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+          <Text style={[styles.itemPoints, { color: theme.primary }]}>{t('profile.points', { count: item.total_points })}</Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -283,8 +305,8 @@ export default function MemberRankingScreen({ navigation }) {
         updateCellsBatchingPeriod={50}
         removeClippedSubviews={Platform.OS === "android"}
         getItemLayout={(_data, index) => ({
-          length: 69,
-          offset: 69 * index,
+          length: 76,
+          offset: 76 * index,
           index,
         })}
         ListHeaderComponent={renderTop3()}
@@ -338,11 +360,21 @@ const styles = StyleSheet.create({
   top3Container: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 28,
+    paddingTop: 36,
+    paddingBottom: 0,
     marginHorizontal: 16,
-    marginBottom: 10,
-    borderRadius: 20,
+    marginBottom: 14,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  podiumBase: {
+    marginTop: 10,
+    width: "88%",
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   top3Item: {
     alignItems: "center",
@@ -426,16 +458,30 @@ const styles = StyleSheet.create({
   rankItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
+    height: 68,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  rankNumberWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
   rankNumber: {
-    width: 40,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-    marginRight: 10,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  pointsChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginLeft: 8,
   },
   itemAvatar: {
     width: 44,
@@ -457,7 +503,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   itemPoints: {
-    fontSize: 15,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

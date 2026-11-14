@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import { Animated, View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -207,6 +208,7 @@ export default function TimetableScreen({ navigation }) {
             overflow: "hidden",
           }}
         >
+          <BannerWatermark icon="time" size={150} />
           {/* Left: clock + status */}
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 44, fontWeight: "800", color: theme.text, fontVariant: ["tabular-nums"] }}>
@@ -240,13 +242,9 @@ export default function TimetableScreen({ navigation }) {
               </View>
             ) : null}
           </View>
-          {/* Right: decorative circle with calendar icon */}
-          <View style={{ marginLeft: 12, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(34,197,94,0.10)", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(34,197,94,0.15)", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="calendar-outline" size={26} color={theme.primary} />
-              </View>
-            </View>
+          {/* Right: holder for the calendar icon (the watermark behind it is the shape) */}
+          <View style={{ marginLeft: 12, width: 52, height: 52, borderRadius: 16, backgroundColor: "rgba(34,197,94,0.18)", alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="calendar" size={26} color={theme.primary} />
           </View>
         </LinearGradient>
 

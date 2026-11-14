@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
   Text,
@@ -256,7 +257,7 @@ export default function FeedbackScreen({ navigation, route }) {
             end={{ x: 1, y: 1 }}
             style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
           >
-            <View style={styles.heroCircle} />
+            <BannerWatermark icon="chatbubbles" color="#22C55E" size={130} />
             <View style={{ flex: 1, zIndex: 1 }}>
               <Text style={[styles.heroTitle, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("feedback.title")}</Text>
               <Text style={[styles.heroSubtitle, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("feedback.subtitle")}</Text>
