@@ -5,6 +5,7 @@ import React, {
   useLayoutEffect,
   useEffect,
 } from "react";
+import HomeStyleHeader, { HeaderIconButton } from "../../../components/HomeStyleHeader";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
@@ -1288,79 +1289,6 @@ const PostScreen = ({ route, navigation }) => {
             />
           </View>
         )}
-        {/* Floating header */}
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-          }}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: theme.background,
-              opacity: headerBgOpacity,
-            }}
-          />
-          <View
-            style={{
-              paddingTop: insets.top,
-              paddingBottom: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 16,
-              height: 64 + insets.top,
-            }}
-          >
-            <View style={{ width: 44 }}>
-              <LiquidButton
-                size={44}
-                scrollY={scrollY}
-                providerId="PostScreen"
-                onPress={() => navigation.goBack()}
-              >
-                <Ionicons name="chevron-back" size={24} color={theme.primary} />
-              </LiquidButton>
-            </View>
-            <Animated.Text
-              style={{
-                fontSize: 18,
-                fontWeight: "600",
-                color: theme.primary,
-                flex: 1,
-                textAlign: "center",
-                opacity: headerTitleOpacity,
-              }}
-              numberOfLines={1}
-            >
-              {t("post.details")}
-            </Animated.Text>
-            <View style={{ width: 44, alignItems: "flex-end" }}>
-              <LiquidButton
-                size={44}
-                scrollY={scrollY}
-                providerId="PostScreen"
-                onPress={() => postOptionsRef.current?.()}
-              >
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={24}
-                  color={theme.primary}
-                />
-              </LiquidButton>
-            </View>
-          </View>
-        </View>
-
         <LinearGradient
           colors={
             isDarkMode
@@ -1406,7 +1334,7 @@ const PostScreen = ({ route, navigation }) => {
             { useNativeDriver: true },
           )}
           contentContainerStyle={{
-            paddingTop: 64 + insets.top,
+            paddingTop: 0,
             // KeyboardStickyView (below) floats the comment input above the
             // keyboard independently via its own reanimated tracking, but
             // this FlatList's own bottom padding still needs to grow while
@@ -1439,7 +1367,27 @@ const PostScreen = ({ route, navigation }) => {
           removeClippedSubviews={Platform.OS === "android"}
           data={comments}
           keyExtractor={(comment) => String(comment.id)}
-          ListHeaderComponent={listHeaderComponent}
+          ListHeaderComponent={
+            <>
+              {/* Same top header as the forum: tinted back button, big green
+                  title with the sparkle, round options button. It scrolls
+                  away with the post. */}
+              <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8) }}>
+                <HomeStyleHeader
+                  title={t("post.details")}
+                  onBack={() => navigation.goBack()}
+                  right={
+                    <HeaderIconButton
+                      icon="ellipsis-horizontal"
+                      label={t("post.optionsTitle")}
+                      onPress={() => postOptionsRef.current?.()}
+                    />
+                  }
+                />
+              </View>
+              {listHeaderComponent}
+            </>
+          }
           ListEmptyComponent={
             <View style={{ paddingHorizontal: 15 }}>
               <Text style={{ color: theme.subText }}>
