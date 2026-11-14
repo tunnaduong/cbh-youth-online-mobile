@@ -763,7 +763,7 @@ const ArchiveScreen = ({ route, navigation }) => {
             fontWeight: "600",
           }}
           progressColor="rgba(255,255,255,0.35)"
-          progressActiveColor="#ffffff"
+          progressActiveColor="#22C55E"
           closeIconColor="#c4c4c4"
           // Same player chrome as the Home feed: author pill + round buttons,
           // and a soft scrim behind the top and bottom controls.

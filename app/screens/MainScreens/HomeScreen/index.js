@@ -681,6 +681,47 @@ const StoryOptionsModal = ({
   );
 };
 
+// One reaction: a glowing round bubble in the emoji's own colour that pops
+// (spring scale + tilt) when pressed.
+const REACTION_GLOW = {
+  "❤️": "#EF4444",
+  "😆": "#F59E0B",
+  "😮": "#A855F7",
+  "😢": "#3B82F6",
+  "😡": "#F97316",
+  "👍": "#22C55E",
+};
+const ReactionButton = ({ emoji, onPress }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const color = REACTION_GLOW[emoji] || "#22C55E";
+  const pop = () => {
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 1.35, useNativeDriver: true, speed: 40, bounciness: 14 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }),
+    ]).start();
+    onPress();
+  };
+  return (
+    <Pressable onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+      <Animated.View
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: 23,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: color + "33",
+          borderWidth: 1,
+          borderColor: color + "88",
+          transform: [{ scale }],
+        }}
+      >
+        <Text style={{ fontSize: 25 }}>{emoji}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 const ReplyBar = ({
   storyId,
   userId,
@@ -792,9 +833,9 @@ const ReplyBar = ({
             activeOpacity={0.8}
             style={styles.viewCountButton}
           >
-            <View style={styles.viewCountIcon}>
+            <LinearGradient colors={["#22C55E", "#15803D"]} style={styles.viewCountIcon}>
               <Ionicons name="eye" size={16} color="#fff" />
-            </View>
+            </LinearGradient>
             <Text style={styles.viewCountText}>
               {t('home.views', { count: viewersCount })}
             </Text>
@@ -817,22 +858,13 @@ const ReplyBar = ({
       <View style={{ paddingBottom: insets.bottom }}>
         <View style={styles.emojiPill}>
           {emojis.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              onPress={() => handleEmojiPress(emoji)}
-              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-            >
-              <Text
-                style={{
-                  fontSize: 27,
-                }}
-              >
-                {emoji}
-              </Text>
-            </TouchableOpacity>
+            <ReactionButton key={emoji} emoji={emoji} onPress={() => handleEmojiPress(emoji)} />
           ))}
         </View>
         <View style={styles.replyBar}>
+          <View style={styles.replyLeadIcon}>
+            <Ionicons name="chatbubble-ellipses" size={18} color="#4ADE80" />
+          </View>
           <TextInput
             placeholder={t('home.storyReplyPlaceholder', 'Chia sẻ cảm nghĩ của bạn...')}
             placeholderTextColor="rgba(255, 255, 255, 0.65)"
@@ -845,16 +877,23 @@ const ReplyBar = ({
             editable={!isSending}
           />
           <TouchableOpacity
-            style={[styles.sendButton, { backgroundColor: replyText.trim() ? theme.primary : "rgba(255,255,255,0.18)" }]}
             onPress={handleSendReply}
             disabled={!replyText.trim() || isSending}
             accessibilityRole="button"
+            activeOpacity={0.85}
           >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={18} color="#fff" />
-            )}
+            <LinearGradient
+              colors={replyText.trim() ? ["#22C55E", "#15803D"] : ["rgba(255,255,255,0.2)", "rgba(255,255,255,0.12)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sendButton}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="paper-plane" size={18} color="#fff" />
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
@@ -3254,7 +3293,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             </View>
           }
           progressColor="rgba(255,255,255,0.35)"
-          progressActiveColor="#ffffff"
+          progressActiveColor="#22C55E"
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
@@ -3651,21 +3690,32 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(0,0,0,0.42)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderWidth: 1.5,
+    borderColor: "rgba(74,222,128,0.55)",
   },
   emojiPill: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-evenly",
+    justifyContent: "center",
     alignSelf: "center",
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
     borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.38)",
-    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    gap: 8,
+  },
+  replyLeadIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginLeft: 2,
+    backgroundColor: "rgba(34,197,94,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   sendButton: {
     width: 40,
@@ -3675,10 +3725,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   viewCountIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -3702,9 +3751,9 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 14,
     borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.42)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderWidth: 1.5,
+    borderColor: "rgba(74,222,128,0.55)",
   },
   viewCountText: {
     color: "#fff",
