@@ -30,7 +30,27 @@ import {
 
 // Study materials can be up to 100MB - the default upload timeout isn't
 // enough headroom for a file that size on a normal mobile connection.
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
+
 const MATERIAL_UPLOAD_TIMEOUT = 300000;
+
+const CATEGORY_DOTS = ["#10B981", "#0EA5E9", "#8B5CF6", "#F59E0B", "#F43F5E", "#14B8A6"];
+const dotFor = (name = "") => {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return CATEGORY_DOTS[h % CATEGORY_DOTS.length];
+};
+
+// Field label with a tinted round icon, as on the other revamped forms.
+const FieldLabel = ({ icon, color, text, theme, isDarkMode }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 8 }}>
+      <Ionicons name={icon} size={15} color={color} />
+    </View>
+    <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, flex: 1 }}>{text}</Text>
+  </View>
+);
 
 const UploadStudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -325,29 +345,35 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
-          <View style={[styles.heroIcon, { backgroundColor: theme.primary + "15" }]}> 
-            <Ionicons name="documents-outline" size={24} color={theme.primary} />
+        <LinearGradient
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+        >
+          <BannerWatermark icon="cloud-upload" size={130} />
+          <View style={[styles.heroIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+            <Ionicons name="documents" size={24} color={theme.primary} />
           </View>
           <View style={styles.heroContent}>
             <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.uploadHeroTitle")}</Text>
             <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.uploadHeroText")}</Text>
           </View>
-        </View>
+        </LinearGradient>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.titleLabel")}</Text>
+          <FieldLabel icon="text" color="#3B82F6" text={t("studyMaterial.titleLabel")} theme={theme} isDarkMode={isDarkMode} />
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder={t("studyMaterial.titlePlaceholder")}
             placeholderTextColor={theme.placeholder}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.input, { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.surface }]}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.descriptionLabel")}</Text>
+          <FieldLabel icon="reorder-three" color="#8B5CF6" text={t("studyMaterial.descriptionLabel")} theme={theme} isDarkMode={isDarkMode} />
           <TextInput
             value={description}
             onChangeText={setDescription}
@@ -356,28 +382,33 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.textArea, { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.surface }]}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.categories")}</Text>
+          <FieldLabel icon="pricetags" color="#F59E0B" text={t("studyMaterial.categories")} theme={theme} isDarkMode={isDarkMode} />
           {loadingCategories ? (
             <ActivityIndicator color={theme.primary} />
           ) : (
             <View style={styles.chipRow}>
               {categories.map((category) => {
                 const active = selectedCategoryId === category.id;
+                const dot = dotFor(category?.name || category?.slug || "");
                 return (
                   <TouchableOpacity
                     key={category.id}
                     onPress={() => setSelectedCategoryId(category.id)}
+                    activeOpacity={0.8}
                     style={[
                       styles.categoryChip,
-                      active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                      active
+                        ? { backgroundColor: tint(dot, isDarkMode), borderColor: dot }
+                        : { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
                     ]}
                   >
-                    <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>
+                    <View style={[styles.chipDot, { backgroundColor: dot }]} />
+                    <Text numberOfLines={1} style={[styles.categoryChipText, { color: theme.text }]}>
                       {getCategoryLabel(category)}
                     </Text>
                   </TouchableOpacity>
@@ -388,13 +419,23 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.fileLabel")}</Text>
+          <FieldLabel icon="attach" color="#10B981" text={t("studyMaterial.fileLabel")} theme={theme} isDarkMode={isDarkMode} />
           <TouchableOpacity
             onPress={pickDocument}
-            style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.surface }]}
+            activeOpacity={0.8}
+            style={[
+              styles.uploadBox,
+              selectedDocument
+                ? { borderColor: theme.primary, backgroundColor: tint("#22C55E", isDarkMode), borderStyle: "solid" }
+                : { borderColor: isDarkMode ? "#3A3F4A" : "#CBD5E1", backgroundColor: theme.surface },
+            ]}
           >
-            <View style={[styles.uploadIcon, { backgroundColor: theme.primary + "15" }]}> 
-              <Ionicons name={selectedDocument ? "checkmark-circle-outline" : "cloud-upload-outline"} size={24} color={theme.primary} />
+            <View style={[styles.uploadIcon, { backgroundColor: tint(selectedDocument ? "#22C55E" : "#3B82F6", isDarkMode) }]}>
+              <Ionicons
+                name={selectedDocument ? "checkmark-circle" : "cloud-upload"}
+                size={26}
+                color={selectedDocument ? theme.primary : "#3B82F6"}
+              />
             </View>
             <Text style={[styles.uploadText, { color: theme.text }]} numberOfLines={2}>
               {selectedDocument ? selectedDocument.name : t("studyMaterial.chooseFile")}
@@ -406,7 +447,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.previewContentLabel")}</Text>
+          <FieldLabel icon="eye" color="#0EA5E9" text={t("studyMaterial.previewContentLabel")} theme={theme} isDarkMode={isDarkMode} />
           <TextInput
             value={previewContent}
             onChangeText={setPreviewContent}
@@ -415,34 +456,36 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
             multiline
             numberOfLines={5}
             textAlignVertical="top"
-            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.textArea, { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.surface }]}
           />
         </View>
 
-        <View style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+        <View style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}> 
           <View style={styles.optionRow}>
-            <View style={{ flex: 1 }}>
+            <View style={[styles.optionIcon, { backgroundColor: tint("#10B981", isDarkMode) }]}>
+              <Ionicons name="gift" size={18} color="#10B981" />
+            </View>
+            <View style={{ flex: 1, marginRight: 12 }}>
               <Text style={[styles.optionTitle, { color: theme.text }]}>{t("studyMaterial.freeMaterial")}</Text>
               <Text style={[styles.optionText, { color: theme.subText }]}>{t("studyMaterial.freeMaterialHint")}</Text>
             </View>
             <Switch
               value={isFree}
               onValueChange={setIsFree}
-              thumbColor={isFree ? theme.primary : "#9CA3AF"}
-              trackColor={{ false: "#D1D5DB", true: theme.primary + "55" }}
+              trackColor={{ true: theme.primary }}
             />
           </View>
 
           {!isFree ? (
             <View style={{ marginTop: 12 }}>
-              <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.priceLabel")}</Text>
+              <FieldLabel icon="wallet" color="#F59E0B" text={t("studyMaterial.priceLabel")} theme={theme} isDarkMode={isDarkMode} />
               <TextInput
                 value={price}
                 onChangeText={setPrice}
                 placeholder={t("studyMaterial.pricePlaceholder")}
                 placeholderTextColor={theme.placeholder}
                 keyboardType="number-pad"
-                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+                style={[styles.input, { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.surface }]}
               />
             </View>
           ) : null}
@@ -453,7 +496,14 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
           disabled={submitting}
           style={[styles.submitButton, { backgroundColor: theme.primary }]}
         >
-          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t("studyMaterial.publish")}</Text>}
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="paper-plane" size={18} color="#fff" />
+              <Text style={styles.submitButtonText}>{t("studyMaterial.publish")}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
@@ -491,17 +541,18 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   heroCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    marginBottom: 20,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
+    overflow: "hidden",
   },
   heroIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -527,15 +578,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
   },
   textArea: {
-    borderWidth: 1,
-    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     minHeight: 110,
@@ -547,29 +598,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
   },
+  chipDot: { width: 8, height: 8, borderRadius: 4 },
   categoryChipText: {
     fontSize: 13,
     fontWeight: "600",
   },
   uploadBox: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: "dashed",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     alignItems: "center",
     justifyContent: "center",
   },
   uploadIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
@@ -583,10 +636,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  optionIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", marginRight: 12 },
   optionCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 16,
   },
   optionRow: {
@@ -604,7 +658,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   submitButton: {
-    borderRadius: 16,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
