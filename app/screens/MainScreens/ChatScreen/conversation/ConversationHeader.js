@@ -177,32 +177,24 @@ const ConversationHeader = ({
       <View style={styles.actionsRow}>
         {canCall && (
         <LiquidButton
-          size={38}
+          size={40}
           forceNoGlass
-          backgroundColor="transparent"
+          backgroundColor={isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)"}
           onPress={handleCallPress}
           accessibilityLabel={t("chatConversation.call", "Cuộc gọi")}
         >
-          <Ionicons
-            name="call-outline"
-            size={22}
-            color={hasCustomBackground ? theme.primary : primaryAccent}
-          />
+          <Ionicons name="call" size={19} color={isDarkMode ? "#4ADE80" : "#15803D"} />
         </LiquidButton>
       )}
 
         <LiquidButton
-          size={38}
+          size={40}
           forceNoGlass
-          backgroundColor="transparent"
+          backgroundColor={isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)"}
           onPress={onOptions}
           accessibilityLabel={t("chatConversation.optionsTitle")}
         >
-          <Ionicons
-            name="ellipsis-vertical"
-            size={22}
-            color={hasCustomBackground ? theme.primary : primaryAccent}
-          />
+          <Ionicons name="ellipsis-vertical" size={20} color={isDarkMode ? "#4ADE80" : "#15803D"} />
         </LiquidButton>
       </View>
     </View>
@@ -324,8 +316,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   name: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "800",
   },
   subtitle: {
     fontSize: 12,
@@ -338,6 +330,8 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+    marginRight: 8,
   },
 });
 

@@ -264,12 +264,12 @@ const CommentBar = React.forwardRef(
                 flexDirection: "row",
                 alignItems: "center",
                 minHeight: rowHeight,
-                borderRadius: 22,
-                paddingHorizontal: 14,
+                borderRadius: 999,
+                paddingHorizontal: 16,
                 paddingVertical: 4,
                 backgroundColor: isDarkMode ? "#1A2228" : "#F1F5F9",
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+                borderColor: isDarkMode ? "rgba(74,222,128,0.28)" : "rgba(34,197,94,0.30)",
               }}
             >
               {textInput}
@@ -283,14 +283,15 @@ const CommentBar = React.forwardRef(
             </View>
             <TouchableOpacity
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
                 alignItems: "center",
                 justifyContent: "center",
                 marginLeft: 6,
-                backgroundColor: isDarkMode ? "#22C55E" : "#16A34A",
-                opacity: disabled ? 0.7 : 1.0,
+                backgroundColor: disabled
+                  ? (isDarkMode ? "rgba(34,197,94,0.18)" : "rgba(34,197,94,0.16)")
+                  : "#22C55E",
               }}
               onPress={handleSendPress}
               disabled={disabled}
@@ -303,7 +304,7 @@ const CommentBar = React.forwardRef(
                 <Ionicons
                   name="paper-plane"
                   size={18}
-                  color="#FFFFFF"
+                  color={disabled ? (isDarkMode ? "#4ADE80" : "#15803D") : "#FFFFFF"}
                   style={{ marginLeft: 2 }}
                 />
               )}

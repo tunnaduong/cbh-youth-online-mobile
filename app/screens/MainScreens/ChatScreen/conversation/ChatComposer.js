@@ -154,7 +154,7 @@ const ChatComposer = React.forwardRef(
           <View onLayout={handleBarLayout} style={styles.barContainer}>
             <ChatGlassBar edge="bottom" style={{ width: "100%", paddingBottom: bottomInset }}>
               {editingMessage && (
-                <View style={[styles.editBanner, { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" }]}>
+                <View style={[styles.editBanner, { backgroundColor: isDarkMode ? "rgba(34,197,94,0.14)" : "rgba(34,197,94,0.10)" }]}>
                   <Ionicons name="pencil-outline" size={16} color={theme.primary} style={{ marginRight: 8 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 12, fontWeight: "600", color: theme.primary }} numberOfLines={1}>
@@ -191,29 +191,29 @@ const ChatComposer = React.forwardRef(
                 leftAccessory={
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <TouchableOpacity
-                      style={styles.accessoryButton}
+                      style={[styles.accessoryButton, { backgroundColor: isDarkMode ? "rgba(34,197,94,0.16)" : "rgba(34,197,94,0.12)" }]}
                       onPress={actions.pickImage}
                       disabled={sending}
                       accessibilityRole="button"
                       accessibilityLabel={t("chatConversation.attachMedia")}
                     >
                       <Ionicons
-                        name="images-outline"
-                        size={23}
-                        color={isDarkMode ? "#22C55E" : "#16A34A"}
+                        name="images"
+                        size={19}
+                        color={isDarkMode ? "#4ADE80" : "#15803D"}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.accessoryButton}
+                      style={[styles.accessoryButton, { backgroundColor: isDarkMode ? "rgba(34,197,94,0.16)" : "rgba(34,197,94,0.12)", marginLeft: 6 }]}
                       onPress={actions.pickDocument}
                       disabled={sending}
                       accessibilityRole="button"
                       accessibilityLabel={t("chatConversation.attachment")}
                     >
                       <Ionicons
-                        name="attach-outline"
-                        size={25}
-                        color={isDarkMode ? "#22C55E" : "#16A34A"}
+                        name="attach"
+                        size={21}
+                        color={isDarkMode ? "#4ADE80" : "#15803D"}
                       />
                     </TouchableOpacity>
                   </View>
@@ -279,6 +279,7 @@ const styles = StyleSheet.create({
   accessoryButton: {
     width: 36,
     height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
