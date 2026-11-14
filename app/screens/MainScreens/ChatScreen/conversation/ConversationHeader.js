@@ -69,23 +69,19 @@ const ConversationHeader = ({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
           accessibilityLabel={t("chatConversation.back")}
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+          style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)" }}
         >
-          <Ionicons name="chevron-back" size={26} color={hasCustomBackground ? theme.primary : primaryAccent} />
+          <Ionicons name="chevron-back" size={22} color={isDarkMode ? "#4ADE80" : "#15803D"} />
         </TouchableOpacity>
       ) : (
         <LiquidButton
           size={40}
           forceNoGlass
-          backgroundColor="transparent"
+          backgroundColor={isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)"}
           onPress={onBack}
           accessibilityLabel={t("chatConversation.back")}
         >
-          <Ionicons
-            name="chevron-back"
-            size={26}
-            color={hasCustomBackground ? theme.primary : primaryAccent}
-          />
+          <Ionicons name="chevron-back" size={22} color={isDarkMode ? "#4ADE80" : "#15803D"} />
         </LiquidButton>
       )}
 

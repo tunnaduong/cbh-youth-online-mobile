@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -324,49 +325,21 @@ const EditProfileScreen = ({ navigation }) => {
         pointerEvents="none"
       />
       <KeyboardAvoidingView behavior={"padding"} style={{ flex: 1 }}>
-        {/* Floating Header */}
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-          }}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: theme.background,
-              opacity: headerBgOpacity,
-            }}
-          />
-          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top, justifyContent: 'space-between' }}>
-            <View style={{ width: 60, alignItems: 'flex-start' }}>
-              <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-                <Ionicons name="close" size={24} color={theme.primary} />
-              </LiquidButton>
-            </View>
-            <Animated.Text
-              style={[styles.headerTitle, {
-                color: theme.primary,
-                flex: 1,
-                textAlign: 'center',
-                opacity: headerTitleOpacity,
-              }]}
-              numberOfLines={1}
-            >
-              {t('settings.editProfile')}
-            </Animated.Text>
-            <View style={{ width: 60, alignItems: 'flex-end' }}>
-              <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={handleUpdateProfile} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <Ionicons name="checkmark" size={24} color={theme.primary} />
-                )}
-              </LiquidButton>
-            </View>
-          </View>
-        </View>
+        <FloatingScreenHeader
+          icon="close"
+          title={t('settings.editProfile')}
+          onBack={() => navigation.goBack()}
+          scrollY={scrollY}
+          right={
+            <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={handleUpdateProfile} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Ionicons name="checkmark" size={24} color={theme.primary} />
+              )}
+            </LiquidButton>
+          }
+        />
 
         <AndroidGlassBackdrop providerId="EditProfileScreen" style={{ flex: 1 }}>
         <Animated.ScrollView
