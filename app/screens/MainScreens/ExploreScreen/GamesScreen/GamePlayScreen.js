@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { getGame } from "../../../../services/api/Api";
 import { View, StyleSheet, TouchableOpacity, BackHandler, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -73,6 +74,21 @@ export default function GamePlayScreen({ navigation, route }) {
 
   // Fullscreen hides the header and status bar; one small button brings them back.
   const [fullscreen, setFullscreen] = useState(false);
+  // A game the API opens through its game proxy loads from the proxy's own
+  // domain (the page's iframe). The API says which host that is, so the app
+  // needs no domain hard-coded: it is allowed below, like the other game hosts.
+  const [proxyHost, setProxyHost] = useState(null);
+  useEffect(() => {
+    if (!slug) return undefined;
+    const controller = new AbortController();
+    getGame(slug, { signal: controller.signal })
+      .then((res) => {
+        const host = (res?.data || res)?.proxy_host;
+        if (typeof host === "string" && host) setProxyHost(host.toLowerCase());
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [slug]);
 
   const handleBack = useCallback(() => {
     if (fullscreen) {
@@ -118,6 +134,7 @@ export default function GamePlayScreen({ navigation, route }) {
 
     // Allow game frame hosts and embedded resources (especially on Android where isTopFrame is undefined)
     const h = parts.hostname || "";
+    if (proxyHost && h.toLowerCase() === proxyHost) return true;
     if (
       h.includes("famobi.com") ||
       h.includes("is-a.dev") ||
@@ -129,7 +146,7 @@ export default function GamePlayScreen({ navigation, route }) {
     }
 
     return false;
-  }, []);
+  }, [proxyHost]);
 
   // Android's back button does the same before leaving the screen.
   useFocusEffect(
