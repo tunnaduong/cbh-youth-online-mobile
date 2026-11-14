@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Animated,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -10,7 +10,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryViewers, isRequestCanceled } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
-import LiquidButton from "../../../components/LiquidButton";
+import HomeStyleHeader from "../../../components/HomeStyleHeader";
+import { LinearGradient } from "expo-linear-gradient";
+import { tint } from "../../../components/settings/SettingsUI";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
@@ -28,12 +30,6 @@ const StoryViewersScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 10, 50],
-    outputRange: [1, 1, 0],
-    extrapolate: "clamp",
-  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,7 +92,8 @@ const StoryViewersScreen = ({ route, navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.viewerItem, { borderBottomColor: theme.border }]}
+        activeOpacity={0.8}
+        style={[styles.viewerItem, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}
         onPress={() => {
           navigation.navigate("ProfileScreen", {
             username: item.username,
@@ -132,54 +129,58 @@ const StoryViewersScreen = ({ route, navigation }) => {
     );
   };
 
+  const header = (
+    <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8) }}>
+      <HomeStyleHeader
+        title={t("storyViewers.title")}
+        subtitle={loading ? undefined : String(viewers.length)}
+        onBack={() => navigation.goBack()}
+      />
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating header: glass back button appears once the list scrolls under it */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t('storyViewers.title')}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140 }}
+        pointerEvents="none"
+      />
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <CustomLoading size="medium" />
-        </View>
-      ) : viewers.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="eye-outline" size={56} color={theme.subText} />
-          <Text style={[styles.emptyText, { color: theme.subText }]}>{t('storyViewers.empty')}</Text>
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={styles.loadingContainer}>
+            <CustomLoading size="medium" />
+          </View>
         </View>
       ) : (
         <AndroidGlassBackdrop style={{ flex: 1 }}>
-          <Animated.FlatList
+          <FlatList
             data={viewers}
             renderItem={renderViewerItem}
             keyExtractor={(item) => item.id.toString()}
+            ListHeaderComponent={header}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <View style={[styles.emptyIcon, { backgroundColor: tint("#6366F1", isDarkMode) }]}>
+                  <Ionicons name="eye" size={40} color="#6366F1" />
+                </View>
+                <Text style={[styles.emptyText, { color: theme.subText }]}>{t("storyViewers.empty")}</Text>
+              </View>
+            }
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
             updateCellsBatchingPeriod={50}
             removeClippedSubviews={Platform.OS === "android"}
-            getItemLayout={(_data, index) => ({
-              length: 76,
-              offset: 76 * index,
-              index,
-            })}
-            scrollEventThrottle={16}
-            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-              useNativeDriver: false,
-            })}
-            contentContainerStyle={[styles.listContent, { paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }]}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }}
           />
         </AndroidGlassBackdrop>
       )}
@@ -223,10 +224,14 @@ const styles = StyleSheet.create({
   viewerItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
   },
+  emptyIcon: { width: 84, height: 84, borderRadius: 42, alignItems: "center", justifyContent: "center" },
   avatar: {
     width: 50,
     height: 50,

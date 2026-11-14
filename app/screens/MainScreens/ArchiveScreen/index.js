@@ -29,6 +29,7 @@ import { useStatusBar } from "../../../contexts/StatusBarContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
+import HomeStyleHeader from "../../../components/HomeStyleHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import { tint } from "../../../components/settings/SettingsUI";
 import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
@@ -74,7 +75,7 @@ const ArchiveScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const titleBarHeight = 64 + insets.top;
+  const titleBarHeight = 0;
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
     outputRange: [1, 1, 0],
@@ -599,6 +600,11 @@ const ArchiveScreen = ({ route, navigation }) => {
       </View>
     </View>
   );
+  const homeHeader = (
+    <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8) }}>
+      <HomeStyleHeader title={t("archive.title")} onBack={() => navigation.goBack()} />
+    </View>
+  );
   // Archive hero + privacy note, shown above both lists.
   const privacyBanner = (text) => (
     <LinearGradient
@@ -616,7 +622,8 @@ const ArchiveScreen = ({ route, navigation }) => {
   );
   // Loading / empty states keep the tabs on top so the other tab stays reachable.
   const renderState = (containerStyle, children) => (
-    <View style={{ flex: 1, paddingTop: titleBarHeight, backgroundColor: theme.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {homeHeader}
       {tabBar}
       <View style={[containerStyle, { backgroundColor: theme.background }]}>{children}</View>
     </View>
@@ -624,28 +631,6 @@ const ArchiveScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating header */}
-      <View pointerEvents="box-none" style={styles.floatingHeader}>
-        <Animated.View
-          pointerEvents="none"
-          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.background, opacity: statusBarBgOpacity }}
-        />
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: titleBarHeight }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton providerId="ArchiveScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t('archive.title')}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
       <AndroidGlassBackdrop providerId="ArchiveScreen" style={{ flex: 1 }}>
         <LinearGradient
           colors={
@@ -709,6 +694,7 @@ const ArchiveScreen = ({ route, navigation }) => {
               }
               ListHeaderComponent={
                 <>
+                  {homeHeader}
                   {tabBar}
                   {privacyBanner(t('archive.postsPrivacyNotice'))}
                 </>
@@ -740,6 +726,7 @@ const ArchiveScreen = ({ route, navigation }) => {
             removeClippedSubviews={Platform.OS === 'android'}
             ListHeaderComponent={
               <>
+                {homeHeader}
                 {tabBar}
                 {privacyBanner(t('archive.privacyNotice'))}
               </>

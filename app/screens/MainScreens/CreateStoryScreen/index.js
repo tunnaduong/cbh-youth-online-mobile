@@ -36,6 +36,7 @@ import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import BannerWatermark from "../../../components/BannerWatermark";
+import HomeStyleHeader from "../../../components/HomeStyleHeader";
 import { tint } from "../../../components/settings/SettingsUI";
 import DrawingCanvas from "./DrawingCanvas";
 import MoveableItem from "./MoveableItem";
@@ -1392,31 +1393,12 @@ const CreateStoryScreen = ({ navigation }) => {
               {/* Top header, same as the Home feed: round tinted button, big
                   green title with the sparkle, grey subtitle, and the frog
                   mascot on the right. */}
-              <View style={styles.pickerHeaderRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.pickerHeaderButton,
-                    { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)" },
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => navigation.goBack()}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("common.back", "Quay lại")}
-                >
-                  <Ionicons name="chevron-back" size={22} color={isDarkMode ? "#4ADE80" : "#15803D"} />
-                </TouchableOpacity>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={[styles.pickerBrandTitle, { color: isDarkMode ? "#4ADE80" : "#15803D" }]} numberOfLines={1}>
-                      {t("story.createStory")}
-                    </Text>
-                    <Text style={styles.pickerSparkle}>✦</Text>
-                  </View>
-                  <Text style={[styles.pickerBrandSubtitle, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]} numberOfLines={1}>
-                    {t("story.heroHours")}
-                  </Text>
-                </View>
-                <Image source={require("../../../assets/logo.png")} style={styles.pickerMascot} resizeMode="contain" />
+              <View style={{ marginHorizontal: -16 }}>
+                <HomeStyleHeader
+                  title={t("story.createStory")}
+                  subtitle={t("story.heroHours")}
+                  onBack={() => navigation.goBack()}
+                />
               </View>
 
               {/* Header Hero Banner */}
