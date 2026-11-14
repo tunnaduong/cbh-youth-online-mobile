@@ -26,6 +26,9 @@ import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import { createCustomQuiz } from "../../../../services/api/Api";
 import { apiErrorMessage } from "../../../../utils/apiMessage";
 
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
+
 const DIFFICULTIES = ["easy", "medium", "hard"];
 const MAX_TITLE_LENGTH = 150;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -48,6 +51,15 @@ function quizAnswerMarkParser(input) {
   }
   return ranges;
 }
+
+const FieldLabel = ({ icon, color, title, theme, isDarkMode, style }) => (
+  <View style={[{ flexDirection: "row", alignItems: "center", marginBottom: 10 }, style]}>
+    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 8 }}>
+      <Ionicons name={icon} size={15} color={color} />
+    </View>
+    <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, flex: 1 }}>{title}</Text>
+  </View>
+);
 
 const CustomQuizCreateScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -267,9 +279,23 @@ const CustomQuizCreateScreen = ({ navigation }) => {
           >
             {step === "form" && (
               <>
-                <Text style={[styles.description, { color: theme.subText }]}>
-                  {t("customQuiz.subtitle")}
-                </Text>
+                <LinearGradient
+                  colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.hero, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+                >
+                  <BannerWatermark icon="create" size={140} />
+                  <View style={[styles.heroIcon, { backgroundColor: tint("#EC4899", isDarkMode) }]}>
+                    <Ionicons name="create" size={24} color="#EC4899" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={[styles.heroTitle, { color: theme.text }]} numberOfLines={1}>
+                      {t("customQuiz.title", "Tạo bộ đề tùy chỉnh")}
+                    </Text>
+                    <Text style={[styles.heroText, { color: theme.subText }]}>{t("customQuiz.subtitle")}</Text>
+                  </View>
+                </LinearGradient>
 
                 <View style={{ marginBottom: 16 }}>
                   <SegmentedControl
@@ -282,10 +308,8 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                   />
                 </View>
 
-                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.fieldLabel, { color: theme.text }]}>
-                    {t("customQuiz.titleLabel", "Tiêu đề")}
-                  </Text>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
+                  <FieldLabel icon="text" color="#3B82F6" title={t("customQuiz.titleLabel", "Tiêu đề")} theme={theme} isDarkMode={isDarkMode} />
                   <TextInput
                     value={title}
                     onChangeText={setTitle}
@@ -294,13 +318,11 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                     maxLength={MAX_TITLE_LENGTH}
                     style={[
                       styles.input,
-                      { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+                      { color: theme.text, borderColor: isDarkMode ? "#282B34" : "#E2E8F0", backgroundColor: theme.background },
                     ]}
                   />
 
-                  <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
-                    {t("quiz.difficulty", "Độ khó")}
-                  </Text>
+                  <FieldLabel icon="speedometer" color="#EF4444" title={t("quiz.difficulty", "Độ khó")} theme={theme} isDarkMode={isDarkMode} style={{ marginTop: 18 }} />
                   <SegmentedControl
                     value={difficulty}
                     onChange={setDifficulty}
@@ -315,14 +337,12 @@ const CustomQuizCreateScreen = ({ navigation }) => {
 
                   {mode === "text" ? (
                     <>
-                      <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
-                        {t("customQuiz.contentLabel", "Nội dung câu hỏi")}
-                      </Text>
+                      <FieldLabel icon="document-text" color="#8B5CF6" title={t("customQuiz.contentLabel", "Nội dung câu hỏi")} theme={theme} isDarkMode={isDarkMode} style={{ marginTop: 18 }} />
                       <Text style={[styles.helpText, { color: theme.subText }]}>
                         {t("customQuiz.textHelp")}
                       </Text>
 
-                      <View style={[styles.editorWrapper, { borderColor: theme.border }]}>
+                      <View style={[styles.editorWrapper, { borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
                         <View style={[styles.toolbar, { backgroundColor: theme.iconBackground }]}>
                           <TouchableOpacity
                             onPress={markSelectionAsCorrect}
@@ -353,19 +373,24 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                     </>
                   ) : (
                     <>
-                      <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 18 }]}>
-                        {t("customQuiz.fileLabel", "File câu hỏi")}
-                      </Text>
+                      <FieldLabel icon="attach" color="#10B981" title={t("customQuiz.fileLabel", "File câu hỏi")} theme={theme} isDarkMode={isDarkMode} style={{ marginTop: 18 }} />
                       <TouchableOpacity
                         onPress={pickDocument}
                         activeOpacity={0.8}
-                        style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.background }]}
+                        style={[
+                          styles.uploadBox,
+                          selectedFile
+                            ? { borderColor: theme.primary, backgroundColor: tint("#22C55E", isDarkMode), borderStyle: "solid" }
+                            : { borderColor: isDarkMode ? "#3A3F4A" : "#CBD5E1", backgroundColor: theme.background },
+                        ]}
                       >
-                        <Ionicons
-                          name={selectedFile ? "checkmark-circle-outline" : "cloud-upload-outline"}
-                          size={24}
-                          color={theme.primary}
-                        />
+                        <View style={[styles.uploadIcon, { backgroundColor: tint(selectedFile ? "#22C55E" : "#3B82F6", isDarkMode) }]}>
+                          <Ionicons
+                            name={selectedFile ? "checkmark-circle" : "cloud-upload"}
+                            size={22}
+                            color={selectedFile ? theme.primary : "#3B82F6"}
+                          />
+                        </View>
                         <Text style={[styles.uploadText, { color: theme.text }]} numberOfLines={1}>
                           {selectedFile ? selectedFile.name : t("customQuiz.chooseFile", "Chọn file (.docx, .txt, .pdf)")}
                         </Text>
@@ -402,10 +427,14 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                 style={[
                   styles.card,
                   styles.resultCard,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
                 ]}
               >
-                <Ionicons name="checkmark-circle" size={44} color={theme.primary} />
+                <View style={[styles.haloOuter, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+                  <View style={[styles.haloInner, { backgroundColor: theme.primary }]}>
+                    <Ionicons name="checkmark" size={38} color="#fff" />
+                  </View>
+                </View>
                 <Text style={[styles.resultTitle, { color: theme.text }]}>
                   {t("customQuiz.successTitle", "Đã tạo bộ đề thành công!")}
                 </Text>
@@ -435,7 +464,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={[
                     styles.secondaryButton,
-                    { borderColor: theme.border, width: "100%", backgroundColor: theme.background },
+                    { borderColor: isDarkMode ? "#282B34" : "#E2E8F0", width: "100%", backgroundColor: theme.background },
                   ]}
                   onPress={() => handleShare(createdQuiz.quiz_set_id)}
                   activeOpacity={0.8}
@@ -462,8 +491,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginHorizontal: 4,
   },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  heroIcon: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 18, fontWeight: "800" },
+  heroText: { fontSize: 13, lineHeight: 18, marginTop: 2 },
+  uploadIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  haloOuter: { width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center" },
+  haloInner: { width: 68, height: 68, borderRadius: 34, alignItems: "center", justifyContent: "center" },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: StyleSheet.hairlineWidth,
@@ -474,14 +518,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    height: 46,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingHorizontal: 14,
     fontSize: 14,
   },
   helpText: { fontSize: 13, lineHeight: 18, marginTop: 6, marginBottom: 12 },
-  editorWrapper: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
+  editorWrapper: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: "hidden" },
   toolbar: { paddingHorizontal: 12, paddingVertical: 10 },
   markCorrectButton: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
   editorInput: { minHeight: 200, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, lineHeight: 20 },
@@ -491,9 +535,9 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderRadius: 12,
+    borderRadius: 18,
     paddingHorizontal: 14,
-    paddingVertical: 16,
+    paddingVertical: 18,
   },
   uploadText: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
   primaryButton: {
@@ -501,7 +545,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 12,
+    borderRadius: 999,
     padding: 14,
   },
   primaryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
@@ -510,10 +554,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 12,
+    borderRadius: 999,
     padding: 14,
     marginTop: 10,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   secondaryButtonText: { fontWeight: "bold", fontSize: 15 },
   resultCard: { alignItems: "center", paddingVertical: 24 },
