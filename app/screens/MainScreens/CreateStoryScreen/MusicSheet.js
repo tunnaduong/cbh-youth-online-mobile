@@ -211,9 +211,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginHorizontal: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
   searchInput: {
     flex: 1,
@@ -232,9 +234,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   artwork: {
-    width: 46,
-    height: 46,
-    borderRadius: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   artworkFallback: {
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
   artworkLarge: {
     width: 64,
     height: 64,
-    borderRadius: 10,
+    borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   title: {
@@ -271,13 +273,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   changeButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 999,
+    backgroundColor: "rgba(34,197,94,0.18)",
   },
   changeLabel: {
-    color: "#fff",
+    color: "#4ADE80",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -290,14 +292,14 @@ const styles = StyleSheet.create({
     height: 40,
   },
   submit: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: "#fff",
+    height: 50,
+    borderRadius: 999,
+    backgroundColor: "#22C55E",
     alignItems: "center",
     justifyContent: "center",
   },
   submitLabel: {
-    color: "#111",
+    color: "#fff",
     fontWeight: "700",
     fontSize: 15,
   },

@@ -118,9 +118,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginHorizontal: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
   searchInput: {
     flex: 1,
@@ -143,6 +145,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1.5,
+    borderColor: "rgba(34,197,94,0.5)",
   },
   name: {
     color: "#fff",

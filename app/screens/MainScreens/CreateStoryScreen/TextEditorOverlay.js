@@ -145,9 +145,9 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
           maximumValue={canvasWidth * 0.2}
           value={fontSize}
           onValueChange={setFontSize}
-          minimumTrackTintColor="#FFFFFF"
+          minimumTrackTintColor="#22C55E"
           maximumTrackTintColor="rgba(255,255,255,0.3)"
-          thumbTintColor="#FFFFFF"
+          thumbTintColor="#4ADE80"
         />
       </View>
 
@@ -173,7 +173,7 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
               onPress={() => setFont(option.id)}
               style={[styles.fontChip, font === option.id && styles.fontChipActive]}
             >
-              <Text style={[styles.fontChipLabel, option.style, font === option.id && { color: "#111" }]}>
+              <Text style={[styles.fontChipLabel, option.style, font === option.id && { color: "#fff" }]}>
                 {t(option.labelKey)}
               </Text>
             </TouchableOpacity>
@@ -221,23 +221,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.85)",
   },
   topButton: {
-    height: 36,
-    minWidth: 36,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    height: 40,
+    minWidth: 40,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: "rgba(34,197,94,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
   doneButton: {
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: "#22C55E",
   },
   doneLabel: {
-    color: "#111",
-    fontWeight: "700",
+    color: "#fff",
+    fontWeight: "800",
   },
   effectLabel: {
-    color: "#fff",
+    color: "#4ADE80",
     fontWeight: "700",
   },
   center: {
@@ -269,13 +269,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   fontChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
   },
   fontChipActive: {
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: "#22C55E",
+    borderColor: "#22C55E",
   },
   fontChipLabel: {
     color: "#fff",
@@ -294,7 +297,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.6)",
   },
   colorDotActive: {
-    borderColor: "#fff",
+    borderColor: "#4ADE80",
     borderWidth: 3,
     transform: [{ scale: 1.15 }],
   },

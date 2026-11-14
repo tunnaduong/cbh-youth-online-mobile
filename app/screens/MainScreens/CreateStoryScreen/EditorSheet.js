@@ -74,13 +74,16 @@ const EditorSheet = ({ visible, title, onClose, children, heightRatio = 0.62 }) 
           <View style={styles.handle} />
         </View>
         <View style={styles.header}>
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.sparkle}>✦</Text>
+          </View>
           <TouchableOpacity
             style={styles.closeBtn}
             onPress={onClose}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={20} color="rgba(255,255,255,0.8)" />
+            <Ionicons name="close" size={20} color="#4ADE80" />
           </TouchableOpacity>
         </View>
         {children}
@@ -97,9 +100,9 @@ const styles = StyleSheet.create({
     zIndex: 30000,
   },
   sheet: {
-    backgroundColor: "#18181b",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: "#14161C",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
@@ -111,9 +114,9 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
+    width: 40,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: "rgba(255,255,255,0.25)",
   },
   header: {
@@ -124,18 +127,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   closeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(34,197,94,0.16)",
     alignItems: "center",
     justifyContent: "center",
   },
+  titleRow: { flexDirection: "row", alignItems: "center" },
+  // Same title look as the Home header: green, bold, with the yellow sparkle.
   title: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+    color: "#4ADE80",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.2,
   },
+  sparkle: { fontSize: 14, color: "#EAB308", marginLeft: 4, marginTop: -7 },
 });
 
 export default EditorSheet;

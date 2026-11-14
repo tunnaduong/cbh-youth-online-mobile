@@ -90,10 +90,10 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 999,
+    backgroundColor: "rgba(34,197,94,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(34,197,94,0.35)",
   },
   actionIconWrap: {
     width: 28,
@@ -114,22 +114,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   packChip: {
-    height: 32,
-    paddingHorizontal: 14,
-    borderRadius: 16,
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
   packChipActive: {
-    backgroundColor: "#fff",
+    backgroundColor: "#22C55E",
   },
   packLabel: {
     color: "rgba(255,255,255,0.75)",
     fontSize: 13,
   },
   packLabelActive: {
-    color: "#111",
+    color: "#fff",
     fontWeight: "700",
   },
   grid: {

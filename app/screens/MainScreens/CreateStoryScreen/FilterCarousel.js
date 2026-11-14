@@ -113,17 +113,17 @@ const styles = StyleSheet.create({
   },
   thumbFrame: {
     padding: 2,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: "transparent",
   },
   thumbFrameActive: {
-    borderColor: "#fff",
+    borderColor: "#22C55E",
   },
   thumb: {
     width: THUMB_SIZE,
     height: THUMB_SIZE,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: "hidden",
   },
   label: {
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   labelActive: {
-    color: "#fff",
+    color: "#4ADE80",
     fontWeight: "700",
   },
 });
