@@ -28,6 +28,9 @@ import {
   isRequestCanceled,
 } from "../../../../services/api/Api";
 
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
+
 const SCORE_OPTIONS = [
   { labelKey: "scoreBelow15", fallback: "Dưới 15", value: "0,15" },
   { labelKey: "score15to18", fallback: "15 – 18", value: "15,18" },
@@ -38,10 +41,16 @@ const SCORE_OPTIONS = [
 ];
 
 const FILTER_ICONS = {
-  city: "location-outline",
-  type: "business-outline",
-  major: "school-outline",
-  subject: "book-outline",
+  city: "location",
+  type: "business",
+  major: "school",
+  subject: "book",
+};
+const FILTER_COLORS = {
+  city: "#EF4444",
+  type: "#3B82F6",
+  major: "#8B5CF6",
+  subject: "#F59E0B",
 };
 
 // Searchable picker modal - reused for city/major/type/subjectComposition
@@ -176,11 +185,11 @@ const PickerModal = ({
 };
 
 // Filter row in the grouped settings-style card
-const FilterField = ({ icon, label, placeholder, theme, onPress, isLast, t }) => (
+const FilterField = ({ icon, color, label, placeholder, theme, isDarkMode, onPress, isLast, t }) => (
   <TouchableOpacity style={styles.filterRow} onPress={onPress} activeOpacity={0.65}>
     <View style={styles.filterRowLeft}>
-      <View style={[styles.filterIconHolder, { backgroundColor: theme.iconBackground }]}>
-        <Ionicons name={icon} size={16} color={theme.primary} />
+      <View style={[styles.filterIconHolder, { backgroundColor: tint(color, isDarkMode) }]}>
+        <Ionicons name={icon} size={16} color={color} />
       </View>
       <Text style={[styles.filterRowLabel, { color: theme.text }]} numberOfLines={1}>
         {placeholder}
@@ -198,7 +207,7 @@ const FilterField = ({ icon, label, placeholder, theme, onPress, isLast, t }) =>
       </Text>
       <Ionicons name="chevron-forward" size={16} color={theme.subText} />
     </View>
-    {!isLast && <View style={[styles.filterRowSeparator, { backgroundColor: theme.border }]} />}
+    {!isLast && <View style={[styles.filterRowSeparator, { backgroundColor: isDarkMode ? "#282B34" : "#F1F5F9" }]} />}
   </TouchableOpacity>
 );
 
@@ -233,7 +242,7 @@ const UniversityCard = React.memo(function UniversityCard({ uni, theme, isDarkMo
         styles.card,
         {
           backgroundColor: theme.surface,
-          borderColor: theme.border,
+          borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
           borderWidth: StyleSheet.hairlineWidth,
         },
       ]}
@@ -242,10 +251,10 @@ const UniversityCard = React.memo(function UniversityCard({ uni, theme, isDarkMo
         <View
           style={[
             styles.cardIconWrap,
-            { backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.15)" : "#E8F8EA" },
+            { backgroundColor: tint("#3B82F6", isDarkMode) },
           ]}
         >
-          <Ionicons name="school" size={20} color={theme.primary} />
+          <Ionicons name="school" size={20} color="#3B82F6" />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>
@@ -696,9 +705,25 @@ const UniversityScreen = ({ navigation }) => {
           })}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={[styles.subtitle, { color: theme.subText }]}>
-            {t("universities.subtitle", "Tra cứu thông tin trường và điểm chuẩn tuyển sinh.")}
-          </Text>
+          <LinearGradient
+            colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.hero, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          >
+            <BannerWatermark icon="school" size={140} />
+            <View style={[styles.heroIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="school" size={24} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={[styles.heroTitle, { color: theme.text }]} numberOfLines={1}>
+                {t("exploreScreen.findUniversities")}
+              </Text>
+              <Text style={[styles.heroText, { color: theme.subText }]}>
+                {t("universities.subtitle", "Tra cứu thông tin trường và điểm chuẩn tuyển sinh.")}
+              </Text>
+            </View>
+          </LinearGradient>
 
           {/* Mode switch - SegmentedControl */}
           <SegmentedControl
@@ -724,13 +749,15 @@ const UniversityScreen = ({ navigation }) => {
                       styles.filterCard,
                       {
                         backgroundColor: theme.surface,
-                        borderColor: theme.border,
+                        borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
                         borderWidth: StyleSheet.hairlineWidth,
                       },
                     ]}
                   >
                     <FilterField
                       icon={FILTER_ICONS.city}
+                      color={FILTER_COLORS.city}
+                      isDarkMode={isDarkMode}
                       label={cityIdx != null ? options.city[cityIdx] : null}
                       placeholder={t("universities.cityPlaceholder", "TP / Tỉnh")}
                       theme={theme}
@@ -739,6 +766,8 @@ const UniversityScreen = ({ navigation }) => {
                     />
                     <FilterField
                       icon={FILTER_ICONS.type}
+                      color={FILTER_COLORS.type}
+                      isDarkMode={isDarkMode}
                       label={typeIdx != null ? options.type[typeIdx] : null}
                       placeholder={t("universities.typePlaceholder", "Loại hình")}
                       theme={theme}
@@ -747,6 +776,8 @@ const UniversityScreen = ({ navigation }) => {
                     />
                     <FilterField
                       icon={FILTER_ICONS.major}
+                      color={FILTER_COLORS.major}
+                      isDarkMode={isDarkMode}
                       label={majorIdx != null ? options.major[majorIdx] : null}
                       placeholder={t("universities.majorPlaceholder", "Ngành học")}
                       theme={theme}
@@ -755,6 +786,8 @@ const UniversityScreen = ({ navigation }) => {
                     />
                     <FilterField
                       icon={FILTER_ICONS.subject}
+                      color={FILTER_COLORS.subject}
+                      isDarkMode={isDarkMode}
                       label={subjectIdx != null ? options.subjectComposition[subjectIdx] : null}
                       placeholder={t("universities.subjectPlaceholder", "Khối thi")}
                       theme={theme}
@@ -770,7 +803,7 @@ const UniversityScreen = ({ navigation }) => {
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+                    contentContainerStyle={{ paddingHorizontal: 4, paddingRight: 24, gap: 8 }}
                     style={{ marginBottom: 16 }}
                   >
                     {SCORE_OPTIONS.map((o) => {
@@ -783,16 +816,19 @@ const UniversityScreen = ({ navigation }) => {
                           style={[
                             styles.chip,
                             {
-                              backgroundColor: active ? theme.primary : theme.iconBackground,
+                              backgroundColor: active ? theme.primary : theme.surface,
+                              borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0",
                             },
                           ]}
                         >
                           <Text
+                            numberOfLines={1}
                             style={{
                               color: active ? "#fff" : theme.text,
                               fontWeight: "600",
                               fontSize: 13,
-                              lineHeight: 18,
+                              includeFontPadding: false,
+                              paddingRight: 1,
                             }}
                           >
                             {t(`universities.${o.labelKey}`, o.fallback)}
@@ -1152,6 +1188,18 @@ const UniversityScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  heroIcon: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 18, fontWeight: "800" },
+  heroText: { fontSize: 13, lineHeight: 18, marginTop: 2 },
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
@@ -1168,7 +1216,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   filterCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     marginBottom: 8,
   },
@@ -1210,16 +1258,18 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 0,
   },
   searchButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 14,
+    borderRadius: 999,
     height: 48,
   },
   searchButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
@@ -1258,8 +1308,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 48,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    borderRadius: 999,
+    paddingHorizontal: 16,
   },
   searchInput: { flex: 1, fontSize: 14, marginLeft: 8, padding: 0 },
   suggestBox: {
@@ -1280,15 +1330,15 @@ const styles = StyleSheet.create({
   },
   suggestText: { fontSize: 14, flex: 1 },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
   },
   cardHeader: { flexDirection: "row", gap: 12, marginBottom: 10 },
   cardIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1331,7 +1381,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 999,
   },
   urlLink: { fontSize: 12.5, fontWeight: "600" },
   generalInfoBox: {
