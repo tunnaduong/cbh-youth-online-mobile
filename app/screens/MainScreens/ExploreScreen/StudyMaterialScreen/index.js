@@ -29,6 +29,8 @@ import {
 } from "../../../../services/api/Api";
 import FastImage from "../../../../components/FastImage";
 import formatTime from "../../../../utils/formatTime";
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
 
 const CATEGORY_DOTS = [
   "#10B981", // emerald
@@ -579,10 +581,24 @@ const StudyMaterialScreen = ({ navigation }) => {
           }
           ListHeaderComponent={
             <>
-              {/* Hero description */}
-              <Text style={[styles.description, { color: theme.subText }]}>
-                {t("studyMaterial.heroText", "Khám phá, chia sẻ tài liệu học tập chất lượng từ cộng đồng.")}
-              </Text>
+              {/* Hero banner */}
+              <LinearGradient
+                colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.hero, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+              >
+                <BannerWatermark icon="library" size={130} />
+                <View style={[styles.heroIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+                  <Ionicons name="library" size={24} color={theme.primary} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={[styles.heroTitle, { color: theme.text }]} numberOfLines={1}>{headerTitle}</Text>
+                  <Text style={[styles.heroText, { color: theme.subText }]}>
+                    {t("studyMaterial.heroText", "Khám phá, chia sẻ tài liệu học tập chất lượng từ cộng đồng.")}
+                  </Text>
+                </View>
+              </LinearGradient>
 
               {/* Search box */}
               <View
@@ -626,7 +642,8 @@ const StudyMaterialScreen = ({ navigation }) => {
                         style={[
                           styles.chip,
                           {
-                            backgroundColor: active ? theme.primary : theme.iconBackground,
+                            backgroundColor: active ? theme.primary : theme.surface,
+                            borderColor: active ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0",
                           },
                         ]}
                       >
@@ -658,7 +675,8 @@ const StudyMaterialScreen = ({ navigation }) => {
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: !selectedCategory ? theme.primary : theme.iconBackground,
+                        backgroundColor: !selectedCategory ? theme.primary : theme.surface,
+                        borderColor: !selectedCategory ? theme.primary : isDarkMode ? "#282B34" : "#E2E8F0",
                       },
                     ]}
                   >
@@ -671,6 +689,7 @@ const StudyMaterialScreen = ({ navigation }) => {
                   </TouchableOpacity>
                   {categories.map((category) => {
                     const active = selectedCategory === category.id;
+                    const dot = getCategoryDotColor(category?.name || category?.slug || "");
                     return (
                       <TouchableOpacity
                         key={category.id}
@@ -678,14 +697,17 @@ const StudyMaterialScreen = ({ navigation }) => {
                         activeOpacity={0.8}
                         style={[
                           styles.chip,
+                          styles.chipRow,
                           {
-                            backgroundColor: active ? theme.primary : theme.iconBackground,
+                            backgroundColor: active ? tint(dot, isDarkMode) : theme.surface,
+                            borderColor: active ? dot : isDarkMode ? "#282B34" : "#E2E8F0",
                           },
                         ]}
                       >
+                        <View style={[styles.chipDot, { backgroundColor: dot }]} />
                         <Text
                           numberOfLines={1}
-                          style={[styles.chipText, { color: active ? "#fff" : theme.text }]}
+                          style={[styles.chipText, { color: theme.text }]}
                         >
                           {getCategoryLabel(category)}
                         </Text>
@@ -695,8 +717,8 @@ const StudyMaterialScreen = ({ navigation }) => {
                 </ScrollView>
               </View>
 
-              {/* Sort pills */}
-              <View style={styles.sortRow}>
+              {/* Sort: segmented control */}
+              <View style={[styles.sortRow, { backgroundColor: theme.iconBackground }]}>
                 {sortOptions.map((sort) => {
                   const active = selectedSort === sort.key;
                   return (
@@ -704,18 +726,13 @@ const StudyMaterialScreen = ({ navigation }) => {
                       key={sort.key}
                       onPress={() => setSelectedSort(sort.key)}
                       activeOpacity={0.8}
-                      style={[
-                        styles.sortChip,
-                        active
-                          ? { backgroundColor: `${theme.primary}1A` }
-                          : { backgroundColor: "transparent" },
-                      ]}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      style={[styles.sortChip, active && { backgroundColor: theme.background }]}
                     >
                       <Text
-                        style={[
-                          styles.sortChipText,
-                          active ? { color: theme.primary, fontWeight: "700" } : { color: theme.subText },
-                        ]}
+                        numberOfLines={1}
+                        style={[styles.sortChipText, { color: active ? theme.text : theme.subText }]}
                       >
                         {t(`studyMaterial.sort.${sort.labelKey}`)}
                       </Text>
@@ -769,13 +786,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginHorizontal: 4,
   },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: { fontSize: 18, fontWeight: "800" },
+  heroText: { fontSize: 13, lineHeight: 18, marginTop: 2 },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    height: 46,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
   searchInput: {
@@ -800,7 +835,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     flexShrink: 0,
+    borderWidth: StyleSheet.hairlineWidth,
   },
+  chipRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  chipDot: { width: 8, height: 8, borderRadius: 4 },
   // No fixed lineHeight and a little spare width: in a horizontal ScrollView
   // the tight box clipped the last letter ("Vật lý", "Địa lý").
   chipText: {
@@ -811,15 +849,16 @@ const styles = StyleSheet.create({
   },
   sortRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    borderRadius: 999,
+    padding: 3,
     marginBottom: 16,
-    gap: 6,
-    marginHorizontal: 4,
   },
   sortChip: {
+    flex: 1,
+    alignItems: "center",
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
   },
   sortChipText: {
     fontSize: 12,
@@ -852,7 +891,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   materialCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
   },
