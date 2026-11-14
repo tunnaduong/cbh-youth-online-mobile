@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -314,22 +315,7 @@ export default function DevicesScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
-          <View style={styles.headerSide}>
-            <LiquidButton size={44} scrollY={scrollY} providerId="DevicesScreen" onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("devices.title")}
-          </Animated.Text>
-          <View style={styles.headerSide} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("devices.title")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={

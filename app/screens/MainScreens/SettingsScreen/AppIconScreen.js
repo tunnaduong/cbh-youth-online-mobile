@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import {
   View,
@@ -110,22 +111,8 @@ export default function AppIconScreen({ navigation }) {
       />
 
       {/* Floating Header */}
-      <View pointerEvents="box-none" style={[styles.floatingHeader, { height: 64 + insets.top }]}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton providerId="AppIconScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("appIcon.title", "Biểu tượng ứng dụng")}
-          </Animated.Text>
-          <View style={{ width: 44, alignItems: "flex-end" }}>
-            {!isDefault && (
-              <LiquidButton
+      <FloatingScreenHeader title={t("appIcon.title", "Biểu tượng ứng dụng")} onBack={() => navigation.goBack()} scrollY={scrollY} right={
+        <LiquidButton
                 providerId="AppIconScreen"
                 size={44}
                 scrollY={scrollY}
@@ -133,10 +120,7 @@ export default function AppIconScreen({ navigation }) {
               >
                 <Ionicons name="refresh-outline" size={20} color={theme.primary} />
               </LiquidButton>
-            )}
-          </View>
-        </View>
-      </View>
+      } />
 
       <AndroidGlassBackdrop providerId="AppIconScreen" style={{ flex: 1 }}>
         <Animated.ScrollView

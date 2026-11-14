@@ -6,6 +6,7 @@ import {
   bubblePreferenceBySystem,
   openBubbleSystemSettings,
 } from "../../../services/bubble/nativeBubble";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import React, { useContext, useRef, useState } from "react";
 import {
@@ -197,24 +198,7 @@ export default function SettingsScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
-      <View
-        style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, height: 58 + insets.top }]}
-        pointerEvents="box-none"
-      >
-        <LiquidButton size={44} scrollY={scrollY} providerId="SettingsScreen" onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-
-        <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
-          numberOfLines={1}
-        >
-          {t("settings.title")}
-        </Animated.Text>
-
-        {/* Spacer to balance back button */}
-        <View style={{ width: 44 }} />
-      </View>
+      <FloatingScreenHeader title={t("settings.title")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop providerId="SettingsScreen" style={{ flex: 1 }}>
         <LinearGradient

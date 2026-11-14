@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -313,39 +314,7 @@ export default function StudentVerificationScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View
-          style={{
-            paddingTop: insets.top,
-            paddingBottom: 8,
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            height: 64 + insets.top,
-          }}
-        >
-          <View style={{ width: 44 }}>
-            <LiquidButton
-              size={44}
-              scrollY={scrollY}
-              providerId="StudentVerificationScreen"
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[
-              styles.headerTitle,
-              { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity },
-            ]}
-            numberOfLines={1}
-          >
-            {t("studentVerification.headerTitle")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("studentVerification.headerTitle")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={
