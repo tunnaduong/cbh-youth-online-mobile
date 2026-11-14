@@ -29,10 +29,14 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import BannerWatermark from "../../../components/BannerWatermark";
 import { tint } from "../../../components/settings/SettingsUI";
 
 import { getCategoryName, getCategoryDescription } from "../../../utils/forumUtils";
+
+const veil = (background) => {
+  const hex = /^#[0-9a-fA-F]{6}$/.test(background) ? background : "#121212";
+  return [`${hex}FF`, `${hex}FF`, `${hex}B3`, `${hex}73`];
+};
 
 const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity, insets, categoryId, createLabel }) => (
   <View pointerEvents="box-none" style={styles.floatingHeader}>
@@ -278,20 +282,22 @@ const CategoryScreen = ({ navigation, route }) => {
   const isDescriptionLong = descriptionText.length > 120;
 
   const renderCategoryBanner = () => (
-    <View style={[styles.banner, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}>
+    <View style={[styles.banner, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+      {/* Same look as the section cards on the forum screen: the picture
+          fills the card, a veil in the card's colour keeps the text readable
+          (solid on the left, fading out to the bare picture on the right). */}
       <ImageBackground
         source={{ uri: forumData.subforum.background }}
         resizeMode="cover"
-        imageStyle={{ opacity: isDarkMode ? 0.18 : 0.22 }}
-        style={{ width: "100%" }}
+        style={{ alignSelf: "stretch" }}
       >
         <LinearGradient
-          colors={isDarkMode ? ["rgba(19,51,33,0.92)", "rgba(14,36,24,0.8)"] : ["rgba(234,248,236,0.94)", "rgba(224,245,227,0.8)"]}
+          colors={veil(theme.surface || theme.background)}
+          locations={[0, 0.45, 0.72, 1]}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 1, y: 0.35 }}
           style={StyleSheet.absoluteFill}
         />
-        <BannerWatermark icon="chatbubbles" size={140} />
         <View style={{ padding: 18 }}>
           <View style={[styles.bannerBadge, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
             <Ionicons name="albums-outline" size={14} color={theme.primary} />
