@@ -1,4 +1,6 @@
 import React, { useContext, useRef, useState } from "react";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 import {
   View,
   Text,
@@ -9,6 +11,7 @@ import {
   TouchableOpacity,
   Platform,
   Animated,
+  StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -25,11 +28,22 @@ import formatTime from "../../../utils/formatTime";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme }) => (
+const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme, isDarkMode }) => (
   <TouchableOpacity
+    activeOpacity={0.8}
     onPress={() => navigation.navigate("PostScreen", { postId: item.topic.id })}
-    className="flex-row p-4"
-    style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      height: 96,
+      marginHorizontal: 16,
+      marginBottom: 10,
+      padding: 12,
+      borderRadius: 20,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+      backgroundColor: theme.surface,
+    }}
   >
     <FastImage
       source={{
@@ -38,36 +52,37 @@ const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme }) => (
             ? item.topic.image_urls[0]
             : `https://api.chuyenbienhoa.com/users/${item.topic.author.username}/avatar`,
       }}
-      className="w-[70px] h-[70px] rounded-lg"
+      style={{ width: 72, height: 72, borderRadius: 16 }}
       resizeMode={FastImage.resizeMode.cover}
     />
-    <View className="flex-1 ml-3 pr-2">
-      <Text numberOfLines={2} className="text-[15px] font-medium leading-5" style={{ color: theme.text }}>
+    <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
+      <Text numberOfLines={2} style={{ fontSize: 15, fontWeight: "700", lineHeight: 20, color: theme.text }}>
         {item.topic.title}
       </Text>
-      <View className="flex-row items-center mt-1">
-        {item.topic.image_urls.length > 0 && (
-          <>
-            <Text className="text-[13px]" style={{ color: theme.subText }}>
-              {t("savedPosts.postedPhotos", { count: item.topic.image_urls?.length || 1 })}
-            </Text>
-            <Text className="text-[13px] mx-1" style={{ color: theme.subText }}>•</Text>
-          </>
-        )}
+      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
         <UserNameRow
           name={item.topic.author.profile_name}
           theme={item.topic.anonymous ? null : item.topic.author.profile_theme}
-          style={{ fontSize: 13, color: theme.subText }}
+          style={{ fontSize: 12, color: theme.subText }}
+          containerStyle={{ flexShrink: 1 }}
         />
       </View>
-      <Text className="text-[13px] mt-0.5" style={{ color: theme.subText }}>
-        {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 5 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: tint("#F59E0B", isDarkMode) }}>
+          <Ionicons name="bookmark" size={11} color="#F59E0B" />
+          <Text style={{ fontSize: 11, fontWeight: "700", color: isDarkMode ? "#FBBF24" : "#B45309" }} numberOfLines={1}>
+            {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}
+          </Text>
+        </View>
+        {item.topic.image_urls.length > 0 ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: tint("#3B82F6", isDarkMode) }}>
+            <Ionicons name="images" size={11} color="#3B82F6" />
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#3B82F6" }}>{item.topic.image_urls.length}</Text>
+          </View>
+        ) : null}
+      </View>
     </View>
-    <TouchableOpacity
-      onPress={() => onOptionsPress(item)}
-      className="px-2 py-1"
-    >
+    <TouchableOpacity onPress={() => onOptionsPress(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ paddingLeft: 6 }}>
       <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
     </TouchableOpacity>
   </TouchableOpacity>
@@ -167,20 +182,32 @@ const SavedPostsScreen = ({ navigation }) => {
   };
 
   const ListHeader = () => (
-    <View className="px-4 py-3" style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}>
-      <Text className="text-[17px] font-medium" style={{ color: theme.text }}>{t("savedPosts.recentlySaved")}</Text>
-    </View>
+    <LinearGradient
+      colors={isDarkMode ? ["rgba(245,158,11,0.26)", "rgba(245,158,11,0.08)"] : ["rgba(245,158,11,0.18)", "rgba(250,204,21,0.05)"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: isDarkMode ? "rgba(245,158,11,0.4)" : "rgba(245,158,11,0.3)", overflow: "hidden" }}
+    >
+      <BannerWatermark icon="bookmark" color="#F59E0B" size={130} />
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: tint("#F59E0B", isDarkMode), alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="bookmark" size={24} color="#F59E0B" />
+      </View>
+      <View style={{ flex: 1, marginLeft: 14 }}>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: theme.text }} numberOfLines={1}>{t("savedPosts.title")}</Text>
+        <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>{t("savedPosts.recentlySaved")}</Text>
+      </View>
+      <View style={{ borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, backgroundColor: tint("#F59E0B", isDarkMode) }}>
+        <Text style={{ fontSize: 14, fontWeight: "800", color: isDarkMode ? "#FBBF24" : "#B45309" }}>{savedPosts?.length ?? 0}</Text>
+      </View>
+    </LinearGradient>
   );
 
   const ListEmptyComponent = () => (
-    <View className="flex-1 items-center justify-center py-10">
-      <Image
-        source={require("../../../assets/sad_frog.png")}
-        style={{ width: 130, height: 130 }}
-      />
-      <Text className="text-center mt-4" style={{ color: theme.subText }}>
-        {t('savedPosts.empty')}
-      </Text>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 }}>
+      <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: tint("#F59E0B", isDarkMode), alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="bookmark-outline" size={40} color="#F59E0B" />
+      </View>
+      <Text style={{ textAlign: "center", marginTop: 16, color: theme.subText }}>{t("savedPosts.empty")}</Text>
     </View>
   );
 
@@ -264,8 +291,8 @@ const SavedPostsScreen = ({ navigation }) => {
           updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === 'android'}
           getItemLayout={(_data, index) => ({
-            length: 103,
-            offset: 103 * index,
+            length: 106,
+            offset: 106 * index,
             index,
           })}
           onScroll={handleScroll}
@@ -277,6 +304,7 @@ const SavedPostsScreen = ({ navigation }) => {
               onOptionsPress={handleOptionsPress}
               t={t}
               theme={theme}
+              isDarkMode={isDarkMode}
             />
           )}
           ListHeaderComponent={ListHeader}
@@ -284,10 +312,9 @@ const SavedPostsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="transparent"
-              colors={["transparent"]}
-              progressBackgroundColor="transparent"
-              style={{ backgroundColor: "transparent" }}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+              progressViewOffset={headerHeight}
             />
           }
           ListEmptyComponent={ListEmptyComponent}
