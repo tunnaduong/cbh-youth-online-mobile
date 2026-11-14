@@ -29,6 +29,27 @@ import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import axiosInstance from "../../../../services/api/axiosInstance";
 import WebView from "react-native-webview";
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
+
+// Title of a card: tinted round icon holder + title.
+const CardTitle = ({ icon, color, title, theme, isDarkMode }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+      <Ionicons name={icon} size={17} color={color} />
+    </View>
+    <Text style={{ fontSize: 16, fontWeight: "700", color: theme.text, flex: 1 }}>{title}</Text>
+  </View>
+);
+
+const InfoLine = ({ icon, color, text, last, theme, isDarkMode, border }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth, borderBottomColor: border }}>
+    <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: tint(color, isDarkMode), alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+      <Ionicons name={icon} size={18} color={color} />
+    </View>
+    <Text style={{ fontSize: 14, fontWeight: "500", color: theme.text, flex: 1 }}>{text}</Text>
+  </View>
+);
 import {
   getCurrentPoints,
   getMaterialRatings,
@@ -169,6 +190,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
     }
   }, [isLoggedIn]);
 
+  const cardBorder = isDarkMode ? "#282B34" : "#E2E8F0";
   const priceLabel = useMemo(() => {
     if (!material) return "";
     return material.is_free || material.price === 0
@@ -581,42 +603,52 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
-            <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
+          <LinearGradient
+            colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          >
+            <BannerWatermark icon="document-text" size={140} />
+            <View style={[styles.badge, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="pricetag" size={11} color={theme.primary} style={{ marginRight: 5 }} />
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name ? getCategoryLabel(material.category) : t("studyMaterial.material")}</Text>
             </View>
             <Text style={[styles.titleText, { color: theme.text }]}>{material.title}</Text>
             <Text style={[styles.descriptionText, { color: theme.subText }]}>{material.description || t("studyMaterial.noDescription")}</Text>
-            <View style={styles.rowBetween}>
-              <Text style={[styles.metaText, { color: theme.primary }]}>{priceLabel}</Text>
-              <Text style={[styles.metaText, { color: theme.subText }]}>⭐ {material.average_rating || 0}/5</Text>
+            <View style={styles.chipsRow}>
+              <View style={[styles.heroChip, { backgroundColor: tint("#F59E0B", isDarkMode) }]}>
+                <Ionicons name="wallet-outline" size={14} color="#F59E0B" />
+                <Text style={[styles.heroChipText, { color: isDarkMode ? "#FBBF24" : "#B45309" }]}>{priceLabel}</Text>
+              </View>
+              <View style={[styles.heroChip, { backgroundColor: tint("#F59E0B", isDarkMode) }]}>
+                <Ionicons name="star" size={14} color="#F59E0B" />
+                <Text style={[styles.heroChipText, { color: isDarkMode ? "#FBBF24" : "#B45309" }]}>{material.average_rating || 0}/5</Text>
+              </View>
             </View>
-          </View>
+          </LinearGradient>
 
-          <View style={[styles.infoCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.details")}</Text>
-            <View style={styles.infoRow}>
-              <Ionicons name="person-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.author", { value: material?.author?.profile_name || material?.author?.username || t("studyMaterial.member") })}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="download-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.downloadCount", { value: material.download_count || 0 })}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="eye-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.viewCount", { value: material.view_count || 0 })}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.createdAt", { value: new Date(material.created_at).toLocaleDateString({ vi: "vi-VN", en: "en-US", ru: "ru-RU" }[i18n.language?.split("-")[0]] || "vi-VN") })}</Text>
-            </View>
+          <View style={[styles.infoCard, { borderColor: cardBorder, backgroundColor: theme.surface }]}>
+            <CardTitle icon="information-circle" color="#3B82F6" title={t("studyMaterial.details")} theme={theme} isDarkMode={isDarkMode} />
+            <InfoLine icon="person" color="#3B82F6" theme={theme} isDarkMode={isDarkMode} border={cardBorder}
+              text={t("studyMaterial.author", { value: material?.author?.profile_name || material?.author?.username || t("studyMaterial.member") })} />
+            <InfoLine icon="download" color="#10B981" theme={theme} isDarkMode={isDarkMode} border={cardBorder}
+              text={t("studyMaterial.downloadCount", { value: material.download_count || 0 })} />
+            <InfoLine icon="eye" color="#8B5CF6" theme={theme} isDarkMode={isDarkMode} border={cardBorder}
+              text={t("studyMaterial.viewCount", { value: material.view_count || 0 })} />
+            <InfoLine icon="calendar" color="#F59E0B" last theme={theme} isDarkMode={isDarkMode} border={cardBorder}
+              text={t("studyMaterial.createdAt", { value: new Date(material.created_at).toLocaleDateString({ vi: "vi-VN", en: "en-US", ru: "ru-RU" }[i18n.language?.split("-")[0]] || "vi-VN") })} />
           </View>
 
           <View style={styles.actionRow}>
             {!material.is_purchased && !material.is_free && material.price > 0 ? (
               <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={() => setShowPurchaseModal(true)} disabled={processing}>
-                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("studyMaterial.buy")}</Text>}
+                {processing ? <ActivityIndicator color="#fff" /> : (
+                  <View style={styles.buttonRow}>
+                    <Ionicons name="cart" size={18} color="#fff" />
+                    <Text style={styles.buttonText}>{t("studyMaterial.buy")}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={handleDownload} disabled={processing}>
@@ -626,16 +658,19 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                     {downloadPercent != null ? <Text style={styles.buttonText}>{t("studyMaterial.downloading", { percent: downloadPercent })}</Text> : null}
                   </View>
                 ) : (
-                  <Text style={styles.buttonText}>{t("studyMaterial.download")}</Text>
+                  <View style={styles.buttonRow}>
+                    <Ionicons name="download" size={18} color="#fff" />
+                    <Text style={styles.buttonText}>{t("studyMaterial.download")}</Text>
+                  </View>
                 )}
               </TouchableOpacity>
             )}
           </View>
 
           {pdfViewerUrl || officeViewerUrl ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
-              <View style={[styles.webviewContainer, { borderColor: theme.border }]}>
+            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+              <CardTitle icon="eye" color="#0EA5E9" title={t("studyMaterial.preview")} theme={theme} isDarkMode={isDarkMode} />
+              <View style={[styles.webviewContainer, { borderColor: cardBorder }]}>
                 <WebView
                   source={{ uri: pdfViewerUrl || officeViewerUrl }}
                   style={styles.webview}
@@ -658,8 +693,8 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               </View>
             </View>
           ) : material?.preview_path ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
+            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+              <CardTitle icon="eye" color="#0EA5E9" title={t("studyMaterial.preview")} theme={theme} isDarkMode={isDarkMode} />
               <View style={[styles.webviewContainer, { borderColor: theme.border, height: 320, backgroundColor: isDarkMode ? "#18181B" : "#F3F4F6", overflow: "hidden" }]}>
                 <FastImage
                   source={{ uri: material.preview_path.startsWith("http") ? material.preview_path : `https://api.chuyenbienhoa.com/storage/${material.preview_path.replace(/^\/+/, "")}` }}
@@ -671,14 +706,14 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           ) : null}
 
           {material.preview_content ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.summary")}</Text>
+            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+              <CardTitle icon="reader" color="#8B5CF6" title={t("studyMaterial.summary")} theme={theme} isDarkMode={isDarkMode} />
               <Text style={[styles.previewText, { color: theme.subText }]}>{material.preview_content}</Text>
             </View>
           ) : null}
 
-          <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.reviews")}</Text>
+          <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+            <CardTitle icon="star" color="#F59E0B" title={t("studyMaterial.reviews")} theme={theme} isDarkMode={isDarkMode} />
             <Text style={[styles.helperText, { color: theme.subText }]}>{t("studyMaterial.reviewHint")}</Text>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map((star) => (
@@ -688,7 +723,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               ))}
             </View>
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.subText + "55" }]}
+              style={[styles.input, { color: theme.text, borderColor: cardBorder, backgroundColor: theme.background }]}
               value={ratingComment}
               onChangeText={setRatingComment}
               placeholder={t("studyMaterial.reviewPlaceholder")}
@@ -710,15 +745,15 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           </View>
 
           {ratings.length > 0 ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.communityReviews")}</Text>
+            <View style={[styles.previewCard, { backgroundColor: theme.surface, borderColor: cardBorder }]}>
+              <CardTitle icon="chatbubbles" color="#EC4899" title={t("studyMaterial.communityReviews")} theme={theme} isDarkMode={isDarkMode} />
               {ratings.map((item) => {
                 const avatarUrl = item?.user?.username
                   ? `${axiosInstance.defaults.baseURL?.replace(/\/$/, "")}/v1.0/users/${item.user.username}/avatar`
                   : null;
 
                 return (
-                  <View key={item.id} style={[styles.ratingItem, { borderTopColor: theme.border }]}>
+                  <View key={item.id} style={[styles.ratingItem, { borderTopColor: cardBorder }]}>
                     <View style={styles.ratingHeader}>
                       <View style={styles.ratingUserRow}>
                         {avatarUrl ? (
@@ -850,15 +885,18 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, fontWeight: "600" },
   heroCard: {
     margin: 16,
-    borderRadius: 18,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    overflow: "hidden",
   },
+  chipsRow: { flexDirection: "row", gap: 8, marginTop: 14 },
+  heroChip: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  heroChipText: { fontSize: 13, fontWeight: "700" },
+  buttonRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   badge: {
+    flexDirection: "row",
+    alignItems: "center",
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -866,8 +904,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   badgeText: { fontSize: 11, fontWeight: "700" },
-  titleText: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
-  descriptionText: { fontSize: 13, lineHeight: 20 },
+  titleText: { fontSize: 22, fontWeight: "800", marginBottom: 8 },
+  descriptionText: { fontSize: 14, lineHeight: 21 },
   rowBetween: {
     flexDirection: "row",
     alignItems: "center",
@@ -877,10 +915,9 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 13, fontWeight: "700" },
   infoCard: {
     marginHorizontal: 16,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   sectionTitle: { fontSize: 15, fontWeight: "700", marginBottom: 10 },
   infoRow: {
@@ -892,18 +929,17 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 13, flex: 1 },
   actionRow: { marginHorizontal: 16, marginTop: 16 },
   primaryButton: {
-    borderRadius: 14,
-    paddingVertical: 12,
+    borderRadius: 999,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "700" },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   previewCard: {
     margin: 16,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   previewText: { fontSize: 13, lineHeight: 20 },
   helperText: { fontSize: 12, marginBottom: 10 },
@@ -914,7 +950,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalCard: {
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 18,
   },
   modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
@@ -934,14 +970,14 @@ const styles = StyleSheet.create({
   },
   modalSecondaryButton: {
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    borderRadius: 999,
+    paddingHorizontal: 18,
     paddingVertical: 10,
   },
   modalSecondaryText: { fontWeight: "600" },
   modalPrimaryButton: {
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    borderRadius: 999,
+    paddingHorizontal: 18,
     paddingVertical: 10,
   },
   modalPrimaryText: { color: "#fff", fontWeight: "700" },
@@ -952,25 +988,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     minHeight: 96,
     marginBottom: 12,
   },
   rateButton: {
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   webviewContainer: {
     height: 320,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderWidth: StyleSheet.hairlineWidth,
     marginTop: 8,
   },
   webview: {
@@ -979,8 +1014,7 @@ const styles = StyleSheet.create({
   },
   ratingItem: {
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E5E5",
+    borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: 10,
   },
   ratingHeader: {
