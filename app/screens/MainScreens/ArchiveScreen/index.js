@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
+import StoryPlayerHeader from "../../../components/StoryOverlays/StoryPlayerHeader";
 import {
   View,
   Text,
@@ -446,21 +447,23 @@ const ArchiveScreen = ({ route, navigation }) => {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "rgba(0,0,0,0.42)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.18)",
                 paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 20,
+                paddingHorizontal: 14,
+                borderRadius: 999,
               }}
             >
-              <Ionicons name="eye" size={20} color="#fff" />
+              <Ionicons name="eye" size={18} color="#fff" />
               <Text style={{ color: "white", marginLeft: 8, fontWeight: 'bold' }}>
                 {t('archive.viewersCount', { count: story.viewers_count })}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ padding: 10 }}>
-              <Ionicons name="heart" size={24} color={story.user_has_liked ? "#ff3b30" : "#fff"} />
-            </TouchableOpacity>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.42)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="heart" size={22} color={story.user_has_liked ? "#ff3b30" : "#fff"} />
+            </View>
           </View>
         ),
         };
@@ -759,8 +762,26 @@ const ArchiveScreen = ({ route, navigation }) => {
             textShadowRadius: 1.5,
             fontWeight: "600",
           }}
-          progressColor="#a4a4a4"
+          progressColor="rgba(255,255,255,0.35)"
+          progressActiveColor="#ffffff"
           closeIconColor="#c4c4c4"
+          // Same player chrome as the Home feed: author pill + round buttons,
+          // and a soft scrim behind the top and bottom controls.
+          renderStoryHeader={({ avatarSource, name, date, onClose }) => (
+            <StoryPlayerHeader avatarSource={avatarSource} name={name} date={date} onClose={onClose} />
+          )}
+          imageOverlayView={
+            <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+              <LinearGradient
+                colors={["rgba(0,0,0,0.5)", "rgba(0,0,0,0)"]}
+                style={{ position: "absolute", top: 0, left: 0, right: 0, height: 150 }}
+              />
+              <LinearGradient
+                colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
+                style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 140 }}
+              />
+            </View>
+          }
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           onHide={() => {

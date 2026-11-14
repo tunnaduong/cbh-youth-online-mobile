@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import StoryPlayerHeader, { StoryRoundButton } from "../../../components/StoryOverlays/StoryPlayerHeader";
 import {
   View,
   Text,
@@ -788,12 +789,16 @@ const ReplyBar = ({
         <View style={styles.viewCountBar}>
           <TouchableOpacity
             onPress={handleViewCountPress}
+            activeOpacity={0.8}
             style={styles.viewCountButton}
           >
-            <Ionicons name="eye-outline" size={20} color="#fff" />
+            <View style={styles.viewCountIcon}>
+              <Ionicons name="eye" size={16} color="#fff" />
+            </View>
             <Text style={styles.viewCountText}>
               {t('home.views', { count: viewersCount })}
             </Text>
+            <Ionicons name="chevron-up" size={16} color="rgba(255,255,255,0.8)" />
           </TouchableOpacity>
         </View>
       </View>
@@ -810,7 +815,7 @@ const ReplyBar = ({
         />
       ))}
       <View style={{ paddingBottom: insets.bottom }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", paddingHorizontal: 16, marginBottom: 4 }}>
+        <View style={styles.emojiPill}>
           {emojis.map((emoji) => (
             <TouchableOpacity
               key={emoji}
@@ -819,10 +824,7 @@ const ReplyBar = ({
             >
               <Text
                 style={{
-                  fontSize: 30,
-                  textShadowColor: "rgba(0,0,0,0.35)",
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 3,
+                  fontSize: 27,
                 }}
               >
                 {emoji}
@@ -833,16 +835,8 @@ const ReplyBar = ({
         <View style={styles.replyBar}>
           <TextInput
             placeholder={t('home.storyReplyPlaceholder', 'Chia sẻ cảm nghĩ của bạn...')}
-            placeholderTextColor="rgba(255, 255, 255, 0.6)"
-            style={[
-              styles.input,
-              {
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#ffffff",
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.2)",
-              },
-            ]}
+            placeholderTextColor="rgba(255, 255, 255, 0.65)"
+            style={styles.input}
             value={replyText}
             onChangeText={setReplyText}
             onFocus={() => storyRef.current?.pause?.()}
@@ -851,14 +845,15 @@ const ReplyBar = ({
             editable={!isSending}
           />
           <TouchableOpacity
-            style={{ position: "absolute", right: 20 }}
+            style={[styles.sendButton, { backgroundColor: replyText.trim() ? theme.primary : "rgba(255,255,255,0.18)" }]}
             onPress={handleSendReply}
             disabled={!replyText.trim() || isSending}
+            accessibilityRole="button"
           >
             {isSending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Ionicons name="send" size={24} color="#fff" />
+              <Ionicons name="send" size={18} color="#fff" />
             )}
           </TouchableOpacity>
         </View>
@@ -3249,118 +3244,57 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             // navigation.
             <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
               <LinearGradient
+                colors={["rgba(0,0,0,0.5)", "rgba(0,0,0,0)"]}
+                style={{ position: "absolute", top: 0, left: 0, right: 0, height: 150 }}
+              />
+              <LinearGradient
                 colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
                 style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 140 }}
               />
             </View>
           }
           progressColor="rgba(255,255,255,0.35)"
-          progressActiveColor={theme.primary}
+          progressActiveColor="#ffffff"
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
           renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
-            <View style={{ width: SCREEN_WIDTH - 40, minHeight: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Pressable
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={() => {
-                  if (userId) {
-                    const user = userStories.find((u) => u.id === userId || u.uid === userId);
-                    if (user) {
-                      updateCurrentStoryUser({ id: user.uid, username: user.id });
-                    }
+            <StoryPlayerHeader
+              avatarSource={avatarSource}
+              name={name}
+              date={date}
+              profileTheme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
+              onMore={onMore}
+              onClose={onClose}
+              onAvatarPress={() => {
+                if (!userId) return;
+                const user = userStories.find((u) => u.id === userId || u.uid === userId);
+                if (user) updateCurrentStoryUser({ id: user.uid, username: user.id });
+                const username = userId;
+                dismissStoryModal();
+                setTimeout(() => navigation.navigate("ProfileScreen", { username }), 300);
+              }}
+              muteButton={(() => {
+                try {
+                  const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
+                  if (!u) return null;
+                  const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                  if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
+                    const isServerMuted = Boolean(st?.is_muted);
+                    const isAudioMuted = Boolean(currentStory && (clientMuted[currentStory] || isServerMuted));
+                    return (
+                      <StoryRoundButton
+                        icon={isAudioMuted ? "volume-mute" : "volume-high"}
+                        disabled={isServerMuted}
+                        onPress={() => { if (!isServerMuted) toggleClientMute(currentStory); }}
+                      />
+                    );
                   }
-                  if (userId) {
-                    const username = userId;
-                    dismissStoryModal();
-                    setTimeout(() => navigation.navigate("ProfileScreen", { username }), 300);
-                  }
-                }}
-              >
-                {avatarSource && (
-                  <AvatarFrameWrap
-                    theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
-                    size={28}
-                  >
-                    <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
-                      <FastImage source={avatarSource} style={{ width: 28, height: 28 }} />
-                    </View>
-                  </AvatarFrameWrap>
-                )}
-              </Pressable>
-              {/* Absolutely centered across the full header width (not just
-                  the space between avatar/icons) to match the design - a
-                  flex "space-between" center column would drift off-true-
-                  center whenever the icon cluster's width differs from the
-                  avatar's (e.g. the mute button only shows for videos).
-                  pointerEvents="none" so it never blocks the avatar/icon
-                  taps it visually sits between. */}
-              <View
-                pointerEvents="none"
-                style={{ position: 'absolute', left: storyHeaderInset, right: storyHeaderInset, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
-              >
-                {name && (
-                  <UserNameRow
-                    name={name}
-                    theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
-                    variant="full"
-                    containerStyle={{ maxWidth: '100%' }}
-                    style={{ color: '#fff', fontWeight: '600' }}
-                  />
-                )}
-                {date && <Text numberOfLines={1} style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
-              </View>
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                // The centred name/date keeps clear of this cluster on both
-                // sides. A fixed 44px inset sat under the mute + settings +
-                // close icons (~100px), so the name was squeezed and the lines
-                // wrapped over each other (seen on iOS).
-                onLayout={(e) => {
-                  const inset = Math.max(44, Math.ceil(e.nativeEvent.layout.width) + 8);
-                  setStoryHeaderInset((prev) => (prev === inset ? prev : inset));
-                }}
-              >
-                {(() => {
-                  try {
-                    const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
-                    if (!u) return null;
-                    const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
-                    if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
-                      const isServerMuted = Boolean(st?.is_muted);
-                      const isAudioMuted = Boolean(currentStory && (clientMuted[currentStory] || isServerMuted));
-                      return (
-                        <TouchableOpacity
-                          disabled={isServerMuted}
-                          onPress={() => { if (!isServerMuted) toggleClientMute(currentStory); }}
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          style={{
-                            width: 36, height: 36, borderRadius: 18,
-                            backgroundColor: 'rgba(0,0,0,0.35)',
-                            alignItems: 'center', justifyContent: 'center',
-                            opacity: isServerMuted ? 0.7 : 1,
-                          }}
-                        >
-                          <Ionicons name={isAudioMuted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
-                        </TouchableOpacity>
-                      );
-                    }
-                  } catch (e) { return null; }
-                  return null;
-                })()}
-                {onMore && (
-                  <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name="settings" size={24} color="#fff" />
-                  </TouchableOpacity>
-                )}
-                {onClose && (
-                  <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name="close" size={26} color="#fff" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+                } catch (e) { return null; }
+                return null;
+              })()}
+            />
           )}
           onStoryHeaderPress={(userId) => {
             console.log("Global Story Header Pressed for:", userId);
@@ -3711,14 +3645,49 @@ const styles = StyleSheet.create({
   replyBar: {
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingLeft: 6,
+    paddingRight: 6,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  emojiPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    alignSelf: "center",
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    marginBottom: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.38)",
+    gap: 4,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewCountIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   input: {
     flex: 1,
-    height: 45,
-    borderRadius: 25,
-    paddingHorizontal: 15,
+    height: 44,
+    paddingHorizontal: 16,
+    color: "#ffffff",
+    fontSize: 15,
   },
   viewCountBar: {
     paddingHorizontal: 16,
@@ -3729,11 +3698,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    paddingVertical: 8,
+    paddingLeft: 8,
+    paddingRight: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
   },
   viewCountText: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,
