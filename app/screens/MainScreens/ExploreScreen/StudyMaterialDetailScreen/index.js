@@ -56,6 +56,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const [ratingValue, setRatingValue] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [loading, setLoading] = useState(true);
+  const [downloadPercent, setDownloadPercent] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [submittingRate, setSubmittingRate] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -343,8 +344,13 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const officeViewerUrl = isOfficePreviewable && directPreviewUrl && (material?.is_free || material?.is_purchased)
     ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directPreviewUrl)}`
     : null;
+  // Android's WebView treats a raw .pdf URL as a download and drops the file in
+  // the device's Downloads folder, so there the PDF is shown through an
+  // embedded viewer page instead. iOS renders PDFs natively.
   const pdfViewerUrl = isPdf && directPreviewUrl && (material?.is_free || material?.is_purchased)
-    ? directPreviewUrl
+    ? Platform.OS === "android"
+      ? `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(directPreviewUrl)}`
+      : directPreviewUrl
     : null;
 
   const handlePurchase = async () => {
@@ -424,28 +430,31 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       const downloadUrl = `${baseUrl}/v1.0/study-materials/${materialId}/download`;
       const proposedName = material?.file?.file_name || `${material?.title || "study-material"}.pdf`;
       const safeName = proposedName.replace(/[\\/:*?"<>|]/g, "_");
-      const fileUri = `${FileSystem.documentDirectory}${safeName}`;
+      const fileUri = `${FileSystem.cacheDirectory}${materialId}-${safeName}`;
 
-      // iOS's downloadAsync writes to a temp file, then moves it to fileUri —
-      // that move throws (surfaces as ERR_FILESYSTEM_CANNOT_DOWNLOAD /
-      // "unknown error" from the background URLSession) if a file already
-      // exists at the destination, e.g. from a previous attempt with the
-      // same material. Clear it first so re-downloading the same material
-      // doesn't fail.
-      const existing = await FileSystem.getInfoAsync(fileUri);
-      if (existing.exists) {
-        console.log("[Download] removing stale file at destination", fileUri);
-        await FileSystem.deleteAsync(fileUri, { idempotent: true });
-      }
+      // Re-download from scratch: iOS fails when a file already sits at the
+      // destination. The file lives in the app cache, not the Downloads folder.
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
 
-      console.log("[Download] starting", { platform: Platform.OS, downloadUrl, fileUri, hasToken: !!token });
+      Toast.show({ type: "info", text1: t("studyMaterial.downloadStarted"), text2: material?.title });
+      setDownloadPercent(0);
 
-      const result = await FileSystem.downloadAsync(downloadUrl, fileUri, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          Accept: "application/octet-stream",
+      const resumable = FileSystem.createDownloadResumable(
+        downloadUrl,
+        fileUri,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Accept: "application/octet-stream",
+          },
         },
-      });
+        ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
+          if (totalBytesExpectedToWrite > 0) {
+            setDownloadPercent(Math.floor((totalBytesWritten / totalBytesExpectedToWrite) * 100));
+          }
+        }
+      );
+      const result = await resumable.downloadAsync();
 
       console.log("[Download] downloadAsync result", { status: result?.status, uri: result?.uri });
 
@@ -518,6 +527,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       });
     } finally {
       setProcessing(false);
+      setDownloadPercent(null);
     }
   };
 
@@ -610,7 +620,14 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={handleDownload} disabled={processing}>
-                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("studyMaterial.download")}</Text>}
+                {processing ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <ActivityIndicator color="#fff" />
+                    {downloadPercent != null ? <Text style={styles.buttonText}>{t("studyMaterial.downloading", { percent: downloadPercent })}</Text> : null}
+                  </View>
+                ) : (
+                  <Text style={styles.buttonText}>{t("studyMaterial.download")}</Text>
+                )}
               </TouchableOpacity>
             )}
           </View>

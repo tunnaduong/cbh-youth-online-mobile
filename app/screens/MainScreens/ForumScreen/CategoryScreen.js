@@ -29,6 +29,8 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 
 import { getCategoryName, getCategoryDescription } from "../../../utils/forumUtils";
 
@@ -61,62 +63,54 @@ const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity,
   </View>
 );
 
-const ThreadItem = React.memo(({ thread, lastItem, navigation, theme, t }) => (
+const ThreadItem = React.memo(({ thread, navigation, theme, isDarkMode, t }) => (
   <TouchableOpacity
+    activeOpacity={0.75}
     onPress={() => navigation.navigate("PostScreen", { postId: thread?.id })}
     style={[
-      styles.threadRow,
-      {
-        borderBottomWidth: lastItem ? 0 : StyleSheet.hairlineWidth,
-        borderBottomColor: theme.border,
-      },
+      styles.threadCard,
+      { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" },
     ]}
   >
-    <View style={styles.threadContentRow}>
-      <View style={styles.threadMetaRow}>
-        <AvatarFrameWrap theme={thread?.author?.profile_theme} size={20} style={{ marginRight: 8 }}>
-          <FastImage
-            source={{ uri: thread?.author?.avatar }}
-            style={[styles.avatar, { marginRight: 0 }]}
-          />
-        </AvatarFrameWrap>
-        <UserNameRow
-          name={thread?.author?.profile_name}
-          theme={thread?.author?.profile_theme}
-          verified={!!thread?.author?.verified}
-          verifiedSize={14}
-          verifiedColor={theme.primary}
-          style={[styles.metaName, { color: theme.text }]}
-          containerStyle={{ flex: 1 }}
-        >
-          <Text style={[styles.metaDate, { color: theme.subText }]} numberOfLines={1}>
-            {" · "}{thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
-          </Text>
-        </UserNameRow>
-      </View>
-      <View style={styles.threadRight}>
-        <Text style={[styles.threadLatestName, { color: theme.subText }]} numberOfLines={1}>
-          {thread?.latest_reply?.user?.profile_name}
-        </Text>
-        <Text style={[styles.threadLatestTime, { color: theme.subText }]} numberOfLines={1}>
-          · {thread?.latest_reply?.created_at ? formatTime(thread?.latest_reply?.created_at) : ""}
-        </Text>
-      </View>
-    </View>
     <Text style={[styles.threadTitle, { color: theme.text }]} numberOfLines={2} ellipsizeMode="tail">
       {thread?.title}
     </Text>
+    <View style={styles.threadMetaRow}>
+      <AvatarFrameWrap theme={thread?.author?.profile_theme} size={22} style={{ marginRight: 8 }}>
+        <FastImage source={{ uri: thread?.author?.avatar }} style={[styles.avatar, { marginRight: 0 }]} />
+      </AvatarFrameWrap>
+      <UserNameRow
+        name={thread?.author?.profile_name}
+        theme={thread?.author?.profile_theme}
+        verified={!!thread?.author?.verified}
+        verifiedSize={14}
+        verifiedColor={theme.primary}
+        style={[styles.metaName, { color: theme.text }]}
+        containerStyle={{ flex: 1 }}
+      >
+        <Text style={[styles.metaDate, { color: theme.subText }]} numberOfLines={1}>
+          {" · "}{thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t("post.edited")})` : ""}
+        </Text>
+      </UserNameRow>
+    </View>
     <View style={styles.threadStatsRow}>
-      <View style={styles.threadStatsGroup}>
-        <View style={styles.statItem}>
-          <Ionicons name="chatbubble-outline" size={16} color={theme.subText} />
-          <Text style={[styles.statText, { color: theme.subText }]}>{thread?.reply_count}+</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="eye-outline" size={16} color={theme.subText} />
-          <Text style={[styles.statText, { color: theme.subText }]}>{thread?.view_count}</Text>
-        </View>
+      <View style={[styles.statChip, { backgroundColor: tint("#3B82F6", isDarkMode) }]}>
+        <Ionicons name="chatbubble-outline" size={14} color="#3B82F6" />
+        <Text style={[styles.statText, { color: "#3B82F6" }]}>{thread?.reply_count}+</Text>
       </View>
+      <View style={[styles.statChip, { backgroundColor: tint("#8B5CF6", isDarkMode) }]}>
+        <Ionicons name="eye-outline" size={14} color="#8B5CF6" />
+        <Text style={[styles.statText, { color: "#8B5CF6" }]}>{thread?.view_count}</Text>
+      </View>
+      {thread?.latest_reply?.user?.profile_name ? (
+        <View style={styles.threadLatest}>
+          <Ionicons name="return-down-forward-outline" size={14} color={theme.subText} />
+          <Text style={[styles.threadLatestName, { color: theme.subText }]} numberOfLines={1}>
+            {thread.latest_reply.user.profile_name}
+            {thread.latest_reply.created_at ? ` · ${formatTime(thread.latest_reply.created_at)}` : ""}
+          </Text>
+        </View>
+      ) : null}
     </View>
   </TouchableOpacity>
 ));
@@ -284,35 +278,36 @@ const CategoryScreen = ({ navigation, route }) => {
   const isDescriptionLong = descriptionText.length > 120;
 
   const renderCategoryBanner = () => (
-    <View style={{ backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: theme.border, overflow: "hidden" }}>
+    <View style={[styles.banner, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}>
       <ImageBackground
         source={{ uri: forumData.subforum.background }}
         resizeMode="cover"
-        style={{ width: "100%", justifyContent: "center" }}
+        imageStyle={{ opacity: isDarkMode ? 0.18 : 0.22 }}
+        style={{ width: "100%" }}
       >
         <LinearGradient
-          colors={[theme.background, "transparent"]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 3, y: 0 }}
-          style={{ position: "absolute", width: "100%", height: "100%" }}
+          colors={isDarkMode ? ["rgba(19,51,33,0.92)", "rgba(14,36,24,0.8)"] : ["rgba(234,248,236,0.94)", "rgba(224,245,227,0.8)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
         />
-        <View style={{ padding: 16 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 8, color: theme.text }}>
+        <BannerWatermark icon="chatbubbles" size={140} />
+        <View style={{ padding: 18 }}>
+          <View style={[styles.bannerBadge, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+            <Ionicons name="albums-outline" size={14} color={theme.primary} />
+            <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "700" }}>
+              {t("forum.title")} · {forumData.topics.length}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 24, fontWeight: "800", marginBottom: 6, color: theme.text }}>
             {getCategoryName(forumData.subforum.name, t)}
           </Text>
-          <Text
-            style={{ color: theme.subText, lineHeight: 22 }}
-            numberOfLines={descExpanded ? undefined : 3}
-          >
+          <Text style={{ color: theme.subText, lineHeight: 21, fontSize: 14 }} numberOfLines={descExpanded ? undefined : 3}>
             {descriptionText}
           </Text>
           {isDescriptionLong && (
-            <TouchableOpacity
-              onPress={() => setDescExpanded((prev) => !prev)}
-              style={{ marginTop: 6, alignSelf: "flex-start" }}
-              hitSlop={8}
-            >
-              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "600" }}>
+            <TouchableOpacity onPress={() => setDescExpanded((prev) => !prev)} style={{ marginTop: 6, alignSelf: "flex-start" }} hitSlop={8}>
+              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "700" }}>
                 {descExpanded ? t("common.collapse", "Thu gọn") : t("common.showMore", "Xem thêm")}
               </Text>
             </TouchableOpacity>
@@ -326,38 +321,14 @@ const CategoryScreen = ({ navigation, route }) => {
     <>
       {renderCategoryBanner()}
       {forumData.topics.length > 0 && (
-        <View style={styles.threadListWrapper}>
-          <View style={[styles.threadListHeader, { backgroundColor: theme.iconBackground, borderColor: theme.border }]}>
-            <Text style={{ fontWeight: "600", fontSize: 13, color: theme.subText }}>{t('forum.threadTitle')}</Text>
-            <Text style={{ fontWeight: "600", fontSize: 13, color: theme.subText }}>{t('forum.lastPost')}</Text>
-          </View>
-        </View>
+        <Text style={[styles.sectionTitle, { color: theme.subText }]}>{t("forum.threadTitle")}</Text>
       )}
     </>
   );
 
-  const renderThreadItem = ({ item, index }) => {
-    const isFirst = index === 0;
-    const isLast = index === forumData.topics.length - 1;
-    return (
-      <View
-        style={{
-          marginHorizontal: 16,
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderTopWidth: isFirst ? StyleSheet.hairlineWidth : 0,
-          borderTopLeftRadius: isFirst ? 16 : 0,
-          borderTopRightRadius: isFirst ? 16 : 0,
-          borderBottomLeftRadius: isLast ? 16 : 0,
-          borderBottomRightRadius: isLast ? 16 : 0,
-          overflow: "hidden",
-        }}
-      >
-        <ThreadItem thread={item} lastItem={isLast} navigation={navigation} theme={theme} t={t} />
-      </View>
-    );
-  };
+  const renderThreadItem = ({ item }) => (
+    <ThreadItem thread={item} navigation={navigation} theme={theme} isDarkMode={isDarkMode} t={t} />
+  );
 
   const renderEmptyComponent = () => (
     <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -407,7 +378,7 @@ const CategoryScreen = ({ navigation, route }) => {
           updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} progressViewOffset={headerHeight} />
           }
           style={{
             flex: 1,
@@ -439,102 +410,94 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  threadListWrapper: {
+  banner: {
     marginHorizontal: 16,
-    marginTop: 16,
-  },
-  threadListHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 8,
-  },
-  threadListCard: {
-    borderRadius: 16,
+    marginTop: 4,
+    marginBottom: 20,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
-  threadRow: {
-    padding: 16,
-  },
-  threadContentRow: {
+  bannerBadge: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 16,
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 10,
   },
-  threadRight: {
-    width: 120,
-    alignItems: "flex-end",
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  threadCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  threadTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 22,
+    marginBottom: 10,
     minWidth: 0,
   },
   threadMetaRow: {
-    flex: 1,
-    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
+    minWidth: 0,
   },
   avatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 8,
-  },
-  metaText: {
-    fontSize: 14,
-    marginRight: 8,
-    minWidth: 0,
-    flexShrink: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   // Author line: the name truncates, the date after it never does.
   metaName: {
     fontSize: 14,
+    fontWeight: "600",
   },
   metaDate: {
-    fontSize: 14,
+    fontSize: 13,
     flexShrink: 0,
-  },
-  threadTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginTop: 8,
-    marginBottom: 12,
-    minWidth: 0,
   },
   threadStatsRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
+    gap: 6,
+    marginTop: 12,
   },
-  threadStatsGroup: {
+  statChip: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 16,
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   statText: {
-    fontSize: 14,
-    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: "700",
   },
-  threadLatestContainer: {
+  threadLatest: {
     flex: 1,
-    alignItems: "flex-end",
-  },
-  threadLatestName: {
-    fontSize: 14,
-    textAlign: "right",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
     minWidth: 0,
   },
-  threadLatestTime: {
-    fontSize: 14,
-    textAlign: "right",
+  threadLatestName: {
+    flexShrink: 1,
+    fontSize: 12,
     minWidth: 0,
   },
 });

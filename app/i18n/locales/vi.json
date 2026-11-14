@@ -2109,6 +2109,8 @@
     "reviewError": "Đánh giá thất bại",
     "downloadSuccess": "Đã tải xuống thành công",
     "downloadSuccessHint": "Bạn có thể lưu vào Files hoặc chia sẻ ngay bây giờ",
+    "downloadStarted": "Đã bắt đầu tải xuống",
+    "downloading": "Đang tải… {{percent}}%",
     "shareMessage": "Tài liệu: {{title}}",
     "downloadError": "Tải tài liệu thất bại",
     "invalidFile": "Không nhận được file hợp lệ",

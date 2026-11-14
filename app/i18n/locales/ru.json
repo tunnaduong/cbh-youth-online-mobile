@@ -2142,6 +2142,8 @@
     "reviewError": "Не удалось отправить оценку",
     "downloadSuccess": "Загрузка завершена",
     "downloadSuccessHint": "Теперь файл можно сохранить в Files или поделиться им",
+    "downloadStarted": "Загрузка началась",
+    "downloading": "Загрузка… {{percent}}%",
     "shareMessage": "Материал: {{title}}",
     "downloadError": "Не удалось скачать материал",
     "invalidFile": "Получен некорректный файл",

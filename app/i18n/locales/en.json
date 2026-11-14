@@ -2123,6 +2123,8 @@
     "reviewError": "Review submission failed",
     "downloadSuccess": "Download completed",
     "downloadSuccessHint": "You can save it to Files or share it now",
+    "downloadStarted": "Download started",
+    "downloading": "Downloading… {{percent}}%",
     "shareMessage": "Material: {{title}}",
     "downloadError": "Download failed",
     "invalidFile": "No valid file was received",

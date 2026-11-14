@@ -614,7 +614,7 @@ const StudyMaterialScreen = ({ navigation }) => {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+                  contentContainerStyle={{ paddingHorizontal: 4, paddingRight: 24, gap: 8 }}
                 >
                   {filterOptions.map((filter) => {
                     const active = selectedFilter === filter.key;
@@ -631,12 +631,8 @@ const StudyMaterialScreen = ({ navigation }) => {
                         ]}
                       >
                         <Text
-                          style={{
-                            color: active ? "#fff" : theme.text,
-                            fontWeight: "600",
-                            fontSize: 12,
-                            lineHeight: 16,
-                          }}
+                          numberOfLines={1}
+                          style={[styles.chipText, { color: active ? "#fff" : theme.text }]}
                         >
                           {t(`studyMaterial.filters.${filter.labelKey}`)}
                         </Text>
@@ -654,7 +650,7 @@ const StudyMaterialScreen = ({ navigation }) => {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+                  contentContainerStyle={{ paddingHorizontal: 4, paddingRight: 24, gap: 8 }}
                 >
                   <TouchableOpacity
                     onPress={() => setSelectedCategory(null)}
@@ -667,12 +663,8 @@ const StudyMaterialScreen = ({ navigation }) => {
                     ]}
                   >
                     <Text
-                      style={{
-                        color: !selectedCategory ? "#fff" : theme.text,
-                        fontWeight: "600",
-                        fontSize: 12,
-                        lineHeight: 16,
-                      }}
+                      numberOfLines={1}
+                      style={[styles.chipText, { color: !selectedCategory ? "#fff" : theme.text }]}
                     >
                       {t("studyMaterial.filters.all", "Tất cả")}
                     </Text>
@@ -692,12 +684,8 @@ const StudyMaterialScreen = ({ navigation }) => {
                         ]}
                       >
                         <Text
-                          style={{
-                            color: active ? "#fff" : theme.text,
-                            fontWeight: "600",
-                            fontSize: 12,
-                            lineHeight: 16,
-                          }}
+                          numberOfLines={1}
+                          style={[styles.chipText, { color: active ? "#fff" : theme.text }]}
                         >
                           {getCategoryLabel(category)}
                         </Text>
@@ -809,8 +797,17 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    flexShrink: 0,
+  },
+  // No fixed lineHeight and a little spare width: in a horizontal ScrollView
+  // the tight box clipped the last letter ("Vật lý", "Địa lý").
+  chipText: {
+    fontWeight: "600",
+    fontSize: 13,
+    includeFontPadding: false,
+    paddingRight: 1,
   },
   sortRow: {
     flexDirection: "row",
