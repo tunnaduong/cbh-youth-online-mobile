@@ -379,6 +379,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 ## 6. Recent work (newest first)
 
 > **Size rules - read before adding an entry.** Max 10 entries, each max 3 lines (~300 chars); adding one drops the oldest (`git log -p -- INFO.md` keeps everything). No file-by-file changelogs or step lists - commits hold that. Record only what the code cannot tell a future agent: rules, gotchas, "needs a new native build", API dependencies. A lasting rule goes in Conventions / Design system, not here. Keep this whole file under ~500 lines / 60 KB; trim in the same commit if you push past it.
+- **Saved/liked posts, activity, archive, create-story picker revamped** (hero banners, card rows; story picker has the floating `LiquidButton` header). **Bubble**: channel renamed `chat_bubbles_v2`, `bubblePreference()` warns when only selected chats may bubble - **needs a new native build**.
 - **Score lookup, app updates (OTA), privacy policy & terms revamped** in the same look (hero banner, tinted icon rows, pill buttons, numbered legal sections); legal text unchanged. JS only.
 - **Explore sub-screens revamped one by one**: study material (list/detail/upload), games, universities, quiz + custom quiz share one look: green hero banner with `BannerWatermark`, tinted icon labels, pill chips/search/buttons, hairline cards. JS only.
 - **Study material**: category chips no longer clip the last letter; PDF preview on Android goes through a viewer page (a raw .pdf URL made WebView drop it into Downloads); Download saves to the app cache, shows "started" + percent, then the share sheet. Forum category screen revamped (banner, card threads). JS only.
@@ -388,4 +389,3 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Timetable & Report screens revamped like Settings/Explore** (Timetable hero card, editor & AI modal; all Report steps with tinted chips, hairline cards, pill buttons; JS only).
 - **Fix: forum category pill visible on Android across switches** (`ForumScreen/index.js`: removed `overflow:"hidden"` from active tab, borderRadius on gradient; JS only).
 - **Full design pass: report modal, report screens, deposit, withdraw** (ReportModal, Step2, Deposit, Withdraw; pill buttons `borderRadius:999`, rounder inputs `r=16`, tinted icon holders; JS only).
-- **Feedback (bug report) and Point wallet restyled like Settings/Explore** (hero/balance card, tinted icon holders, hairline cards; JS only).

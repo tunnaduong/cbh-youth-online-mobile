@@ -33,6 +33,10 @@ import { startUpload, STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 import DrawingCanvas from "./DrawingCanvas";
 import MoveableItem from "./MoveableItem";
 import PinchableStoryImage from "./PinchableStoryImage";
@@ -267,6 +271,13 @@ const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  // Picker mode: floating header whose title fades out as the page scrolls.
+  const pickerScrollY = useRef(new Animated.Value(0)).current;
+  const pickerTitleOpacity = pickerScrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   // Media
   const [originalImage, setOriginalImage] = useState(null);
@@ -1160,39 +1171,44 @@ const CreateStoryScreen = ({ navigation }) => {
           </View>
         ) : (
           <View
-            style={{
-              paddingTop: insets.top,
-              height: 56 + insets.top,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-            }}
+            pointerEvents="box-none"
+            style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}
           >
-            <View style={{ width: 44 }}>
-              <TouchableOpacity
-                style={styles.headerBackButton}
-                onPress={() => navigation.goBack()}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel={t("common.back", "Quay lại")}
-              >
-                <Ionicons name="chevron-back" size={24} color={theme.primary} />
-              </TouchableOpacity>
-            </View>
-            <Text
-              numberOfLines={1}
+            <View
               style={{
-                fontSize: 18,
-                fontWeight: "600",
-                color: theme.primary,
-                textAlign: "center",
-                flex: 1,
+                paddingTop: insets.top,
+                paddingBottom: 8,
+                height: 64 + insets.top,
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 16,
               }}
             >
-              {t("story.createStory")}
-            </Text>
-            <View style={{ width: 44 }} />
+              <View style={{ width: 44 }}>
+                <LiquidButton
+                  size={44}
+                  scrollY={pickerScrollY}
+                  onPress={() => navigation.goBack()}
+                  accessibilityLabel={t("common.back", "Quay lại")}
+                >
+                  <Ionicons name="chevron-back" size={24} color={theme.primary} />
+                </LiquidButton>
+              </View>
+              <Animated.Text
+                numberOfLines={1}
+                style={{
+                  fontSize: 18,
+                  fontWeight: "600",
+                  color: theme.primary,
+                  textAlign: "center",
+                  flex: 1,
+                  opacity: pickerTitleOpacity,
+                }}
+              >
+                {t("story.createStory")}
+              </Animated.Text>
+              <View style={{ width: 44 }} />
+            </View>
           </View>
         )}
 
@@ -1400,30 +1416,40 @@ const CreateStoryScreen = ({ navigation }) => {
             style={{ flex: 1 }}
             onLayout={(event) => setContentAreaHeight(event.nativeEvent.layout.height)}
           >
-            <ScrollView
+            <LinearGradient
+              colors={
+                isDarkMode
+                  ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+                  : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+              }
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140 }}
+              pointerEvents="none"
+            />
+            <AndroidGlassBackdrop style={{ flex: 1 }}>
+            <Animated.ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{
                 paddingHorizontal: 16,
-                paddingTop: 14,
+                paddingTop: 64 + insets.top,
                 paddingBottom: insets.bottom + 28,
               }}
               showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: pickerScrollY } } }], {
+                useNativeDriver: false,
+              })}
             >
               {/* Header Hero Banner */}
               <LinearGradient
-                colors={
-                  isDarkMode
-                    ? ["rgba(49, 149, 39, 0.22)", "rgba(20, 30, 20, 0.55)"]
-                    : ["rgba(49, 149, 39, 0.12)", "rgba(240, 253, 244, 0.7)"]
-                }
+                colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[
-                  styles.heroBanner,
-                  { borderColor: isDarkMode ? "rgba(76, 175, 80, 0.25)" : "rgba(49, 149, 39, 0.2)" }
-                ]}
+                style={[styles.heroBanner, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
               >
-                <View style={[styles.heroBadge, { backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.2)" : "rgba(49, 149, 39, 0.12)" }]}>
+                <BannerWatermark icon="images" size={150} />
+                <View style={[styles.heroBadge, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
                   <Ionicons name="sparkles" size={13} color={theme.primary} />
                   <Text style={[styles.heroBadgeText, { color: theme.primary }]}>
                     {t("story.heroHours")}
@@ -1449,7 +1475,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   styles.modeCard,
                   {
                     backgroundColor: theme.surface,
-                    borderColor: theme.border,
+                    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
                   }
                 ]}
                 onPress={pickImage}
@@ -1485,7 +1511,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   styles.modeCard,
                   {
                     backgroundColor: theme.surface,
-                    borderColor: theme.border,
+                    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
                   }
                 ]}
                 onPress={handleCameraPress}
@@ -1514,7 +1540,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   styles.modeCard,
                   {
                     backgroundColor: theme.surface,
-                    borderColor: theme.border,
+                    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
                   }
                 ]}
                 onPress={handleTextOnlyStory}
@@ -1558,8 +1584,8 @@ const CreateStoryScreen = ({ navigation }) => {
                         style={[
                           styles.featureChip,
                           {
-                            backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-                            borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                            backgroundColor: tint(feat.color, isDarkMode),
+                            borderColor: "transparent",
                           }
                         ]}
                       >
@@ -1580,8 +1606,8 @@ const CreateStoryScreen = ({ navigation }) => {
                         style={[
                           styles.featureChip,
                           {
-                            backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-                            borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                            backgroundColor: tint(feat.color, isDarkMode),
+                            borderColor: "transparent",
                           }
                         ]}
                       >
@@ -1594,7 +1620,8 @@ const CreateStoryScreen = ({ navigation }) => {
                   </View>
                 </View>
               </View>
-            </ScrollView>
+            </Animated.ScrollView>
+            </AndroidGlassBackdrop>
           </View>
         )}
 
@@ -1642,10 +1669,10 @@ const CreateStoryScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   // Initial Picker Screen Styles
   heroBanner: {
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 20,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
   heroBadge: {
@@ -1674,7 +1701,8 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: 18,
     marginBottom: 8,
@@ -1684,7 +1712,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
@@ -1727,7 +1755,7 @@ const styles = StyleSheet.create({
   featureBox: {
     marginTop: 8,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
   },
   featureBoxHeader: {
@@ -1759,8 +1787,8 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   featureChipText: {
     flex: 1,
