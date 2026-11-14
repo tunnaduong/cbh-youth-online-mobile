@@ -22,7 +22,6 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
-import BannerWatermark from "../../../components/BannerWatermark";
 import { tint } from "../../../components/settings/SettingsUI";
 
 export default function MemberRankingScreen({ navigation }) {
@@ -93,112 +92,47 @@ export default function MemberRankingScreen({ navigation }) {
     if (rankingData.length < 3) return null;
     const [first, second, third] = rankingData;
 
+    // One podium column: avatar (framed in the medal colour), name, points,
+    // then the step with the rank number. Steps are flush with the card's
+    // bottom edge, so the three columns read as a podium.
+    const Place = ({ user, rank, color, avatar, stepHeight }) => (
+      <TouchableOpacity
+        style={styles.place}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate("ProfileScreen", { username: user.username })}
+      >
+        {rank === 1 ? <Ionicons name="trophy" size={26} color="#F59E0B" style={{ marginBottom: 4 }} /> : null}
+        <AvatarFrameWrap theme={user.profile_theme} size={avatar} style={styles.avatarWrapTop}>
+          <FastImage
+            source={{ uri: user.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}
+            style={{ width: avatar, height: avatar, borderRadius: avatar / 2, borderWidth: 3, borderColor: color }}
+          />
+        </AvatarFrameWrap>
+        <UserNameRow
+          name={user.profile_name}
+          theme={user.profile_theme}
+          style={[styles.nameTop, { color: theme.text, fontWeight: rank === 1 ? "800" : "600" }]}
+          containerStyle={styles.nameTopRow}
+        />
+        <Text style={[styles.pointsTop, { color: isDarkMode ? "#FBBF24" : "#B45309" }]}>
+          {t("profile.points", { count: user.total_points })}
+        </Text>
+        <View style={[styles.podiumStep, { height: stepHeight, backgroundColor: tint(color, isDarkMode) }]}>
+          <Text style={[styles.podiumRank, { color }]}>{rank}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+
     return (
       <LinearGradient
-        colors={isDarkMode ? ["rgba(245,158,11,0.28)", "rgba(245,158,11,0.10)"] : ["rgba(245,158,11,0.20)", "rgba(250,204,21,0.07)"]}
+        colors={isDarkMode ? ["rgba(245,158,11,0.26)", "rgba(245,158,11,0.08)"] : ["rgba(245,158,11,0.18)", "rgba(250,204,21,0.05)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.top3Container, { borderColor: isDarkMode ? "rgba(245,158,11,0.4)" : "rgba(245,158,11,0.3)" }]}
       >
-        <BannerWatermark icon="trophy" color="#F59E0B" size={150} />
-        {/* Second Place */}
-        <TouchableOpacity
-          style={[styles.top3Item, { marginTop: 40 }]}
-          onPress={() =>
-            navigation.navigate("ProfileScreen", { username: second.username })
-          }
-        >
-          <View style={[styles.rankBadge2, { borderColor: theme.background }]}>
-            <Text style={styles.rankText}>2</Text>
-          </View>
-          <AvatarFrameWrap theme={second.profile_theme} size={60} style={styles.avatarWrapTop}>
-            <FastImage
-              source={{
-                uri:
-                  second.avatar_url ||
-                  `https://api.chuyenbienhoa.com/v1.0/users/${second.username}/avatar`,
-              }}
-              style={styles.avatarTop2}
-            />
-          </AvatarFrameWrap>
-          <UserNameRow
-            name={second.profile_name}
-            theme={second.profile_theme}
-            style={[styles.nameTop, { color: theme.text }]}
-            containerStyle={styles.nameTopRow}
-          />
-          <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: second.total_points })}</Text>
-          <View style={[styles.podiumBase, { height: 26, backgroundColor: tint("#C0C0C0", isDarkMode) }]}>
-            <Ionicons name="medal" size={14} color="#C0C0C0" />
-          </View>
-        </TouchableOpacity>
-
-        {/* First Place */}
-        <TouchableOpacity
-          style={styles.top3Item}
-          onPress={() =>
-            navigation.navigate("ProfileScreen", { username: first.username })
-          }
-        >
-          <View style={styles.crownContainer}>
-            <Ionicons name="trophy" size={24} color="#FFD700" />
-          </View>
-          <AvatarFrameWrap theme={first.profile_theme} size={80} style={styles.avatarWrapTop}>
-            <FastImage
-              source={{
-                uri:
-                  first.avatar_url ||
-                  `https://api.chuyenbienhoa.com/v1.0/users/${first.username}/avatar`,
-              }}
-              style={styles.avatarTop1}
-            />
-          </AvatarFrameWrap>
-          <View style={[styles.rankBadge1, { borderColor: theme.background }]}>
-            <Text style={styles.rankText}>1</Text>
-          </View>
-          <UserNameRow
-            name={first.profile_name}
-            theme={first.profile_theme}
-            style={[styles.nameTop, { fontWeight: "bold", fontSize: 16, color: theme.text }]}
-            containerStyle={[styles.nameTopRow, { marginTop: 18 }]}
-          />
-          <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: first.total_points })}</Text>
-          <View style={[styles.podiumBase, { height: 44, backgroundColor: tint("#FFD700", isDarkMode) }]}>
-            <Ionicons name="trophy" size={14} color="#FFD700" />
-          </View>
-        </TouchableOpacity>
-
-        {/* Third Place */}
-        <TouchableOpacity
-          style={[styles.top3Item, { marginTop: 40 }]}
-          onPress={() =>
-            navigation.navigate("ProfileScreen", { username: third.username })
-          }
-        >
-          <View style={[styles.rankBadge3, { borderColor: theme.background }]}>
-            <Text style={styles.rankText}>3</Text>
-          </View>
-          <AvatarFrameWrap theme={third.profile_theme} size={60} style={styles.avatarWrapTop}>
-            <FastImage
-              source={{
-                uri:
-                  third.avatar_url ||
-                  `https://api.chuyenbienhoa.com/v1.0/users/${third.username}/avatar`,
-              }}
-              style={styles.avatarTop2}
-            />
-          </AvatarFrameWrap>
-          <UserNameRow
-            name={third.profile_name}
-            theme={third.profile_theme}
-            style={[styles.nameTop, { color: theme.text }]}
-            containerStyle={styles.nameTopRow}
-          />
-          <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: third.total_points })}</Text>
-          <View style={[styles.podiumBase, { height: 18, backgroundColor: tint("#CD7F32", isDarkMode) }]}>
-            <Ionicons name="medal" size={14} color="#CD7F32" />
-          </View>
-        </TouchableOpacity>
+        <Place user={second} rank={2} color="#94A3B8" avatar={60} stepHeight={46} />
+        <Place user={first} rank={1} color="#F59E0B" avatar={76} stepHeight={70} />
+        <Place user={third} rank={3} color="#CD7F32" avatar={60} stepHeight={34} />
       </LinearGradient>
     );
   };
@@ -359,46 +293,25 @@ const styles = StyleSheet.create({
   },
   top3Container: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 36,
-    paddingBottom: 0,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingTop: 22,
+    paddingHorizontal: 10,
     marginHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 16,
     borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
-  podiumBase: {
-    marginTop: 10,
-    width: "88%",
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+  place: {
+    width: "32%",
     alignItems: "center",
-    justifyContent: "center",
-  },
-  top3Item: {
-    alignItems: "center",
-    width: "30%",
-  },
-  avatarTop1: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: "#FFD700",
-  },
-  avatarTop2: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: "#C0C0C0",
   },
   avatarWrapTop: {
     marginBottom: 8,
   },
   nameTop: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
   },
   // Centred under the avatar; the name inside is cut with "…" if too long.
@@ -407,53 +320,20 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   pointsTop: {
-    fontSize: 13,
-    fontWeight: "bold",
-  },
-  crownContainer: {
-    position: "absolute",
-    top: -28,
-    zIndex: 1,
-  },
-  rankBadge1: {
-    position: "absolute",
-    bottom: 45,
-    backgroundColor: "#FFD700",
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-  },
-  rankBadge2: {
-    position: "absolute",
-    top: -10,
-    zIndex: 1,
-    backgroundColor: "#C0C0C0",
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-  },
-  rankBadge3: {
-    position: "absolute",
-    top: -10,
-    zIndex: 1,
-    backgroundColor: "#CD7F32",
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-  },
-  rankText: {
-    color: "#fff",
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  podiumStep: {
+    width: "100%",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  podiumRank: {
+    fontSize: 26,
+    fontWeight: "800",
   },
   rankItem: {
     flexDirection: "row",
