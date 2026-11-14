@@ -33,7 +33,6 @@ import { startUpload, STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
-import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import BannerWatermark from "../../../components/BannerWatermark";
 import HomeStyleHeader from "../../../components/HomeStyleHeader";
@@ -1115,11 +1114,13 @@ const CreateStoryScreen = ({ navigation }) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: hasContent ? "#000" : theme.background }}>
-        {/* Top Header */}
+        {/* Top Header - exactly 56 + inset tall, as before: the text editor's
+            bar and the canvas layout are measured against this height. */}
         {hasContent ? (
-          <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8), backgroundColor: "#000" }}>
+          <View style={{ paddingTop: insets.top, height: 56 + insets.top, backgroundColor: "#000", justifyContent: "center" }}>
             <HomeStyleHeader
               dark
+              compact
               icon="close"
               disabled={isUploading}
               title={
@@ -1143,7 +1144,9 @@ const CreateStoryScreen = ({ navigation }) => {
               }
             />
           </View>
-        ) : null}tent ? (
+        ) : null}
+
+        {hasContent ? (
           <View style={{ flex: 1 }}>
             <View
               style={{ flex: 1 }}
@@ -1369,8 +1372,7 @@ const CreateStoryScreen = ({ navigation }) => {
               showsVerticalScrollIndicator={false}
             >
               {/* Top header, same as the Home feed: round tinted button, big
-                  green title with the sparkle, grey subtitle, and the frog
-                  mascot on the right. */}
+                  green title with the sparkle and a grey subtitle. */}
               <View style={{ marginHorizontal: -16 }}>
                 <HomeStyleHeader
                   title={t("story.createStory")}

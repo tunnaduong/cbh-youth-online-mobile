@@ -8,14 +8,14 @@ import { useTheme } from "../contexts/ThemeContext";
 // back button, big green title with the yellow sparkle and a grey subtitle. It
 // sits at the top of the page content and scrolls away with it, exactly like
 // Home's. Add `insets.top` padding around it.
-export default function HomeStyleHeader({ title, subtitle, onBack, right, icon = "chevron-back", dark, disabled }) {
+export default function HomeStyleHeader({ title, subtitle, onBack, right, icon = "chevron-back", dark, disabled, compact }) {
   const { isDarkMode: themeDark } = useTheme();
   // `dark`: over a black screen (the story editor) - always the dark palette.
   const isDarkMode = dark ? true : themeDark;
   const { t } = useTranslation();
   const green = isDarkMode ? "#4ADE80" : "#15803D";
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && { paddingBottom: 0 }]}>
       <TouchableOpacity
         style={[
           styles.button,
