@@ -646,6 +646,9 @@ const MediaGalleryScreen = ({ route, navigation }) => {
           uri={videoViewer.item.file_url}
           onClose={() => setVideoViewer({ visible: false, item: null })}
           insetsTop={insets.top}
+          // Height of MediaActionBar (16 + content + bottom inset + 12), so the
+          // video's controls end above it.
+          footerHeight={insets.bottom + 76}
           footer={
             <MediaActionBar
               item={videoViewer.item}

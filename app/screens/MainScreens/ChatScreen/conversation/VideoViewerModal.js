@@ -8,7 +8,7 @@ import { styles } from "./styles";
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
-export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) => {
+export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer, footerHeight = 0 }) => {
   const { autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   const player = useVideoPlayer(uri || null, (p) => {
@@ -69,16 +69,21 @@ export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) =
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        {player && typeof player === "object" ? (
-          <VideoView
-            key={playerKey}
-            style={styles.videoViewerPlayer}
-            player={player}
-            allowsFullscreen
-            allowsPictureInPicture
-            nativeControls
-          />
-        ) : null}
+        {/* The footer overlays the bottom of the screen, so the player stops
+            above it - otherwise it covered the video's own controls
+            (play bar, time) at the bottom. */}
+        <View style={{ flex: 1, width: "100%", paddingBottom: footerHeight }}>
+          {player && typeof player === "object" ? (
+            <VideoView
+              key={playerKey}
+              style={{ flex: 1, width: "100%" }}
+              player={player}
+              allowsFullscreen
+              allowsPictureInPicture
+              nativeControls
+            />
+          ) : null}
+        </View>
         {/* Optional overlay (currently just the Gallery's sender/time +
             share/save/jump-to-message bar) - undefined everywhere else, so
             existing callers are unaffected. */}
