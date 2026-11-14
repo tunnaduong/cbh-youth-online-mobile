@@ -28,6 +28,9 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBar } from "../../../contexts/StatusBarContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import CustomLoading from "../../../components/CustomLoading";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
 import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
 import {
@@ -517,11 +520,11 @@ const ArchiveScreen = ({ route, navigation }) => {
         )}
         <View style={styles.storyInfo}>
           <View style={styles.storyStats}>
-            <Ionicons name="eye-outline" size={12} color={theme.subText} />
+            <Ionicons name="eye" size={12} color="#fff" />
             <Text style={styles.storyStatText}>{story.viewers_count}</Text>
           </View>
           <View style={styles.storyStats}>
-            <Ionicons name="heart-outline" size={12} color={theme.subText} />
+            <Ionicons name="heart" size={12} color="#F87171" />
             <Text style={styles.storyStatText}>{story.reactions_count}</Text>
           </View>
         </View>
@@ -534,7 +537,12 @@ const ArchiveScreen = ({ route, navigation }) => {
 
     return (
       <View style={styles.dateSection}>
-        <Text style={[styles.dateTitle, { color: theme.text }]}>{formatDateHeader(dateGroup.date)}</Text>
+        <View style={styles.dateRow}>
+          <View style={[styles.dateIcon, { backgroundColor: tint("#F59E0B", isDarkMode) }]}>
+            <Ionicons name="calendar" size={14} color="#F59E0B" />
+          </View>
+          <Text style={[styles.dateTitle, { color: theme.text }]}>{formatDateHeader(dateGroup.date)}</Text>
+        </View>
         <FlatList
           data={stories}
           renderItem={renderStoryItem}
@@ -552,41 +560,59 @@ const ArchiveScreen = ({ route, navigation }) => {
   // while scrolling. Here they scroll away with the list like the rest of the
   // page.
   const tabBar = (
-    <View style={{ flexDirection: "row", height: TAB_BAR_HEIGHT, paddingHorizontal: 16 }}>
-      {[
-        { key: "posts", label: t('archive.tabPosts') },
-        { key: "stories", label: t('archive.tabStories') },
-      ].map((tab) => {
-        const isActive = activeTab === tab.key;
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => {
-              // The other tab's list starts at the top.
-              scrollY.setValue(0);
-              setActiveTab(tab.key);
-            }}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              borderBottomWidth: 2,
-              borderBottomColor: isActive ? theme.primary : "transparent",
-            }}
-          >
-            <Text
+    <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
+      <View style={{ flexDirection: "row", borderRadius: 999, padding: 3, backgroundColor: theme.iconBackground }}>
+        {[
+          { key: "posts", label: t('archive.tabPosts'), icon: "document-text" },
+          { key: "stories", label: t('archive.tabStories'), icon: "images" },
+        ].map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              activeOpacity={0.8}
+              onPress={() => {
+                // The other tab's list starts at the top.
+                scrollY.setValue(0);
+                setActiveTab(tab.key);
+              }}
               style={{
-                fontSize: 15,
-                fontWeight: isActive ? "700" : "500",
-                color: isActive ? theme.primary : theme.subText,
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingVertical: 9,
+                borderRadius: 999,
+                backgroundColor: isActive ? theme.background : "transparent",
               }}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              <Ionicons name={tab.icon} size={16} color={isActive ? theme.primary : theme.subText} />
+              <Text style={{ fontSize: 14, fontWeight: isActive ? "700" : "500", color: isActive ? theme.text : theme.subText }}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
+  );
+  // Archive hero + privacy note, shown above both lists.
+  const privacyBanner = (text) => (
+    <LinearGradient
+      colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.privacyNotice, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+    >
+      <BannerWatermark icon="archive" size={110} />
+      <View style={[styles.privacyIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+        <Ionicons name="lock-closed" size={18} color={theme.primary} />
+      </View>
+      <Text style={[styles.privacyText, { color: theme.subText }]}>{text}</Text>
+    </LinearGradient>
   );
   // Loading / empty states keep the tabs on top so the other tab stays reachable.
   const renderState = (containerStyle, children) => (
@@ -607,7 +633,7 @@ const ArchiveScreen = ({ route, navigation }) => {
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: titleBarHeight }}>
           <View style={{ width: 44 }}>
             <LiquidButton providerId="ArchiveScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={22} color={theme.primary} />
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
           <Animated.Text
@@ -635,11 +661,13 @@ const ArchiveScreen = ({ route, navigation }) => {
         {activeTab === "posts" ? (
           postsLoading ? (
             renderState(styles.loadingContainer, (<>
-              <ActivityIndicator size="large" color="#319527" />
+              <CustomLoading size={60} />
             </>))
           ) : archivedPosts.length === 0 ? (
             renderState(styles.emptyContainer, (<>
-              <Ionicons name="document-text-outline" size={64} color={theme.placeholder} />
+              <View style={[styles.emptyIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+                <Ionicons name="document-text" size={40} color={theme.primary} />
+              </View>
               <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.emptyPosts')}</Text>
             </>))
           ) : (
@@ -682,12 +710,7 @@ const ArchiveScreen = ({ route, navigation }) => {
               ListHeaderComponent={
                 <>
                   {tabBar}
-                  <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-                    <Text style={[styles.privacyText, { color: theme.subText }]}>
-                      {t('archive.postsPrivacyNotice')}
-                    </Text>
-                  </View>
+                  {privacyBanner(t('archive.postsPrivacyNotice'))}
                 </>
               }
               contentContainerStyle={{ paddingTop: titleBarHeight, paddingBottom: insets.bottom + 16 }}
@@ -695,11 +718,13 @@ const ArchiveScreen = ({ route, navigation }) => {
           )
         ) : loading ? (
           renderState(styles.loadingContainer, (<>
-            <ActivityIndicator size="large" color="#319527" />
+            <CustomLoading size={60} />
           </>))
         ) : archiveData.length === 0 ? (
           renderState(styles.emptyContainer, (<>
-            <Ionicons name="archive-outline" size={64} color={theme.placeholder} />
+            <View style={[styles.emptyIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="archive" size={40} color={theme.primary} />
+            </View>
             <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.empty')}</Text>
           </>))
         ) : (
@@ -716,12 +741,7 @@ const ArchiveScreen = ({ route, navigation }) => {
             ListHeaderComponent={
               <>
                 {tabBar}
-                <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-                  <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-                  <Text style={[styles.privacyText, { color: theme.subText }]}>
-                    {t('archive.privacyNotice')}
-                  </Text>
-                </View>
+                {privacyBanner(t('archive.privacyNotice'))}
               </>
             }
             contentContainerStyle={[styles.listContent, { paddingTop: titleBarHeight, paddingBottom: insets.bottom + 16 }]}
@@ -797,19 +817,23 @@ const styles = StyleSheet.create({
   privacyNotice: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#f8f9fa",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e9ecef",
-    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    gap: 12,
   },
+  privacyIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   privacyText: {
+    flex: 1,
     fontSize: 13,
-    color: "#666",
-    textAlign: "center",
+    lineHeight: 18,
   },
+  emptyIcon: { width: 84, height: 84, borderRadius: 42, alignItems: "center", justifyContent: "center" },
+  dateRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  dateIcon: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", marginRight: 8 },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -834,9 +858,8 @@ const styles = StyleSheet.create({
   },
   dateTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#333",
-    marginBottom: 12,
   },
   storiesGrid: {
     gap: 8,
@@ -846,7 +869,7 @@ const styles = StyleSheet.create({
     height: STORY_SIZE,
     marginRight: 8,
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 16,
     overflow: "hidden",
     position: "relative",
   },
@@ -880,9 +903,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     gap: 4,
   },
   storyStatText: {
