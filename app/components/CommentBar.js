@@ -281,14 +281,17 @@ const CommentBar = React.forwardRef(
                 />
               </View>
             </View>
-            <TouchableOpacity
+            {/* Same row height as the left buttons, so the send button lines up
+                with them (it used to sit at the bottom of the row, lower). */}
+            <View style={{ height: rowHeight, marginLeft: 6, alignItems: "center", justifyContent: "center" }}>
+                          <TouchableOpacity
               style={{
                 width: 40,
                 height: 40,
                 borderRadius: 20,
                 alignItems: "center",
                 justifyContent: "center",
-                marginLeft: 6,
+                
                 backgroundColor: disabled
                   ? (isDarkMode ? "rgba(34,197,94,0.18)" : "rgba(34,197,94,0.16)")
                   : "#22C55E",
@@ -309,6 +312,7 @@ const CommentBar = React.forwardRef(
                 />
               )}
             </TouchableOpacity>
+            </View>
           </View>
         </View>
       );
