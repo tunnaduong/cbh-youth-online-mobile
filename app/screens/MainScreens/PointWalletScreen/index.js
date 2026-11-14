@@ -16,7 +16,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import { tint, glowColors, heroColors } from "../../../components/settings/SettingsUI";
+import { tint } from "../../../components/settings/SettingsUI";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -211,7 +211,9 @@ export default function PointWalletScreen({ navigation }) {
       <AndroidGlassBackdrop providerId="PointWalletScreen" style={{ flex: 1 }}>
         <LinearGradient
           colors={
-            glowColors("#F59E0B", isDarkMode)
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
           }
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -226,10 +228,10 @@ export default function PointWalletScreen({ navigation }) {
         scrollEventThrottle={16}
       >
         <LinearGradient
-          colors={heroColors("#F59E0B", isDarkMode).colors}
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.balanceCard, { borderColor: heroColors("#F59E0B", isDarkMode).border }]}
+          style={[styles.balanceCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
           <View style={styles.balanceCircle} />
           <View style={styles.balanceTopRow}>
@@ -241,7 +243,7 @@ export default function PointWalletScreen({ navigation }) {
               </View>
             </View>
             <View style={styles.walletIcon}>
-              <Ionicons name="wallet" size={30} color="#F59E0B" />
+              <Ionicons name="wallet" size={30} color="#16A34A" />
             </View>
           </View>
         </LinearGradient>
@@ -371,11 +373,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 14,
     overflow: "hidden",
-    shadowColor: "#16A34A",
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
   },
   balanceCircle: { position: "absolute", width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(34,197,94,0.10)", top: -55, right: 40 },
   balanceTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -383,7 +380,7 @@ const styles = StyleSheet.create({
   balanceValue: { fontSize: 30, fontWeight: "800" },
   balanceVndChip: { alignSelf: "flex-start", marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(34,197,94,0.15)" },
   balanceVnd: { color: "#16A34A", fontSize: 12, fontWeight: "700" },
-  walletIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(245,158,11,0.18)", justifyContent: "center", alignItems: "center" },
+  walletIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(34,197,94,0.15)", justifyContent: "center", alignItems: "center" },
   actionsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   actionButton: { flex: 1, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   actionIcon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },

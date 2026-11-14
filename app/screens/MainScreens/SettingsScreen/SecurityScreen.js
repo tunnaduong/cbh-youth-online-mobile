@@ -28,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-import { SettingItem, SettingSection, glowColors } from "../../../components/settings/SettingsUI";
+import { SettingItem, SettingSection } from "../../../components/settings/SettingsUI";
 
 export default function SecurityScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -319,7 +319,9 @@ export default function SecurityScreen({ navigation }) {
 
       <LinearGradient
         colors={
-          glowColors("#6366F1", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

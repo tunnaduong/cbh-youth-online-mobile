@@ -16,7 +16,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
-import { tint, glowColors, heroColors, deepColors } from "../../../components/settings/SettingsUI";
+import { tint } from "../../../components/settings/SettingsUI";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -53,7 +53,9 @@ export default function Success({ navigation }) {
       {/* Top ambient green glow */}
       <LinearGradient
         colors={
-          glowColors("#F43F5E", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -112,7 +114,7 @@ export default function Success({ navigation }) {
         {/* Gradient info card */}
         <LinearGradient
           colors={
-            deepColors("#F43F5E", isDarkMode)
+            isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -156,14 +158,14 @@ export default function Success({ navigation }) {
         <View style={[styles.successCard, { marginHorizontal: 16 }]}>
           <LinearGradient
             colors={
-              heroColors("#F43F5E", isDarkMode).colors
+              isDarkMode ? ["#0F261D", "#173C2B"] : ["#F0FDF4", "#DCFCE7"]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.successGradient}
           >
-            <View style={[styles.haloOuter, { backgroundColor: tint("#F43F5E", isDarkMode) }]}>
-              <View style={[styles.haloInner, { backgroundColor: isDarkMode ? "rgba(244,63,94,0.28)" : "rgba(244,63,94,0.22)" }]}>
+            <View style={[styles.haloOuter, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <View style={[styles.haloInner, { backgroundColor: isDarkMode ? "rgba(34,197,94,0.28)" : "rgba(34,197,94,0.22)" }]}>
                 <View style={[styles.checkCircle, { backgroundColor: theme.primary }]}>
                   <Ionicons name="checkmark" size={44} color="#fff" />
                 </View>

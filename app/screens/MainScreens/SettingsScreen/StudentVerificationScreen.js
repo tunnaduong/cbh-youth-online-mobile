@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import { SectionHeader, ACCENT, tint as accentTint, useLook, glowColors } from "../../../components/settings/SettingsUI";
+import { SectionHeader, ACCENT, tint as accentTint, useLook } from "../../../components/settings/SettingsUI";
 import {
   getStudentVerificationStatus,
   submitStudentVerification,
@@ -349,7 +349,9 @@ export default function StudentVerificationScreen({ navigation }) {
 
       <LinearGradient
         colors={
-          glowColors("#14B8A6", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

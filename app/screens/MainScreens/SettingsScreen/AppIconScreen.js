@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import { ACCENT, tint, glowColors, heroColors } from "../../../components/settings/SettingsUI";
+import { ACCENT, tint } from "../../../components/settings/SettingsUI";
 import {
   LAUNCHER_APP_ICONS,
   getActiveIconDisplay,
@@ -91,7 +91,9 @@ export default function AppIconScreen({ navigation }) {
       {/* Top ambient green glow */}
       <LinearGradient
         colors={
-          glowColors("#F59E0B", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -148,10 +150,10 @@ export default function AppIconScreen({ navigation }) {
         >
           {/* Current Active Icon Hero Banner */}
           <LinearGradient
-            colors={heroColors("#F59E0B", isDarkMode).colors}
+            colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.heroCard, { borderColor: heroColors("#F59E0B", isDarkMode).border }]}
+            style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
           >
             <View style={styles.heroCircle} />
             <View style={styles.iconPreviewWrap}>

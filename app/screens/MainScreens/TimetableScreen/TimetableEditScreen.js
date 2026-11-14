@@ -20,7 +20,7 @@ import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { tint, glowColors } from "../../../components/settings/SettingsUI";
+import { tint } from "../../../components/settings/SettingsUI";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { apiErrorMessage } from "../../../utils/apiMessage";
@@ -271,7 +271,9 @@ export default function TimetableEditScreen({ navigation }) {
       {/* Top ambient green glow */}
       <LinearGradient
         colors={
-          glowColors("#6366F1", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

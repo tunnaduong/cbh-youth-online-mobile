@@ -34,7 +34,7 @@ import {
 } from "../../../services/ota/otaService";
 import UpdatePromptModal from "../../../components/ota/UpdatePromptModal";
 
-import { SettingSection, glowColors } from "../../../components/settings/SettingsUI";
+import { SettingSection } from "../../../components/settings/SettingsUI";
 
 // SettingSection clips its content to the rounded card and adds no padding, so
 // the rows here touched/were cut by the corners: pad them inside the card.
@@ -265,7 +265,9 @@ export default function AppUpdatesScreen({ navigation }) {
 
       <LinearGradient
         colors={
-          glowColors("#14B8A6", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

@@ -36,7 +36,7 @@ import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 import { batteryOptimizationApi } from "../../../services/bubble/nativeBubble";
 import { isBatteryPromptEnabled, setBatteryPromptEnabled } from "../../../utils/batteryOptimization";
-import { SettingItem, SettingSection, SettingTile, SectionHeader, ACCENT, tint, glowColors, heroColors } from "../../../components/settings/SettingsUI";
+import { SettingItem, SettingSection, SettingTile, SectionHeader, ACCENT, tint } from "../../../components/settings/SettingsUI";
 import { getAiTranslatePreference, setAiTranslatePreference } from "../../../utils/aiTranslation";
 
 export default function SettingsScreen({ navigation }) {
@@ -213,7 +213,9 @@ export default function SettingsScreen({ navigation }) {
       <AndroidGlassBackdrop providerId="SettingsScreen" style={{ flex: 1 }}>
         <LinearGradient
           colors={
-            glowColors("#6366F1", isDarkMode)
+            isDarkMode
+              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
           }
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -231,10 +233,10 @@ export default function SettingsScreen({ navigation }) {
       >
         {/* Gradient info card */}
         <LinearGradient
-          colors={heroColors("#6366F1", isDarkMode).colors}
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.gradientCard, { borderColor: heroColors("#6366F1", isDarkMode).border }]}
+          style={[styles.gradientCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
         >
           {/* Decorative circles */}
           <View style={styles.gradientCircle1} />
@@ -584,11 +586,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     overflow: "hidden",
-    shadowColor: "#16A34A",
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
   },
   gradientCircle1: {
     position: "absolute",

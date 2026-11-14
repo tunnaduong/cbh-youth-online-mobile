@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { glowColors, deepColors } from "../../../components/settings/SettingsUI";
 import {
   ActivityIndicator,
   Animated,
@@ -129,7 +128,9 @@ export default function DepositScreen({ navigation }) {
       </View>
       <LinearGradient
         colors={
-          glowColors("#10B981", isDarkMode)
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -189,7 +190,7 @@ export default function DepositScreen({ navigation }) {
           <>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
             <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
-              <LinearGradient colors={deepColors("#10B981", isDarkMode)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>
+              <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>
                 <Text style={[styles.mutedLabel, { color: "#C7F5D7" }]}>{t("wallet.depositScreen.amountToTransfer")}</Text>
                 <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd, lang)} VND</Text>
                 <Text style={[styles.expectedText, { color: "#FFFFFF" }]}> {t("wallet.depositScreen.expectedPoints", { value: formatNumber(depositInfo.expected_points || expectedPoints, lang) })}</Text>
