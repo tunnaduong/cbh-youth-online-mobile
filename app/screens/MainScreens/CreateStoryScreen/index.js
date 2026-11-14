@@ -1117,55 +1117,33 @@ const CreateStoryScreen = ({ navigation }) => {
       <View style={{ flex: 1, backgroundColor: hasContent ? "#000" : theme.background }}>
         {/* Top Header */}
         {hasContent ? (
-          <View
-            style={{
-              paddingTop: insets.top,
-              height: 56 + insets.top,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-              backgroundColor: "rgba(0,0,0,0.4)",
-            }}
-          >
-            <TouchableOpacity
-              style={styles.headerCloseButton}
-              onPress={handleBackPress}
+          <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8), backgroundColor: "#000" }}>
+            <HomeStyleHeader
+              dark
+              icon="close"
               disabled={isUploading}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel={t("common.close")}
-            >
-              <Ionicons name="close" size={26} color="#fff" />
-            </TouchableOpacity>
-
-            <View style={styles.headerCenterPill}>
-              <Text style={styles.headerCenterText}>
-                {isDrawing
+              title={
+                isDrawing
                   ? t("story.draw")
                   : isTextOnly
                   ? t("story.textContent")
-                  : t("story.edit")}
-              </Text>
-            </View>
-
-            {isDrawing ? (
-              <TouchableOpacity
-                style={[
-                  styles.headerActionPill,
-                  { backgroundColor: "rgba(255,255,255,0.2)" }
-                ]}
-                onPress={saveDrawing}
-              >
-                <Text style={styles.headerActionText}>{t("story.done")}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={{ width: 40 }} />
-            )}
+                  : t("story.edit")
+              }
+              subtitle={t("story.createStory")}
+              onBack={handleBackPress}
+              right={
+                isDrawing ? (
+                  <TouchableOpacity
+                    style={[styles.headerActionPill, { backgroundColor: "rgba(34,197,94,0.22)" }]}
+                    onPress={saveDrawing}
+                  >
+                    <Text style={[styles.headerActionText, { color: "#4ADE80" }]}>{t("story.done")}</Text>
+                  </TouchableOpacity>
+                ) : null
+              }
+            />
           </View>
-        ) : null}
-
-        {hasContent ? (
+        ) : null}tent ? (
           <View style={{ flex: 1 }}>
             <View
               style={{ flex: 1 }}
