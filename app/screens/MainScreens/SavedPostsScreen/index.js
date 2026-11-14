@@ -91,6 +91,7 @@ const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme, isDarkMode 
 
 const SavedPostsScreen = ({ navigation }) => {
   const [savedPosts, setSavedPosts] = useState(null);
+  const gradual = useGradualList(savedPosts, 15);
   const [refreshing, setRefreshing] = useState(false);
   const { isLoggedIn } = useContext(AuthContext);
   const { t } = useTranslation();
@@ -256,7 +257,7 @@ const SavedPostsScreen = ({ navigation }) => {
         />
         <FlatList
           ref={flatListRef}
-          data={savedPosts}
+          data={gradual.visible}
           extraData={t}
           keyExtractor={(item) => item.id.toString()}
           initialNumToRender={10}
@@ -292,6 +293,15 @@ const SavedPostsScreen = ({ navigation }) => {
             />
           }
           ListEmptyComponent={ListEmptyComponent}
+          ListFooterComponent={
+            gradual.hasMore || gradual.loadingMore ? (
+              <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+              </View>
+            ) : null
+          }
+          onEndReached={gradual.onEndReached}
+          onEndReachedThreshold={0.5}
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: headerHeight,

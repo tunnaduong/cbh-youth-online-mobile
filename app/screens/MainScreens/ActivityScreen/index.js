@@ -164,6 +164,7 @@ const ActivityItem = ({ item, navigation, theme, isDarkMode }) => {
 const ActivityScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [activities, setActivities] = useState(null);
+  const gradual = useGradualList(activities, 20);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
@@ -329,7 +330,7 @@ const ActivityScreen = ({ navigation }) => {
           pointerEvents="none"
         />
         <FlatList
-          data={activities}
+          data={gradual.visible}
           keyExtractor={(item) => `${item.type}-${item.created_timestamp}`}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
@@ -352,6 +353,15 @@ const ActivityScreen = ({ navigation }) => {
           }
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={ListEmptyComponent}
+          ListFooterComponent={
+            gradual.hasMore || gradual.loadingMore ? (
+              <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                <CustomLoading size={32} />
+              </View>
+            ) : null
+          }
+          onEndReached={gradual.onEndReached}
+          onEndReachedThreshold={0.5}
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: headerHeight,

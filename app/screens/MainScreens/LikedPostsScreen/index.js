@@ -88,6 +88,7 @@ const PostItem = ({ item, navigation, theme, isDarkMode }) => {
 
 const LikedPostsScreen = ({ navigation }) => {
   const [posts, setPosts] = useState(null);
+  const gradual = useGradualList(posts, 15);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
@@ -253,7 +254,7 @@ const LikedPostsScreen = ({ navigation }) => {
         />
         <FlatList
           ref={flatListRef}
-          data={posts}
+          data={gradual.visible}
           keyExtractor={(item) => `${item.topic.id}`}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
@@ -281,6 +282,15 @@ const LikedPostsScreen = ({ navigation }) => {
           }
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={ListEmptyComponent}
+          ListFooterComponent={
+            gradual.hasMore || gradual.loadingMore ? (
+              <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+              </View>
+            ) : null
+          }
+          onEndReached={gradual.onEndReached}
+          onEndReachedThreshold={0.5}
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: headerHeight,

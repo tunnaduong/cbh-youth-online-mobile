@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
+import useGradualList from "../../../hooks/useGradualList";
 import StoryPlayerHeader from "../../../components/StoryOverlays/StoryPlayerHeader";
 import {
   View,
@@ -48,6 +49,8 @@ const ArchiveScreen = ({ route, navigation }) => {
   const { username: currentUsername } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("posts");
   const [archiveData, setArchiveData] = useState([]);
+  // The story tab lists every archived day at once; show a few days at a time.
+  const gradualDays = useGradualList(archiveData, 6);
   const [loading, setLoading] = useState(true);
   const [archivedPosts, setArchivedPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -718,8 +721,17 @@ const ArchiveScreen = ({ route, navigation }) => {
           </>))
         ) : (
           <FlatList
-            data={archiveData}
+            data={gradualDays.visible}
             renderItem={renderDateSection}
+            onEndReached={gradualDays.onEndReached}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              gradualDays.hasMore || gradualDays.loadingMore ? (
+                <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                </View>
+              ) : null
+            }
             keyExtractor={(item) => item.date}
             onScroll={handleScroll}
             scrollEventThrottle={16}
