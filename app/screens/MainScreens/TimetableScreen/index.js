@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { tint } from "../../../components/settings/SettingsUI";
+import { tint, glowColors, heroColors } from "../../../components/settings/SettingsUI";
 import LiquidButton from "../../../components/LiquidButton";
 import CustomLoading from "../../../components/CustomLoading";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -157,7 +157,7 @@ export default function TimetableScreen({ navigation }) {
         <TouchableOpacity
           onPress={load}
           activeOpacity={0.7}
-          style={{ marginTop: 14, backgroundColor: isDarkMode ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.12)", borderRadius: 999, paddingHorizontal: 22, paddingVertical: 10 }}
+          style={{ marginTop: 14, backgroundColor: isDarkMode ? "rgba(99,102,241,0.22)" : "rgba(34,197,94,0.12)", borderRadius: 999, paddingHorizontal: 22, paddingVertical: 10 }}
         >
           <Text style={{ color: theme.primary, fontWeight: "700", fontSize: 14 }}>{t("timetable.retry")}</Text>
         </TouchableOpacity>
@@ -195,11 +195,11 @@ export default function TimetableScreen({ navigation }) {
 
         {/* Live clock + where we are in the day — green hero card */}
         <LinearGradient
-          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          colors={heroColors("#6366F1", isDarkMode).colors}
           style={{
             borderRadius: 22,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDarkMode ? "#1B472C" : "#D5EBD7",
+            borderColor: heroColors("#6366F1", isDarkMode).border,
             padding: 18,
             marginBottom: 16,
             flexDirection: "row",
@@ -242,9 +242,9 @@ export default function TimetableScreen({ navigation }) {
           </View>
           {/* Right: decorative circle with calendar icon */}
           <View style={{ marginLeft: 12, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(34,197,94,0.10)", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(34,197,94,0.15)", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="calendar-outline" size={26} color={theme.primary} />
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(99,102,241,0.14)", alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(99,102,241,0.22)", alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="calendar" size={26} color="#6366F1" />
               </View>
             </View>
           </View>
@@ -379,9 +379,7 @@ export default function TimetableScreen({ navigation }) {
       {/* Top ambient green glow */}
       <LinearGradient
         colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          glowColors("#6366F1", isDarkMode)
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

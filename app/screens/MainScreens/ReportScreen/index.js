@@ -15,7 +15,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
-import { tint } from "../../../components/settings/SettingsUI";
+import { tint, glowColors, deepColors } from "../../../components/settings/SettingsUI";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -55,7 +55,7 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
                 },
                 step.id === currentStep && {
                   borderWidth: 4,
-                  borderColor: tint("#22C55E", isDarkMode),
+                  borderColor: tint("#F43F5E", isDarkMode),
                   width: 38,
                   height: 38,
                   borderRadius: 19,
@@ -134,9 +134,7 @@ export default function ReportScreen({ navigation, route }) {
       {/* Top ambient green glow */}
       <LinearGradient
         colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          glowColors("#F43F5E", isDarkMode)
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -226,9 +224,7 @@ export default function ReportScreen({ navigation, route }) {
         {/* Gradient info card */}
         <LinearGradient
           colors={
-            isDarkMode
-              ? ["#173C2B", "#0F261D"]
-              : ["#2BAA5C", "#1A874A"]
+            deepColors("#F43F5E", isDarkMode)
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}

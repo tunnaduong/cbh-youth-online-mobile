@@ -12,6 +12,29 @@ export const tint = (hex, isDark) => {
   return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${isDark ? 0.2 : 0.12})`;
 };
 
+// Soft top glow behind a screen's header, tinted with that screen's own accent.
+export const glowColors = (hex, isDark) => {
+  const n = parseInt(String(hex).slice(1), 16);
+  const c = (a) => `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  return isDark ? [c(0.32), c(0)] : [c(0.18), c(0.06), c(0)];
+};
+
+const rgb = (hex) => {
+  const n = parseInt(String(hex).slice(1), 16);
+  return [n >> 16, (n >> 8) & 255, n & 255];
+};
+const shade = (hex, k) => `rgb(${rgb(hex).map((v) => Math.round(v * (1 - k))).join(",")})`;
+// Soft tinted banner (light fill + hairline) in a screen's own accent.
+export const heroColors = (hex, isDark) => {
+  const [r, g, b] = rgb(hex);
+  return {
+    colors: isDark ? [`rgba(${r},${g},${b},0.30)`, `rgba(${r},${g},${b},0.12)`] : [`rgba(${r},${g},${b},0.18)`, `rgba(${r},${g},${b},0.07)`],
+    border: `rgba(${r},${g},${b},${isDark ? 0.4 : 0.28})`,
+  };
+};
+// Bold gradient banner (white text on top) in a screen's own accent.
+export const deepColors = (hex, isDark) => (isDark ? [shade(hex, 0.45), shade(hex, 0.65)] : [hex, shade(hex, 0.28)]);
+
 export const ACCENT = {
   profile: "#3B82F6",
   profileTheme: "#EC4899",

@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-import { SettingSection as Section } from "../../../components/settings/SettingsUI";
+import { SettingSection as Section, glowColors, heroColors } from "../../../components/settings/SettingsUI";
 
 export default function AboutScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -78,9 +78,7 @@ export default function AboutScreen({ navigation }) {
 
       <LinearGradient
         colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          glowColors("#3B82F6", isDarkMode)
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -101,10 +99,10 @@ export default function AboutScreen({ navigation }) {
       >
         {/* School hero card */}
         <LinearGradient
-          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          colors={heroColors("#3B82F6", isDarkMode).colors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          style={[styles.heroCard, { borderColor: heroColors("#3B82F6", isDarkMode).border }]}
         >
           <View style={styles.heroCircle} />
           <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
@@ -150,10 +148,10 @@ export default function AboutScreen({ navigation }) {
 
         {/* App hero card */}
         <LinearGradient
-          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          colors={heroColors("#8B5CF6", isDarkMode).colors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7", marginTop: 8 }]}
+          style={[styles.heroCard, { borderColor: heroColors("#8B5CF6", isDarkMode).border, marginTop: 8 }]}
         >
           <View style={styles.heroCircle} />
           <View style={[styles.heroLogoWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF" }]}>
@@ -263,7 +261,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: "rgba(34,197,94,0.10)",
+    backgroundColor: "rgba(255,255,255,0.35)",
     top: -50,
     right: -30,
   },
@@ -274,11 +272,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
-    shadowColor: "#16A34A",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.08)",
   },
   heroLogo: {
     width: 68,

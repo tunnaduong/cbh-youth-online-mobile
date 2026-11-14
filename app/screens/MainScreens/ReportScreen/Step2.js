@@ -25,7 +25,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
-import { tint } from "../../../components/settings/SettingsUI";
+import { tint, glowColors, deepColors } from "../../../components/settings/SettingsUI";
 // The Vietnamese strings themselves, not through t(): what is sent to the
 // server is Vietnamese whatever language the app is shown in.
 import vi from "../../../i18n/locales/vi.json";
@@ -125,7 +125,7 @@ function SelectedTag({ tag, onRemove, theme, isDarkMode }) {
       style={[
         styles.selectedTag,
         {
-          backgroundColor: tint("#22C55E", isDarkMode),
+          backgroundColor: tint("#F43F5E", isDarkMode),
           borderColor: theme.primary,
         },
       ]}
@@ -310,7 +310,7 @@ export default function Step2({ navigation, route }) {
                 styles.chip,
                 {
                   backgroundColor: isSelected
-                    ? tint("#22C55E", isDarkMode)
+                    ? tint("#F43F5E", isDarkMode)
                     : isDarkMode
                     ? "rgba(255,255,255,0.06)"
                     : "#F1F5F9",
@@ -477,7 +477,7 @@ export default function Step2({ navigation, route }) {
                   {
                     backgroundColor:
                       cleanliness === status
-                        ? tint("#22C55E", isDarkMode)
+                        ? tint("#F43F5E", isDarkMode)
                         : isDarkMode
                         ? "rgba(255,255,255,0.06)"
                         : "#F1F5F9",
@@ -517,7 +517,7 @@ export default function Step2({ navigation, route }) {
                   {
                     backgroundColor:
                       uniform === status
-                        ? tint("#22C55E", isDarkMode)
+                        ? tint("#F43F5E", isDarkMode)
                         : isDarkMode
                         ? "rgba(255,255,255,0.06)"
                         : "#F1F5F9",
@@ -558,9 +558,7 @@ export default function Step2({ navigation, route }) {
       {/* Top ambient green glow */}
       <LinearGradient
         colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          glowColors("#F43F5E", isDarkMode)
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -628,7 +626,7 @@ export default function Step2({ navigation, route }) {
         {/* Gradient info card */}
         <LinearGradient
           colors={
-            isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]
+            deepColors("#F43F5E", isDarkMode)
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}

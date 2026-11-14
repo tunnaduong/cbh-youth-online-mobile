@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
-import { SettingItem, SettingSection } from "../../../components/settings/SettingsUI";
+import { SettingItem, SettingSection, glowColors } from "../../../components/settings/SettingsUI";
 
 export default function NotificationSettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -209,9 +209,7 @@ export default function NotificationSettingsScreen({ navigation }) {
 
       <LinearGradient
         colors={
-          isDarkMode
-            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+          glowColors("#F59E0B", isDarkMode)
         }
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

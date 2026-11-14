@@ -16,7 +16,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import { tint } from "../../../components/settings/SettingsUI";
+import { tint, glowColors, heroColors } from "../../../components/settings/SettingsUI";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -211,9 +211,7 @@ export default function PointWalletScreen({ navigation }) {
       <AndroidGlassBackdrop providerId="PointWalletScreen" style={{ flex: 1 }}>
         <LinearGradient
           colors={
-            isDarkMode
-              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+            glowColors("#F59E0B", isDarkMode)
           }
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -228,10 +226,10 @@ export default function PointWalletScreen({ navigation }) {
         scrollEventThrottle={16}
       >
         <LinearGradient
-          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          colors={heroColors("#F59E0B", isDarkMode).colors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.balanceCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+          style={[styles.balanceCard, { borderColor: heroColors("#F59E0B", isDarkMode).border }]}
         >
           <View style={styles.balanceCircle} />
           <View style={styles.balanceTopRow}>
