@@ -633,13 +633,13 @@ export default function SearchScreen({ navigation, route }) {
             style={[
               styles.backButton,
               {
-                backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+                backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)",
+                borderColor: "transparent",
               },
             ]}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Ionicons name="chevron-back" color={theme.text} size={22} />
+            <Ionicons name="chevron-back" color={isDarkMode ? "#4ADE80" : "#15803D"} size={22} />
           </TouchableOpacity>
 
           {/* Plain Solid Pill Input Field (Matching Filter Pill styling without liquid glass) */}
