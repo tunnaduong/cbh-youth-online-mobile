@@ -1,20 +1,23 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
-import { ScoreScreen, SectionTitle, useCardStyle } from "./shared";
+import { tint } from "../../../../components/settings/SettingsUI";
+import { Hero, ScoreScreen, SectionTitle, useCardStyle } from "./shared";
 
 const EXAMS = [
   {
     route: "ScoreLookupThptScreen",
-    icon: "school-outline",
+    icon: "school",
+    color: "#3B82F6",
     titleKey: "scoreLookup.thptTitle",
     descKey: "scoreLookup.thptDesc",
   },
   {
     route: "ScoreLookupGrade10Screen",
-    icon: "ribbon-outline",
+    icon: "ribbon",
+    color: "#F59E0B",
     titleKey: "scoreLookup.grade10Title",
     descKey: "scoreLookup.grade10Desc",
   },
@@ -22,69 +25,61 @@ const EXAMS = [
 
 // "Tra cứu điểm thi": pick which exam to look up.
 export default function ScoreLookupScreen({ navigation }) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const card = useCardStyle();
 
   return (
     <ScoreScreen navigation={navigation} title={t("scoreLookup.title")}>
-      <Text
-        style={{
-          fontSize: 14,
-          lineHeight: 20,
-          color: theme.subText,
-          marginBottom: 16,
-          marginHorizontal: 4,
-        }}
-      >
-        {t("scoreLookup.intro")}
-      </Text>
+      <Hero icon="stats-chart" watermark="ribbon" title={t("scoreLookup.title")} text={t("scoreLookup.intro")} />
 
-      <SectionTitle>{t("scoreLookup.ninhBinh")}</SectionTitle>
-      <View style={card}>
-        {EXAMS.map((exam, i) => (
-          <TouchableOpacity
-            key={exam.route}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            onPress={() => navigation.navigate(exam.route)}
+      <SectionTitle icon="location" color="#EF4444">
+        {t("scoreLookup.ninhBinh")}
+      </SectionTitle>
+      {EXAMS.map((exam) => (
+        <TouchableOpacity
+          key={exam.route}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          onPress={() => navigation.navigate(exam.route)}
+          style={[card, { flexDirection: "row", alignItems: "center", padding: 16, marginBottom: 12 }]}
+        >
+          <View
             style={{
-              flexDirection: "row",
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              backgroundColor: tint(exam.color, isDarkMode),
               alignItems: "center",
-              paddingVertical: 16,
-              paddingHorizontal: 16,
-              borderBottomWidth: i === EXAMS.length - 1 ? 0 : StyleSheet.hairlineWidth,
-              borderBottomColor: theme.border,
+              justifyContent: "center",
             }}
           >
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: theme.iconBackground,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons name={exam.icon} size={24} color={theme.primary} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
-                {t(exam.titleKey)}
-              </Text>
-              <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
-                {t(exam.descKey)}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
-          </TouchableOpacity>
-        ))}
-      </View>
+            <Ionicons name={exam.icon} size={26} color={exam.color} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 14, marginRight: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: theme.text }}>{t(exam.titleKey)}</Text>
+            <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2, lineHeight: 18 }}>{t(exam.descKey)}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+        </TouchableOpacity>
+      ))}
 
-      <Text style={{ fontSize: 13, color: theme.subText, marginHorizontal: 4 }}>
-        {t("scoreLookup.sourceNote")}
-      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          alignItems: "center",
+          borderRadius: 16,
+          padding: 12,
+          marginTop: 4,
+          backgroundColor: tint("#3B82F6", isDarkMode),
+        }}
+      >
+        <Ionicons name="information-circle" size={18} color="#3B82F6" />
+        <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: theme.subText }}>
+          {t("scoreLookup.sourceNote")}
+        </Text>
+      </View>
     </ScoreScreen>
   );
 }

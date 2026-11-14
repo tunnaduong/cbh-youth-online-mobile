@@ -14,6 +14,9 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import LiquidButton from "../../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
+import { LinearGradient } from "expo-linear-gradient";
+import BannerWatermark from "../../../../components/BannerWatermark";
+import { tint } from "../../../../components/settings/SettingsUI";
 
 // Floating-header scaffold shared by the score lookup screens (design system
 // "Screen scaffold").
@@ -72,6 +75,18 @@ export function ScoreScreen({ navigation, title, children }) {
         </View>
       </View>
 
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
+
       <AndroidGlassBackdrop style={{ flex: 1 }}>
         <Animated.ScrollView
           contentContainerStyle={{
@@ -96,37 +111,135 @@ export function ScoreScreen({ navigation, title, children }) {
 }
 
 export function useCardStyle() {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   return {
     backgroundColor: theme.surface,
-    borderColor: theme.border,
+    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
   };
 }
 
-export function SectionTitle({ children }) {
-  const { theme } = useTheme();
+// Green banner at the top of every score screen: icon holder, title, text and
+// a faint illustration of the subject behind them.
+export function Hero({ icon, title, text, watermark }) {
+  const { theme, isDarkMode } = useTheme();
   return (
-    <Text
+    <LinearGradient
+      colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={{
-        fontSize: 13,
-        fontWeight: "600",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        color: theme.subText,
-        marginBottom: 8,
-        marginLeft: 4,
+        flexDirection: "row",
+        alignItems: "center",
+        borderRadius: 24,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDarkMode ? "#1B472C" : "#D5EBD7",
+        padding: 16,
+        marginBottom: 16,
+        overflow: "hidden",
       }}
     >
-      {children}
-    </Text>
+      <BannerWatermark icon={watermark || icon} size={140} />
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: tint("#22C55E", isDarkMode),
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name={icon} size={24} color={theme.primary} />
+      </View>
+      <View style={{ flex: 1, marginLeft: 14 }}>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: theme.text }} numberOfLines={2}>
+          {title}
+        </Text>
+        {text ? (
+          <Text style={{ fontSize: 13, lineHeight: 18, color: theme.subText, marginTop: 2 }}>{text}</Text>
+        ) : null}
+      </View>
+    </LinearGradient>
   );
 }
 
-export function PrimaryButton({ label, onPress, busy, disabled }) {
+// Field label with a tinted round icon.
+export function FieldLabel({ icon, color, children, style }) {
+  const { theme, isDarkMode } = useTheme();
+  return (
+    <View style={[{ flexDirection: "row", alignItems: "center", marginBottom: 10 }, style]}>
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: tint(color, isDarkMode),
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 8,
+        }}
+      >
+        <Ionicons name={icon} size={15} color={color} />
+      </View>
+      <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, flex: 1 }}>{children}</Text>
+    </View>
+  );
+}
+
+export function useInputStyle() {
+  const { theme, isDarkMode } = useTheme();
+  return {
+    height: 48,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: isDarkMode ? "#3A3F4A" : "#CBD5E1",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    color: theme.text,
+    backgroundColor: theme.background,
+  };
+}
+
+export function SectionTitle({ children, icon, color }) {
+  const { theme, isDarkMode } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, marginLeft: 4 }}>
+      {icon ? (
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: tint(color || "#22C55E", isDarkMode),
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 8,
+          }}
+        >
+          <Ionicons name={icon} size={14} color={color || "#22C55E"} />
+        </View>
+      ) : null}
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: "700",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          color: theme.subText,
+          flex: 1,
+        }}
+      >
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+export function PrimaryButton({ label, onPress, busy, disabled, icon = "search" }) {
   const { theme } = useTheme();
   const off = busy || disabled;
   return (
@@ -138,7 +251,7 @@ export function PrimaryButton({ label, onPress, busy, disabled }) {
       accessibilityState={{ disabled: off, busy }}
       style={{
         backgroundColor: theme.primary,
-        borderRadius: 12,
+        borderRadius: 999,
         padding: 14,
         alignItems: "center",
         opacity: off ? 0.6 : 1,
@@ -147,43 +260,73 @@ export function PrimaryButton({ label, onPress, busy, disabled }) {
       {busy ? (
         <ActivityIndicator color="#fff" size="small" />
       ) : (
-        <Text style={{ color: "#fff", fontSize: 15, fontWeight: "bold" }}>{label}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {icon ? <Ionicons name={icon} size={18} color="#fff" /> : null}
+          <Text style={{ color: "#fff", fontSize: 15, fontWeight: "bold" }}>{label}</Text>
+        </View>
       )}
     </TouchableOpacity>
   );
 }
 
-// One "label ... value" line inside a result card.
-export function ScoreRow({ label, value, hint, last, strong }) {
-  const { theme } = useTheme();
+// Colour of a 10-point score: green good, amber so-so, red weak.
+export const scoreColor = (v) => {
+  const n = parseFloat(String(v).replace(",", "."));
+  if (Number.isNaN(n)) return null;
+  return n >= 8 ? "#22C55E" : n >= 5 ? "#F59E0B" : "#EF4444";
+};
+
+// One "label ... value" line inside a result card. The value sits in a pill
+// tinted by how good the score is.
+export function ScoreRow({ label, value, hint, last, strong, icon, color }) {
+  const { theme, isDarkMode } = useTheme();
+  const accent = scoreColor(value) || theme.subText;
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 13,
+        paddingVertical: 12,
         paddingHorizontal: 16,
         borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        borderBottomColor: theme.border,
+        borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9",
       }}
     >
+      {icon ? (
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: tint(color || "#3B82F6", isDarkMode),
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 12,
+          }}
+        >
+          <Ionicons name={icon} size={18} color={color || "#3B82F6"} />
+        </View>
+      ) : null}
       <View style={{ flex: 1, marginRight: 12 }}>
-        <Text style={{ fontSize: 16, color: theme.text }} numberOfLines={2}>
+        <Text style={{ fontSize: 15, fontWeight: "600", color: theme.text }} numberOfLines={2}>
           {label}
         </Text>
         {hint ? (
-          <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>{hint}</Text>
+          <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>{hint}</Text>
         ) : null}
       </View>
-      <Text
+      <View
         style={{
-          fontSize: strong ? 20 : 17,
-          fontWeight: strong ? "800" : "700",
-          color: strong ? theme.primary : theme.text,
+          minWidth: 56,
+          alignItems: "center",
+          borderRadius: 999,
+          paddingHorizontal: 12,
+          paddingVertical: 5,
+          backgroundColor: tint(accent === theme.subText ? "#64748B" : accent, isDarkMode),
         }}
       >
-        {value}
-      </Text>
+        <Text style={{ fontSize: strong ? 18 : 16, fontWeight: "800", color: accent }}>{value}</Text>
+      </View>
     </View>
   );
 }

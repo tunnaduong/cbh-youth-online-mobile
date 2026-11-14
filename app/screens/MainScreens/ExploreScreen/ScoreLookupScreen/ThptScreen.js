@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SvgXml } from "react-native-svg";
 import { useTranslation } from "react-i18next";
@@ -12,13 +12,17 @@ import {
   isRequestCanceled,
   searchExamScore,
 } from "../../../../services/api/Api";
+import { tint } from "../../../../components/settings/SettingsUI";
 import {
+  FieldLabel,
+  Hero,
   PrimaryButton,
   ScoreRow,
   ScoreScreen,
   SectionTitle,
   showValue,
   useCardStyle,
+  useInputStyle,
 } from "./shared";
 
 const SOURCE = "ninh-binh";
@@ -27,9 +31,10 @@ const SOURCE = "ninh-binh";
 // the API). The site wants a captcha with every lookup: we show its image and
 // the user types it, exactly like on the web page.
 export default function ScoreLookupThptScreen({ navigation }) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const card = useCardStyle();
+  const inputStyle = useInputStyle();
 
   const [config, setConfig] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -118,17 +123,6 @@ export default function ScoreLookupThptScreen({ navigation }) {
     }
   };
 
-  const inputStyle = {
-    height: 44,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 16,
-    color: theme.text,
-  };
-  const labelStyle = { fontSize: 15, fontWeight: "700", color: theme.text, marginBottom: 8 };
-
   const opensAt = config?.start_time ? new Date(config.start_time) : null;
   const pending = opensAt && opensAt > new Date();
 
@@ -136,17 +130,19 @@ export default function ScoreLookupThptScreen({ navigation }) {
   if (loadError) {
     body = (
       <View style={{ alignItems: "center", marginTop: 24 }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: tint("#EF4444", isDarkMode), alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+          <Ionicons name="cloud-offline" size={26} color="#EF4444" />
+        </View>
         <Text style={{ color: theme.subText, textAlign: "center" }}>{t("scoreLookup.loadError")}</Text>
         <TouchableOpacity
           onPress={load}
           activeOpacity={0.7}
           style={{
             marginTop: 12,
-            borderWidth: 1,
-            borderColor: theme.primary,
+            backgroundColor: tint("#22C55E", isDarkMode),
             borderRadius: 999,
-            paddingHorizontal: 18,
-            paddingVertical: 8,
+            paddingHorizontal: 22,
+            paddingVertical: 10,
           }}
         >
           <Text style={{ color: theme.primary, fontWeight: "700" }}>{t("scoreLookup.retry")}</Text>
@@ -161,9 +157,11 @@ export default function ScoreLookupThptScreen({ navigation }) {
     );
   } else if (pending) {
     body = (
-      <View style={[card, { padding: 16, alignItems: "center" }]}>
-        <Ionicons name="time-outline" size={50} color={theme.subText} />
-        <Text style={{ color: theme.subText, marginTop: 10, textAlign: "center", lineHeight: 20 }}>
+      <View style={[card, { padding: 20, alignItems: "center" }]}>
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: tint("#F59E0B", isDarkMode), alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="time" size={36} color="#F59E0B" />
+        </View>
+        <Text style={{ color: theme.subText, marginTop: 12, textAlign: "center", lineHeight: 20 }}>
           {t("scoreLookup.notOpenYet", {
             date: opensAt.toLocaleString(),
           })}
@@ -174,7 +172,7 @@ export default function ScoreLookupThptScreen({ navigation }) {
     body = (
       <>
         <View style={[card, { padding: 16 }]}>
-          <Text style={labelStyle}>{t("scoreLookup.sbd")}</Text>
+          <FieldLabel icon="id-card" color="#3B82F6">{t("scoreLookup.sbd")}</FieldLabel>
           <TextInput
             value={sbd}
             onChangeText={(v) => setSbd(v.toUpperCase())}
@@ -188,7 +186,7 @@ export default function ScoreLookupThptScreen({ navigation }) {
             style={inputStyle}
           />
 
-          <Text style={[labelStyle, { marginTop: 16 }]}>{t("scoreLookup.captcha")}</Text>
+          <FieldLabel icon="shield-checkmark" color="#10B981" style={{ marginTop: 18 }}>{t("scoreLookup.captcha")}</FieldLabel>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <TextInput
               ref={answerInputRef}
@@ -206,11 +204,11 @@ export default function ScoreLookupThptScreen({ navigation }) {
             <View
               style={{
                 width: 132,
-                height: 44,
-                borderRadius: 8,
+                height: 48,
+                borderRadius: 16,
                 overflow: "hidden",
-                borderWidth: 1,
-                borderColor: theme.border,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDarkMode ? "#3A3F4A" : "#CBD5E1",
                 alignItems: "center",
                 justifyContent: "center",
                 // The captcha is drawn on its own light background, so it reads
@@ -233,10 +231,10 @@ export default function ScoreLookupThptScreen({ navigation }) {
               accessibilityLabel={t("scoreLookup.refreshCaptcha")}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: theme.iconBackground,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: tint("#22C55E", isDarkMode),
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -246,7 +244,10 @@ export default function ScoreLookupThptScreen({ navigation }) {
           </View>
 
           {error ? (
-            <Text style={{ color: "#FF3B30", fontSize: 14, lineHeight: 20, marginTop: 12 }}>{error}</Text>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginTop: 12, borderRadius: 14, padding: 10, backgroundColor: tint("#EF4444", isDarkMode) }}>
+              <Ionicons name="alert-circle" size={18} color="#EF4444" />
+              <Text style={{ flex: 1, color: "#EF4444", fontSize: 14, lineHeight: 20 }}>{error}</Text>
+            </View>
           ) : null}
 
           <View style={{ marginTop: 16 }}>
@@ -266,23 +267,30 @@ export default function ScoreLookupThptScreen({ navigation }) {
 
   return (
     <ScoreScreen navigation={navigation} title={t("scoreLookup.thptTitle")}>
-      <Text style={{ fontSize: 14, lineHeight: 20, color: theme.subText, marginBottom: 16, marginHorizontal: 4 }}>
-        {[config?.title, config?.school_year].filter(Boolean).join(" · ") || t("scoreLookup.thptDesc")}
-      </Text>
+      <Hero
+        icon="school"
+        title={t("scoreLookup.thptTitle")}
+        text={[config?.title, config?.school_year].filter(Boolean).join(" · ") || t("scoreLookup.thptDesc")}
+      />
       {body}
     </ScoreScreen>
   );
 }
 
+const SUBJECT_ICONS = ["book", "calculator", "language", "flask", "leaf", "globe", "library", "color-palette"];
+const SUBJECT_COLORS = ["#3B82F6", "#EF4444", "#8B5CF6", "#F59E0B", "#10B981", "#EC4899", "#14B8A6", "#6366F1"];
+
 function ThptResult({ result }) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const card = useCardStyle();
   const subjects = result.subjects || [];
 
   return (
     <>
-      <SectionTitle>{t("scoreLookup.resultFor", { sbd: result.so_bao_danh })}</SectionTitle>
+      <SectionTitle icon="ribbon" color="#F59E0B">
+        {t("scoreLookup.resultFor", { sbd: result.so_bao_danh })}
+      </SectionTitle>
       <View style={card}>
         {subjects.length ? (
           subjects.map((s, i) => (
@@ -290,6 +298,8 @@ function ThptResult({ result }) {
               key={`${s.name}-${i}`}
               label={s.name}
               value={showValue(s.score)}
+              icon={SUBJECT_ICONS[i % SUBJECT_ICONS.length]}
+              color={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
               last={i === subjects.length - 1}
             />
           ))
@@ -301,9 +311,12 @@ function ThptResult({ result }) {
         )}
       </View>
       {result.ghi_chu ? (
-        <Text style={{ fontSize: 13, fontStyle: "italic", color: theme.subText, marginHorizontal: 4 }}>
-          {result.ghi_chu}
-        </Text>
+        <View style={{ flexDirection: "row", gap: 8, borderRadius: 16, padding: 12, backgroundColor: tint("#3B82F6", isDarkMode) }}>
+          <Ionicons name="information-circle" size={18} color="#3B82F6" />
+          <Text style={{ flex: 1, fontSize: 13, fontStyle: "italic", color: theme.subText, lineHeight: 18 }}>
+            {result.ghi_chu}
+          </Text>
+        </View>
       ) : null}
     </>
   );
