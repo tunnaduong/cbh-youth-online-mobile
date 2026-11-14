@@ -125,7 +125,7 @@ export default function Success({ navigation }) {
             <Text style={styles.gradientSubtitle}>{t("report.schoolName")}</Text>
           </View>
           <View style={styles.gradientIconWrap}>
-            <Ionicons name="warning" size={28} color="#FFFFFF" />
+            <Ionicons name="shield-checkmark" size={28} color="#FFFFFF" />
           </View>
         </LinearGradient>
 

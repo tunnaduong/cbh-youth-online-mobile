@@ -639,7 +639,7 @@ export default function Step2({ navigation, route }) {
             <Text style={styles.gradientSubtitle}>{t("report.schoolName")}</Text>
           </View>
           <View style={styles.gradientIconWrap}>
-            <Ionicons name="warning" size={28} color="#FFFFFF" />
+            <Ionicons name={selectedViolationType === "class" ? "people" : "person"} size={28} color="#FFFFFF" />
           </View>
         </LinearGradient>
 

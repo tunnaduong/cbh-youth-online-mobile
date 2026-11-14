@@ -118,7 +118,7 @@ export default function WithdrawScreen({ navigation }) {
       <AndroidGlassBackdrop providerId="WithdrawScreen" style={{ flex: 1 }}>
       <Animated.ScrollView contentContainerStyle={{ paddingTop: 78 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled" onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })} scrollEventThrottle={16}>
         <LinearGradient colors={deepColors("#0EA5E9", isDarkMode)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
-          <View style={styles.balanceIcon}><Ionicons name="wallet-outline" size={24} color="#FFFFFF" /></View>
+          <View style={styles.balanceIcon}><Ionicons name="arrow-up-circle" size={26} color="#FFFFFF" /></View>
           <View style={styles.balanceCopy}>
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.withdrawScreen.currentBalance")}</Text>
             <Text style={styles.balanceValue}>{t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}</Text>

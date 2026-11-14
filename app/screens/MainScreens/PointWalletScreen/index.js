@@ -241,7 +241,7 @@ export default function PointWalletScreen({ navigation }) {
               </View>
             </View>
             <View style={styles.walletIcon}>
-              <Ionicons name="wallet" size={30} color="#16A34A" />
+              <Ionicons name="wallet" size={30} color="#F59E0B" />
             </View>
           </View>
         </LinearGradient>
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   balanceValue: { fontSize: 30, fontWeight: "800" },
   balanceVndChip: { alignSelf: "flex-start", marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(34,197,94,0.15)" },
   balanceVnd: { color: "#16A34A", fontSize: 12, fontWeight: "700" },
-  walletIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(34,197,94,0.15)", justifyContent: "center", alignItems: "center" },
+  walletIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(245,158,11,0.18)", justifyContent: "center", alignItems: "center" },
   actionsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   actionButton: { flex: 1, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   actionIcon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },

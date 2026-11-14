@@ -239,7 +239,7 @@ export default function ReportScreen({ navigation, route }) {
             </Text>
           </View>
           <View style={styles.gradientIconWrap}>
-            <Ionicons name="warning" size={28} color="#FFFFFF" />
+            <Ionicons name="megaphone" size={28} color="#FFFFFF" />
           </View>
         </LinearGradient>
 

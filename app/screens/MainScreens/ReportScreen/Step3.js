@@ -320,7 +320,7 @@ export default function Step3({ navigation, route }) {
             <Text style={styles.gradientSubtitle}>{t("report.schoolName")}</Text>
           </View>
           <View style={styles.gradientIconWrap}>
-            <Ionicons name="warning" size={28} color="#FFFFFF" />
+            <Ionicons name="clipboard" size={28} color="#FFFFFF" />
           </View>
         </LinearGradient>
 
