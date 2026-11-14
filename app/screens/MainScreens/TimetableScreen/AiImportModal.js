@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import HomeStyleHeader from "../../../components/HomeStyleHeader";
 import {
   Modal,
   View,
@@ -125,29 +126,8 @@ export default function AiImportModal({ visible, onClose, current, onResult }) {
           pointerEvents="none"
         />
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingTop: Platform.OS === "android" ? insets.top + 8 : 12,
-            paddingBottom: 8,
-            zIndex: 1,
-          }}
-        >
-          <TouchableOpacity
-            onPress={close}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityRole="button"
-            accessibilityLabel={t("timetable.close")}
-            style={{ width: 44, height: 44, justifyContent: "center" }}
-          >
-            <Ionicons name="close" size={24} color={theme.primary} />
-          </TouchableOpacity>
-          <Text style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600", color: theme.primary }} numberOfLines={1}>
-            {t("timetable.ai.title")}
-          </Text>
-          <View style={{ width: 44 }} />
+        <View style={{ paddingTop: Platform.OS === "android" ? insets.top + 8 : 12, zIndex: 1 }}>
+          <HomeStyleHeader icon="close" title={t("timetable.ai.title")} onBack={close} />
         </View>
 
         <ScrollView
