@@ -1130,7 +1130,6 @@ const CreateStoryScreen = ({ navigation }) => {
                   ? t("story.textContent")
                   : t("story.edit")
               }
-              subtitle={t("story.createStory")}
               onBack={handleBackPress}
               right={
                 isDrawing ? (
