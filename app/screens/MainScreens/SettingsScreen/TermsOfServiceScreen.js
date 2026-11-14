@@ -14,15 +14,42 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 
-const Section = ({ title, children, theme }) => (
-  <View style={styles.sectionWrapper}>
-    <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-    <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {children}
+// One icon + accent per numbered section, in reading order.
+const SECTION_LOOK = [
+  ["document-text", "#3B82F6"],
+  ["analytics", "#8B5CF6"],
+  ["share-social", "#F59E0B"],
+  ["lock-closed", "#10B981"],
+  ["person", "#14B8A6"],
+  ["time", "#6366F1"],
+  ["shield-checkmark", "#F97316"],
+  ["refresh", "#EC4899"],
+  ["mail", "#EF4444"],
+];
+
+const Section = ({ title, children, theme, n }) => {
+  const { isDarkMode } = useTheme();
+  const [icon, color] = SECTION_LOOK[(n - 1) % SECTION_LOOK.length];
+  return (
+    <View style={styles.sectionWrapper}>
+      <View style={styles.sectionHeader}>
+        <View style={[styles.sectionIcon, { backgroundColor: tint(color, isDarkMode) }]}>
+          <Ionicons name={icon} size={18} color={color} />
+        </View>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+        <View style={[styles.sectionNumber, { backgroundColor: tint(color, isDarkMode) }]}>
+          <Text style={{ fontSize: 12, fontWeight: "800", color }}>{n}</Text>
+        </View>
+      </View>
+      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }]}>
+        {children}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 export default function TermsOfServiceScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -104,11 +131,25 @@ export default function TermsOfServiceScreen({ navigation }) {
         )}
         contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
       >
-        <Text style={[styles.introText, { color: theme.text }]}>
-          {t("terms.intro")}
-        </Text>
+        <LinearGradient
+          colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
+        >
+          <BannerWatermark icon="ribbon" size={140} />
+          <View style={styles.heroTop}>
+            <View style={[styles.heroIcon, { backgroundColor: tint("#22C55E", isDarkMode) }]}>
+              <Ionicons name="document-text" size={26} color={theme.primary} />
+            </View>
+            <Text style={[styles.heroTitle, { color: theme.text }]} numberOfLines={2}>
+              {t("terms.headerTitle")}
+            </Text>
+          </View>
+          <Text style={[styles.introText, { color: theme.subText }]}>{t("terms.intro")}</Text>
+        </LinearGradient>
 
-        <Section title={t("terms.s1Title")} theme={theme}>
+        <Section n={1} title={t("terms.s1Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s1Text1")}
           </Text>
@@ -117,7 +158,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s2Title")} theme={theme}>
+        <Section n={2} title={t("terms.s2Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s2Text1")}
           </Text>
@@ -129,7 +170,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s3Title")} theme={theme}>
+        <Section n={3} title={t("terms.s3Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s3Text1")}
           </Text>
@@ -141,7 +182,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s4Title")} theme={theme}>
+        <Section n={4} title={t("terms.s4Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s4Text1")}
           </Text>
@@ -156,7 +197,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s5Title")} theme={theme}>
+        <Section n={5} title={t("terms.s5Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s5Text1")}
           </Text>
@@ -168,7 +209,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s6Title")} theme={theme}>
+        <Section n={6} title={t("terms.s6Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s6Text1")}
           </Text>
@@ -177,7 +218,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s7Title")} theme={theme}>
+        <Section n={7} title={t("terms.s7Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s7Text1")}
           </Text>
@@ -186,7 +227,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s8Title")} theme={theme}>
+        <Section n={8} title={t("terms.s8Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s8Text1")}
           </Text>
@@ -195,7 +236,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("terms.s9Title")} theme={theme}>
+        <Section n={9} title={t("terms.s9Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("terms.s9Text1")}
           </Text>
@@ -231,35 +272,43 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
+  hero: {
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 20,
+    overflow: "hidden",
+  },
+  heroTop: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  heroIcon: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", marginRight: 14 },
+  heroTitle: { flex: 1, fontSize: 20, fontWeight: "800" },
   introText: {
     fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 20,
-    marginTop: 16,
-    textAlign: "justify",
-    marginHorizontal: 16,
+    lineHeight: 21,
   },
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10, marginLeft: 2 },
+  sectionIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", marginRight: 10 },
+  sectionNumber: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", marginLeft: 8 },
   sectionWrapper: {
     marginHorizontal: 16,
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 8,
-    marginLeft: 4,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
   },
   settingSection: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     padding: 16,
   },
   sectionText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 8,
   },
 });
