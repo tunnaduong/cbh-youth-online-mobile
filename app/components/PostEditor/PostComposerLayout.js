@@ -16,7 +16,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
-import LiquidButton from "../LiquidButton";
+import HomeStyleHeader from "../HomeStyleHeader";
+import { tint } from "../settings/SettingsUI";
 import { AndroidGlassBackdrop } from "../GlassModules";
 import CustomLoading from "../CustomLoading";
 import Dropdown from "../Dropdown";
@@ -45,17 +46,17 @@ const PREVIEW_PADDING = 32;
 const MEDIA_TILE = 104;
 
 // A row of the settings card: round icon, label (+ hint), control on the right.
-function SettingRow({ icon, title, hint, last, wide, dimmed, theme, children }) {
+function SettingRow({ icon, color = "#3B82F6", title, hint, last, wide, dimmed, theme, isDarkMode, children }) {
   return (
     <View
       style={[
         styles.row,
-        !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
+        !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDarkMode ? "#282B34" : "#F1F5F9" },
         dimmed && { opacity: 0.6 },
       ]}
     >
-      <View style={[styles.rowIcon, { backgroundColor: theme.iconBackground }]}>
-        <Ionicons name={icon} size={20} color={theme.primary} />
+      <View style={[styles.rowIcon, { backgroundColor: tint(color, isDarkMode) }]}>
+        <Ionicons name={icon} size={20} color={color} />
       </View>
       <View style={wide ? styles.rowTextWide : styles.rowText}>
         <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={wide ? 2 : 1}>
@@ -64,6 +65,18 @@ function SettingRow({ icon, title, hint, last, wide, dimmed, theme, children }) 
         {hint ? <Text style={[styles.rowHint, { color: theme.subText }]}>{hint}</Text> : null}
       </View>
       {children}
+    </View>
+  );
+}
+
+// Section title with a tinted round icon.
+function SectionTitle({ icon, color, theme, isDarkMode, children }) {
+  return (
+    <View style={styles.sectionHead}>
+      <View style={[styles.sectionIcon, { backgroundColor: tint(color, isDarkMode) }]}>
+        <Ionicons name={icon} size={14} color={color} />
+      </View>
+      <Text style={[styles.sectionTitle, { color: theme.subText }]}>{children}</Text>
     </View>
   );
 }
@@ -113,23 +126,13 @@ export default function PostComposerLayout({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
-  // The header reads the scroll position: the title fades out and the
-  // buttons get their glass surface once content slides under them.
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 10, 50],
-    outputRange: [1, 1, 0],
-    extrapolate: "clamp",
-  });
-
   // Both screens using this layout are opened with `presentation: "modal"`.
   // On iOS that is a sheet which already starts below the status bar, while
   // the safe-area inset still reports the notch - adding it left an empty
   // band above the header. Android shows the modal full screen, so there the
   // inset is real.
   const topInset = Platform.OS === "ios" ? 0 : insets.top;
-  const headerHeight = HEADER_HEIGHT + topInset;
-  const cardStyle = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
+  const cardStyle = [styles.card, { backgroundColor: theme.surface, borderColor: isDarkMode ? "#282B34" : "#E2E8F0" }];
   const hasMedia = images.length > 0 || videos.length > 0;
   const actionDisabled = submitDisabled || loading;
 
@@ -137,6 +140,7 @@ export default function PostComposerLayout({
   if (onPickMedia) {
     attachActions.push({
       key: "media",
+      color: "#3B82F6",
       icon: "images-outline",
       label: t("createPost.addMedia", "Ảnh/Video"),
       onPress: onPickMedia,
@@ -145,6 +149,7 @@ export default function PostComposerLayout({
     if (onPickImage) {
       attachActions.push({
         key: "image",
+        color: "#3B82F6",
         icon: "image-outline",
         label: t("createPost.addImage"),
         onPress: onPickImage,
@@ -153,6 +158,7 @@ export default function PostComposerLayout({
     if (onPickVideo) {
       attachActions.push({
         key: "video",
+        color: "#EF4444",
         icon: "videocam-outline",
         label: t("createPost.addVideo"),
         onPress: onPickVideo,
@@ -162,6 +168,7 @@ export default function PostComposerLayout({
   if (onPickDocument) {
     attachActions.push({
       key: "document",
+      color: "#F59E0B",
       icon: "document-attach-outline",
       label: t("createPost.addDocument"),
       onPress: onPickDocument,
@@ -170,54 +177,48 @@ export default function PostComposerLayout({
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating header */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.header, { paddingTop: topInset, height: headerHeight }]}>
-          <LiquidButton
-            size={44}
-            scrollY={scrollY}
-            providerId="PostComposer"
-            onPress={onClose}
-            accessibilityLabel={t("common.close")}
-          >
-            <Ionicons name="close" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {headerTitle}
-          </Animated.Text>
-          <LiquidButton
-            size={44}
-            scrollY={scrollY}
-            providerId="PostComposer"
-            onPress={onSubmit}
-            disabled={actionDisabled}
-            style={styles.headerActionButton}
-            accessibilityLabel={submitLabel}
-          >
-            <Text style={[styles.headerAction, { color: actionDisabled ? theme.subText : theme.primary }]}>
-              {submitLabel}
-            </Text>
-          </LiquidButton>
-        </View>
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
+            : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
+        pointerEvents="none"
+      />
+      {/* Same top header as the forum: tinted close button, big green title
+          with the sparkle, and the publish / save action as a green pill. It
+          stays put (the action must always be reachable while writing). */}
+      <View style={{ paddingTop: topInset + 8 }}>
+        <HomeStyleHeader
+          icon="close"
+          title={headerTitle}
+          onBack={onClose}
+          right={
+            <TouchableOpacity
+              onPress={onSubmit}
+              disabled={actionDisabled}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={submitLabel}
+              style={[
+                styles.headerPill,
+                { backgroundColor: actionDisabled ? theme.iconBackground : theme.primary },
+              ]}
+            >
+              <Text style={[styles.headerPillText, { color: actionDisabled ? theme.subText : "#fff" }]}>
+                {submitLabel}
+              </Text>
+            </TouchableOpacity>
+          }
+        />
       </View>
 
       <AndroidGlassBackdrop providerId="PostComposer" style={{ flex: 1 }}>
-        <LinearGradient
-          colors={
-            isDarkMode
-              ? ["rgba(20, 83, 45, 0.40)", "rgba(15, 23, 42, 0)"]
-              : ["#E8F8EA", "rgba(240, 253, 244, 0.35)", "transparent"]
-          }
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 140, zIndex: 0 }}
-          pointerEvents="none"
-        />
         {loading ? (
-          <View style={[styles.loading, { paddingTop: headerHeight }]}>
+          <View style={styles.loading}>
             <CustomLoading size={56} />
           </View>
         ) : (
@@ -225,20 +226,16 @@ export default function PostComposerLayout({
             style={{ flex: 1 }}
             contentContainerStyle={{
               padding: 16,
-              paddingTop: headerHeight,
+              paddingTop: 4,
               paddingBottom: insets.bottom + 32 + (editor.toolbarVisible ? TOOLBAR_HEIGHT : 0),
             }}
             bottomOffset={TOOLBAR_HEIGHT + 24}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            scrollEventThrottle={16}
-            // A plain callback (not Animated.event): this scroll view is a
-            // Reanimated one, the header's scrollY is a core Animated.Value.
-            onScroll={(event) => scrollY.setValue(event.nativeEvent.contentOffset.y)}
           >
             {banner ? (
-              <View style={[styles.banner, { backgroundColor: theme.surface, borderColor: theme.primary }]}>
-                <Ionicons name="document-text-outline" size={18} color={theme.primary} />
+              <View style={[styles.banner, { backgroundColor: tint("#22C55E", isDarkMode), borderColor: "transparent" }]}>
+                <Ionicons name="document-text" size={18} color={theme.primary} />
                 <Text style={[styles.bannerText, { color: theme.text }]}>{banner.text}</Text>
                 {banner.onAction && (
                   <TouchableOpacity onPress={banner.onAction} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -272,42 +269,44 @@ export default function PostComposerLayout({
                   editor.inputRef.current?.focus();
                 }}
               />
-              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+              <View style={[styles.divider, { backgroundColor: isDarkMode ? "#282B34" : "#F1F5F9" }]} />
               <PostEditorTabs editor={editor} />
               <PostEditorField
                 editor={editor}
                 placeholder={contentPlaceholder}
                 previewPadding={PREVIEW_PADDING}
               />
-              <View style={[styles.helpRow, { borderTopColor: theme.border }]}>
+              <View style={[styles.helpRow, { borderTopColor: isDarkMode ? "#282B34" : "#F1F5F9" }]}>
                 <TouchableOpacity
                   onPress={onMarkdownHelp}
                   activeOpacity={0.7}
                   hitSlop={{ top: 6, bottom: 6 }}
-                  style={[styles.chip, { backgroundColor: theme.iconBackground }]}
+                  style={[styles.chip, { backgroundColor: tint("#8B5CF6", isDarkMode) }]}
                 >
-                  <Ionicons name="logo-markdown" size={14} color={theme.primary} />
+                  <Ionicons name="logo-markdown" size={14} color="#8B5CF6" />
                   <Text style={[styles.chipText, { color: theme.text }]}>{t("createPost.markdown")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onRulesHelp}
                   activeOpacity={0.7}
                   hitSlop={{ top: 6, bottom: 6 }}
-                  style={[styles.chip, { backgroundColor: theme.iconBackground }]}
+                  style={[styles.chip, { backgroundColor: tint("#22C55E", isDarkMode) }]}
                 >
-                  <Ionicons name="shield-checkmark-outline" size={14} color={theme.primary} />
+                  <Ionicons name="shield-checkmark" size={14} color={theme.primary} />
                   <Text style={[styles.chipText, { color: theme.text }]}>{t("createPost.rules")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Where it goes and who sees it */}
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>{t("createPost.sectionSettings")}</Text>
+            <SectionTitle icon="options" color="#6366F1" theme={theme} isDarkMode={isDarkMode}>{t("createPost.sectionSettings")}</SectionTitle>
             <View style={cardStyle}>
               <SettingRow
-                icon="albums-outline"
+                icon="albums"
+                color="#8B5CF6"
                 title={t("createPost.categoryLabel")}
                 theme={theme}
+                isDarkMode={isDarkMode}
               >
                 <Dropdown
                   options={categoryOptions}
@@ -322,7 +321,7 @@ export default function PostComposerLayout({
                   headerIcon="clover"
                 />
               </SettingRow>
-              <SettingRow icon="eye-outline" title={t("createPost.privacyLabel")} theme={theme}>
+              <SettingRow icon="eye" color="#3B82F6" title={t("createPost.privacyLabel")} theme={theme} isDarkMode={isDarkMode}>
                 <Dropdown
                   options={privacyOptions}
                   placeholder={t("createPost.privacyPublic")}
@@ -337,10 +336,12 @@ export default function PostComposerLayout({
                 />
               </SettingRow>
               <SettingRow
-                icon={anonymous ? "eye-off" : "eye-off-outline"}
+                icon="eye-off"
+                color="#EC4899"
                 title={t("createPost.anonymous")}
                 hint={t("createPost.anonymousDesc")}
                 theme={theme}
+                isDarkMode={isDarkMode}
                 dimmed={!onToggleAnonymous}
                 wide
                 last
@@ -349,14 +350,14 @@ export default function PostComposerLayout({
                   value={!!anonymous}
                   onValueChange={onToggleAnonymous}
                   disabled={!onToggleAnonymous}
-                  trackColor={{ true: theme.primary }}
+                  trackColor={{ true: "#EC4899" }}
                   accessibilityLabel={t("createPost.anonymous")}
                 />
               </SettingRow>
             </View>
 
             {/* Attachments */}
-            <Text style={[styles.sectionTitle, { color: theme.subText }]}>{t("createPost.attachments")}</Text>
+            <SectionTitle icon="attach" color="#10B981" theme={theme} isDarkMode={isDarkMode}>{t("createPost.attachments")}</SectionTitle>
             <View style={cardStyle}>
               <View style={styles.attachActions}>
                 {attachActions.map((item) => (
@@ -366,9 +367,9 @@ export default function PostComposerLayout({
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel={item.label}
-                    style={[styles.attachAction, { backgroundColor: theme.iconBackground }]}
+                    style={[styles.attachAction, { backgroundColor: tint(item.color, isDarkMode) }]}
                   >
-                    <Ionicons name={item.icon} size={22} color={theme.primary} />
+                    <Ionicons name={item.icon} size={22} color={item.color} />
                     <Text style={[styles.attachLabel, { color: theme.text }]} numberOfLines={2}>
                       {item.label}
                     </Text>
@@ -420,11 +421,11 @@ export default function PostComposerLayout({
                   key={`document-${index}`}
                   style={[
                     styles.fileRow,
-                    { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
+                    { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDarkMode ? "#282B34" : "#F1F5F9" },
                   ]}
                 >
-                  <View style={[styles.rowIcon, { backgroundColor: theme.iconBackground }]}>
-                    <Ionicons name="document-text-outline" size={20} color={theme.primary} />
+                  <View style={[styles.rowIcon, { backgroundColor: tint("#F59E0B", isDarkMode) }]}>
+                    <Ionicons name="document-text" size={20} color="#F59E0B" />
                   </View>
                   <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>
                     {doc.name}
@@ -447,7 +448,10 @@ export default function PostComposerLayout({
               disabled={actionDisabled}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryText}>{submitLabel}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="paper-plane" size={18} color="#fff" />
+                <Text style={styles.primaryText}>{submitLabel}</Text>
+              </View>
             </TouchableOpacity>
           </KeyboardAwareScrollView>
         )}
@@ -461,31 +465,24 @@ export default function PostComposerLayout({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600", marginHorizontal: 12 },
-  headerActionButton: { width: "auto", minWidth: 64, paddingHorizontal: 14 },
-  headerAction: { fontSize: 15, fontWeight: "700" },
+  headerPill: { height: 38, paddingHorizontal: 18, borderRadius: 999, alignItems: "center", justifyContent: "center" },
+  headerPillText: { fontSize: 15, fontWeight: "800" },
+  sectionHead: { flexDirection: "row", alignItems: "center", marginBottom: 10, marginLeft: 4 },
+  sectionIcon: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", marginRight: 8 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   banner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 16,
+    padding: 12,
     marginBottom: 16,
   },
   bannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
   bannerAction: { fontSize: 13, fontWeight: "700" },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     marginBottom: 24,
@@ -511,12 +508,11 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 12, fontWeight: "600" },
   sectionTitle: {
+    flex: 1,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     letterSpacing: 0.5,
     textTransform: "uppercase",
-    marginBottom: 8,
-    marginLeft: 4,
   },
   row: {
     flexDirection: "row",
@@ -544,9 +540,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 6,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   attachLabel: { fontSize: 12, fontWeight: "600", textAlign: "center" },
   mediaRow: { gap: 8, paddingHorizontal: 12, paddingBottom: 12 },
@@ -570,6 +566,6 @@ const styles = StyleSheet.create({
   },
   fileRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, paddingHorizontal: 16 },
   fileName: { flex: 1, fontSize: 15 },
-  primary: { borderRadius: 12, padding: 14, alignItems: "center" },
+  primary: { borderRadius: 999, padding: 15, alignItems: "center" },
   primaryText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
 });
