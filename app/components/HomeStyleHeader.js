@@ -47,6 +47,28 @@ export default function HomeStyleHeader({ title, subtitle, onBack, right, icon =
   );
 }
 
+// Round green-tinted icon button for the right side of the header (like the
+// forum's trophy / add buttons).
+export function HeaderIconButton({ icon, onPress, label, dark, disabled }) {
+  const { isDarkMode: themeDark } = useTheme();
+  const isDarkMode = dark ? true : themeDark;
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 197, 94, 0.12)" },
+      ]}
+      activeOpacity={0.7}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={22} color={isDarkMode ? "#4ADE80" : "#15803D"} />
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14 },
   button: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },

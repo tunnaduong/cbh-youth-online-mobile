@@ -27,7 +27,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
-import LiquidButton from "../../../components/LiquidButton";
+import HomeStyleHeader, { HeaderIconButton } from "../../../components/HomeStyleHeader";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { tint } from "../../../components/settings/SettingsUI";
 
@@ -38,32 +38,21 @@ const veil = (background) => {
   return [`${hex}FF`, `${hex}FF`, `${hex}B3`, `${hex}73`];
 };
 
-const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity, insets, categoryId, createLabel }) => (
-  <View pointerEvents="box-none" style={styles.floatingHeader}>
-    <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
-      <View style={{ width: 44 }}>
-        <LiquidButton providerId="CategoryScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-      </View>
-      <Animated.Text
-        style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity ?? 1 }]}
-        numberOfLines={1}
-      >
-        {title}
-      </Animated.Text>
-      <View style={{ width: 44, alignItems: "flex-end" }}>
-        <LiquidButton
-          providerId="CategoryScreen"
-          size={44}
-          scrollY={scrollY}
-          accessibilityLabel={createLabel}
+// Same header as the forum screen: tinted green back button, big green title
+// with the sparkle, round action button on the right. Part of the page content.
+const SubforumHeader = ({ navigation, title, insets, categoryId, createLabel }) => (
+  <View style={{ paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8) }}>
+    <HomeStyleHeader
+      title={title}
+      onBack={() => navigation.goBack()}
+      right={
+        <HeaderIconButton
+          icon="add"
+          label={createLabel}
           onPress={() => navigation.navigate("CreatePostScreen", { categoryId })}
-        >
-          <Ionicons name="add" size={24} color={theme.primary} />
-        </LiquidButton>
-      </View>
-    </View>
+        />
+      }
+    />
   </View>
 );
 
@@ -255,8 +244,8 @@ const CategoryScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+        <SubforumHeader navigation={navigation} title={t('forum.title')} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <CustomLoading />
         </View>
       </View>
@@ -266,8 +255,8 @@ const CategoryScreen = ({ navigation, route }) => {
   if (!forumData) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+        <SubforumHeader navigation={navigation} title={t('forum.title')} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <Image
             source={require("../../../assets/sad_frog.png")}
             style={{ width: 80, height: 80 }}
@@ -325,6 +314,13 @@ const CategoryScreen = ({ navigation, route }) => {
 
   const renderListHeader = () => (
     <>
+      <SubforumHeader
+        navigation={navigation}
+        title={t('forum.title')}
+        insets={insets}
+        categoryId={categoryId}
+        createLabel={t("createPost.title")}
+      />
       {renderCategoryBanner()}
       {forumData.topics.length > 0 && (
         <Text style={[styles.sectionTitle, { color: theme.subText }]}>{t("forum.threadTitle")}</Text>
@@ -348,17 +344,6 @@ const CategoryScreen = ({ navigation, route }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <SubforumHeader
-        navigation={navigation}
-        title={t('forum.title')}
-        theme={theme}
-        scrollY={scrollY}
-        headerTitleOpacity={headerTitleOpacity}
-        insets={insets}
-        categoryId={categoryId}
-        createLabel={t("createPost.title")}
-      />
-
       <LinearGradient
         colors={
           isDarkMode
@@ -384,15 +369,13 @@ const CategoryScreen = ({ navigation, route }) => {
           updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} progressViewOffset={headerHeight} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} />
           }
           style={{
             flex: 1,
             backgroundColor: theme.background,
           }}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         />
       </AndroidGlassBackdrop>
     </View>
@@ -404,13 +387,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  floatingHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
   },
   headerTitle: {
     fontSize: 18,
