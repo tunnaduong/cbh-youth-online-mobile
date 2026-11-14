@@ -7,7 +7,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
-import WebViewHeader from "../../../../components/WebViewHeader";
+import WebViewHeader, { WebHeaderButton } from "../../../../components/WebViewHeader";
 import CustomLoading from "../../../../components/CustomLoading";
 import { parseUrlParts } from "../../../../utils/externalLink";
 import { allowRotation, lockPortrait } from "../../../../utils/orientation";
@@ -158,17 +158,8 @@ export default function GamePlayScreen({ navigation, route }) {
           onClose={() => navigation.goBack()}
           right={
             <View style={styles.headerActions}>
-              <TouchableOpacity
-                hitSlop={8}
-                onPress={() => setFullscreen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t("games.fullscreen")}
-              >
-                <Ionicons name="expand" size={22} color={theme.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity hitSlop={8} onPress={() => webViewRef.current?.reload()}>
-                <Ionicons name="refresh" size={22} color={theme.primary} />
-              </TouchableOpacity>
+              <WebHeaderButton icon="expand" label={t("games.fullscreen")} onPress={() => setFullscreen(true)} />
+              <WebHeaderButton icon="refresh" onPress={() => webViewRef.current?.reload()} />
             </View>
           }
         />
@@ -237,7 +228,7 @@ export default function GamePlayScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   exitFullscreen: {
     position: "absolute",
     width: 40,

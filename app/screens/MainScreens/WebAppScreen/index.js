@@ -13,7 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
-import WebViewHeader from "../../../components/WebViewHeader";
+import WebViewHeader, { WebHeaderButton } from "../../../components/WebViewHeader";
 import CustomLoading from "../../../components/CustomLoading";
 import { openInAppBrowser, parseUrlParts } from "../../../utils/externalLink";
 import {
@@ -211,15 +211,13 @@ export default function WebAppScreen({ navigation, route }) {
         }}
         onClose={() => navigation.goBack()}
         right={
-          <TouchableOpacity
-            hitSlop={8}
+          <WebHeaderButton
+            icon="refresh"
             onPress={() => {
               if (blockedUrl || loadFailed) goHome();
               else webViewRef.current?.reload();
             }}
-          >
-            <Ionicons name="refresh" size={22} color={theme.primary} />
-          </TouchableOpacity>
+          />
         }
       />
 
