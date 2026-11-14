@@ -39,6 +39,11 @@
     "createdStory": "đã đăng tin mới",
     "likedStory": "đã thích tin của",
     "viewedStory": "đã xem tin của",
+    "title": "Hoạt động của bạn",
+    "you": "Bạn",
+    "loginPrompt": "Vui lòng đăng nhập để xem hoạt động",
+    "loading": "Đang tải hoạt động...",
+    "empty": "Chưa có hoạt động nào",
     "loadError": "Không thể tải hoạt động. Vui lòng thử lại sau."
   },
   "navigation": {

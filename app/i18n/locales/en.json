@@ -46,6 +46,11 @@
     "createdStory": "created a story",
     "likedStory": "liked the story of",
     "viewedStory": "viewed the story of",
+    "title": "Your activity",
+    "you": "You",
+    "loginPrompt": "Please sign in to see your activity",
+    "loading": "Loading activity...",
+    "empty": "No activity yet",
     "loadError": "Could not load activities. Please try again later."
   },
   "navigation": {

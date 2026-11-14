@@ -8,7 +8,7 @@ import {
   Image,
   Platform,
   Animated,
-  ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getActivities, isRequestCanceled } from "../../../services/api/Api";
@@ -22,8 +22,11 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import CustomLoading from "../../../components/CustomLoading";
+import BannerWatermark from "../../../components/BannerWatermark";
+import { tint } from "../../../components/settings/SettingsUI";
 
-const ActivityItem = ({ item, navigation, theme }) => {
+const ActivityItem = ({ item, navigation, theme, isDarkMode }) => {
   const { t } = useTranslation();
   const truncateText = (text, maxLength = 30) => {
     if (!text) return "";
@@ -32,39 +35,22 @@ const ActivityItem = ({ item, navigation, theme }) => {
       : text;
   };
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case "like":
-        return <Ionicons name="heart" size={20} color="#319527" />;
-      case "dislike":
-        return <Ionicons name="heart-dislike" size={20} color="#ef4444" />;
-      case "comment":
-        return <Ionicons name="chatbubble" size={20} color="#319527" />;
-      case "comment_like":
-        return <Ionicons name="thumbs-up" size={20} color="#319527" />;
-      case "comment_dislike":
-        return <Ionicons name="thumbs-down" size={20} color="#ef4444" />;
-      case "post":
-        return <Ionicons name="create" size={20} color="#319527" />;
-      case "saved":
-        return <Ionicons name="bookmark" size={20} color="#319527" />;
-      case "follow":
-        return <Ionicons name="person" size={20} color="#319527" />;
-      case "story_create":
-        return (
-          <Image
-            source={require("../../../assets/story.png")}
-            style={{ width: 20, height: 20 }}
-          />
-        );
-      case "story_reaction":
-        return <Ionicons name="heart" size={20} color="#319527" />;
-      case "story_view":
-        return <Ionicons name="eye" size={20} color="#319527" />;
-      default:
-        return <Ionicons name="notifications" size={20} color="#319527" />;
-    }
+  // Each kind of activity has its own icon and colour.
+  const LOOK = {
+    like: ["heart", "#EF4444"],
+    dislike: ["heart-dislike", "#64748B"],
+    comment: ["chatbubble", "#3B82F6"],
+    comment_like: ["thumbs-up", "#10B981"],
+    comment_dislike: ["thumbs-down", "#64748B"],
+    post: ["create", "#8B5CF6"],
+    share: ["share-social", "#14B8A6"],
+    saved: ["bookmark", "#F59E0B"],
+    follow: ["person-add", "#EC4899"],
+    story_create: ["images", "#F97316"],
+    story_reaction: ["heart", "#EF4444"],
+    story_view: ["eye", "#6366F1"],
   };
+  const [lookIcon, lookColor] = LOOK[item.type] || ["notifications", "#22C55E"];
 
   const getActivityText = (item) => {
     if (!item.type) {
@@ -111,6 +97,7 @@ const ActivityItem = ({ item, navigation, theme }) => {
 
   return (
     <TouchableOpacity
+      activeOpacity={0.8}
       onPress={() => {
         if (item.type === "follow") {
           navigation.navigate("ProfileScreen", {
@@ -123,32 +110,37 @@ const ActivityItem = ({ item, navigation, theme }) => {
           navigation.navigate("PostScreen", { postId: item.topic.id });
         }
       }}
-      className="flex-row p-4"
-      style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginHorizontal: 16,
+        marginBottom: 10,
+        padding: 14,
+        borderRadius: 20,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+        backgroundColor: theme.surface,
+      }}
     >
-      <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: theme.iconBackground }}>
-        {getActivityIcon(item.type)}
+      <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: tint(lookColor, isDarkMode), alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name={lookIcon} size={20} color={lookColor} />
       </View>
-      <View className="flex-1 ml-3">
-        <Text className="text-[15px] leading-5" style={{ color: theme.text }}>
-          <Text className="font-medium" style={{ color: theme.text }}>Bạn</Text> {getActivityText(item)}
+      <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
+        <Text style={{ fontSize: 14, lineHeight: 20, color: theme.text }}>
+          <Text style={{ fontWeight: "700", color: theme.text }}>{t("activity.you")}</Text> {getActivityText(item)}
         </Text>
         {item.topic && (
-          <Text className="text-[15px] font-medium mt-1" style={{ color: theme.text }}>
+          <Text numberOfLines={2} style={{ fontSize: 15, fontWeight: "700", marginTop: 3, color: theme.text }}>
             {item.topic?.title}
           </Text>
         )}
-        <Text className="text-[13px] mt-0.5" style={{ color: theme.subText }}>
-          {item.updated_at}
-        </Text>
+        <Text style={{ fontSize: 12, marginTop: 3, color: theme.subText }}>{item.updated_at}</Text>
       </View>
       {/* Show post image */}
       {item.topic?.image_urls.length > 0 && (
         <FastImage
-          source={{
-            uri: item.topic.image_urls[0],
-          }}
-          className="w-[60px] h-[60px] rounded-lg ml-2"
+          source={{ uri: item.topic.image_urls[0] }}
+          style={{ width: 56, height: 56, borderRadius: 14, marginLeft: 10 }}
           resizeMode={FastImage.resizeMode.cover}
         />
       )}
@@ -160,7 +152,7 @@ const ActivityItem = ({ item, navigation, theme }) => {
               ? item.story.media_url
               : `https://api.chuyenbienhoa.com${item.story.media_url}`,
           }}
-          className="w-[60px] h-[60px] rounded-lg ml-2"
+          style={{ width: 56, height: 56, borderRadius: 14, marginLeft: 10 }}
           resizeMode={FastImage.resizeMode.cover}
         />
       )}
@@ -275,7 +267,7 @@ const ActivityScreen = ({ navigation }) => {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
         <Text className="mb-4" style={{ color: theme.subText }}>
-          Vui lòng đăng nhập để xem hoạt động
+          {t("activity.loginPrompt")}
         </Text>
       </View>
     );
@@ -284,21 +276,36 @@ const ActivityScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text className="mt-4" style={{ color: theme.text }}>Đang tải hoạt động...</Text>
+        <CustomLoading size={60} />
+        <Text className="mt-4" style={{ color: theme.text }}>{t("activity.loading")}</Text>
       </View>
     );
   }
 
+  const ListHeader = () => (
+    <LinearGradient
+      colors={isDarkMode ? ["#133321", "#0E2418"] : ["#EAF8EC", "#E0F5E3"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: isDarkMode ? "#1B472C" : "#D5EBD7", overflow: "hidden" }}
+    >
+      <BannerWatermark icon="time" size={130} />
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: tint("#22C55E", isDarkMode), alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="time" size={24} color={theme.primary} />
+      </View>
+      <Text style={{ flex: 1, marginLeft: 14, fontSize: 18, fontWeight: "800", color: theme.text }} numberOfLines={1}>
+        {t("activity.title")}
+      </Text>
+    </LinearGradient>
+  );
+
   const ListEmptyComponent = () => (
     <View className="flex-1 items-center justify-center py-10">
-      <FastImage
-        source={require("../../../assets/sad_frog.png")}
-        style={{ width: 130, height: 130 }}
-        resizeMode={FastImage.resizeMode.contain}
-      />
+      <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: tint("#22C55E", isDarkMode), alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="time-outline" size={40} color={theme.primary} />
+      </View>
       <Text className="text-center mt-4" style={{ color: theme.subText }}>
-        Chưa có hoạt động nào
+        {t("activity.empty")}
       </Text>
     </View>
   );
@@ -310,14 +317,14 @@ const ActivityScreen = ({ navigation }) => {
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
           <View style={{ width: 44 }}>
             <LiquidButton providerId="ActivityScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={22} color={theme.primary} />
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
           <Animated.Text
             style={{ fontSize: 18, fontWeight: "600", color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }}
             numberOfLines={1}
           >
-            Hoạt động của bạn
+            {t("activity.title")}
           </Animated.Text>
           <View style={{ width: 44 }} />
         </View>
@@ -346,18 +353,18 @@ const ActivityScreen = ({ navigation }) => {
           onScroll={handleScroll}
           scrollEventThrottle={16}
           renderItem={({ item }) => (
-            <ActivityItem item={item} navigation={navigation} theme={theme} />
+            <ActivityItem item={item} navigation={navigation} theme={theme} isDarkMode={isDarkMode} />
           )}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="transparent"
-              colors={["transparent"]}
-              progressBackgroundColor="transparent"
-              style={{ backgroundColor: "transparent" }}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+              progressViewOffset={headerHeight}
             />
           }
+          ListHeaderComponent={ListHeader}
           ListEmptyComponent={ListEmptyComponent}
           contentContainerStyle={{
             flexGrow: 1,
