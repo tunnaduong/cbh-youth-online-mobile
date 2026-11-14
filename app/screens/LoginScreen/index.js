@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect, useRef } from "react";
+import FloatingScreenHeader from "../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -230,11 +231,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.container}>
 
             {/* Floating back button */}
-            <View style={[styles.headerRow, { paddingTop: insets.top + 8, position: "absolute", top: 0, left: 0, zIndex: 10 }]} pointerEvents="box-none">
-              <LiquidButton providerId="LoginScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={24} color={theme.primary} />
-              </LiquidButton>
-            </View>
+            <FloatingScreenHeader onBack={() => navigation.goBack()} scrollY={scrollY} />
 
             <AndroidGlassBackdrop providerId="LoginScreen" style={{ flex: 1 }}>
             <Animated.ScrollView

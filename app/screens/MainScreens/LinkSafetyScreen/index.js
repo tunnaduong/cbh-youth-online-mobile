@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -75,30 +76,7 @@ const LinkSafetyScreen = ({ navigation, route }) => {
   const headerHeight = 58 + insets.top;
 
   const Header = (
-    <View
-      pointerEvents="box-none"
-      style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}
-    >
-      <View
-        style={{
-          paddingTop: insets.top,
-          paddingBottom: 8,
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          height: headerHeight,
-        }}
-      >
-        <LiquidButton
-          providerId="LinkSafetyScreen"
-          size={44}
-          scrollY={scrollY}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-      </View>
-    </View>
+    <FloatingScreenHeader onBack={() => navigation.goBack()} scrollY={scrollY} />
   );
 
   if (!url || !parts) {

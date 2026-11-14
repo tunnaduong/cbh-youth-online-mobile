@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -209,22 +210,7 @@ export default function MemberRankingScreen({ navigation }) {
         pointerEvents="none"
       />
       {/* Floating header */}
-      <View pointerEvents="box-none" style={styles.floatingHeader}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton providerId="MemberRankingScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t('profile.ranking')}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t('profile.ranking')} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop providerId="MemberRankingScreen" style={{ flex: 1 }}>
       <FlatList

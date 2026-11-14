@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import BannerWatermark from "../../../components/BannerWatermark";
 import { tint } from "../../../components/settings/SettingsUI";
 import {
@@ -184,13 +185,7 @@ const LikedPostsScreen = ({ navigation }) => {
   if (!isLoggedIn) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
-            <LiquidButton providerId="LikedPostsScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-        </View>
+        <FloatingScreenHeader onBack={() => navigation.goBack()} scrollY={scrollY} />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ color: theme.subText }}>{t('likedPosts.loginPrompt')}</Text>
         </View>
@@ -201,13 +196,7 @@ const LikedPostsScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
-            <LiquidButton providerId="LikedPostsScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-        </View>
+        <FloatingScreenHeader onBack={() => navigation.goBack()} scrollY={scrollY} />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={{ marginTop: 16, color: theme.text }}>{t('likedPosts.loading')}</Text>
@@ -248,22 +237,7 @@ const LikedPostsScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Floating header */}
-      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton providerId="LikedPostsScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={{ fontSize: 18, fontWeight: "600", color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }}
-            numberOfLines={1}
-          >
-            {t('likedPosts.title')}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t('likedPosts.title')} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop providerId="LikedPostsScreen" style={{ flex: 1 }}>
         <LinearGradient

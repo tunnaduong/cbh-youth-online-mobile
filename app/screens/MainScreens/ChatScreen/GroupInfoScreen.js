@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import FastImage from "../../../components/FastImage";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import StyledUsername from "../../../components/profile/StyledUsername";
@@ -509,14 +510,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.background }]}>
-        <View
-          style={[styles.header, { paddingTop: insets.top, height: 58 + insets.top, backgroundColor: "transparent" }]}
-          pointerEvents="box-none"
-        >
-          <LiquidButton providerId="GroupInfoScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color={theme.primary} />
-          </LiquidButton>
-        </View>
+        <FloatingScreenHeader onBack={() => navigation.goBack()} scrollY={scrollY} />
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
@@ -526,26 +520,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
-        pointerEvents="box-none"
-      >
-        <LiquidButton
-          providerId="GroupInfoScreen"
-          size={44}
-          scrollY={scrollY}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Animated.Text
-          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
-          numberOfLines={1}
-        >
-          {t("chatConversation.groupInfo", "Thông tin nhóm")}
-        </Animated.Text>
-        <View style={{ width: 44 }} />
-      </View>
+      <FloatingScreenHeader title={t("chatConversation.groupInfo", "Thông tin nhóm")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={

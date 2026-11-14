@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   ActivityIndicator,
   Alert,
@@ -365,19 +366,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
     ]);
 
   const header = (
-    <View pointerEvents="box-none" style={styles.headerWrap}>
-      <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
-        <View style={{ width: 44 }}>
-          <LiquidButton size={44} scrollY={scrollY} providerId="ProfileCustomizerScreen" onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-        </View>
-        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]} numberOfLines={1}>
-          {t("profileTheme.title", "Giao diện hồ sơ")}
-        </Animated.Text>
-        <View style={{ width: 44 }} />
-      </View>
-    </View>
+    <FloatingScreenHeader title={t("profileTheme.title", "Giao diện hồ sơ")} onBack={() => navigation.goBack()} scrollY={scrollY} />
   );
 
   if (loading || !editor || !profile) {

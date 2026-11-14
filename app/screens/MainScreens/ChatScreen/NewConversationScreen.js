@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import FastImage from "../../../components/FastImage";
 import {
   View,
@@ -181,20 +182,7 @@ const NewConversationScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header: glass back button appears once content scrolls under it */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
-          <LiquidButton size={44} scrollY={scrollY} providerId="NewConversationScreen" onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("chat.newMessage")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("chat.newMessage")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={

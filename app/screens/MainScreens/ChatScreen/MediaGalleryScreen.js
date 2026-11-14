@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   View,
@@ -563,27 +564,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header - transparent at the top of the scroll, the back
           button grows its own glass once the list moves under it. */}
-      <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.headerRow, { paddingTop: insets.top, height: 64 + insets.top }]}>
-          <View style={{ width: 44 }}>
-            <LiquidButton
-              size={44}
-              scrollY={scrollY}
-              providerId="MediaGalleryScreen"
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
-            numberOfLines={1}
-          >
-            {t("chatConversation.gallery", "Bộ sưu tập")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("chatConversation.gallery", "Bộ sưu tập")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <LinearGradient
         colors={

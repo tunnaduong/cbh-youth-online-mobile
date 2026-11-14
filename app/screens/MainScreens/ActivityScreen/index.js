@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from "react";
+import FloatingScreenHeader from "../../../components/FloatingScreenHeader";
 import {
   View,
   Text,
@@ -313,22 +314,7 @@ const ActivityScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Floating header */}
-      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton providerId="ActivityScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={{ fontSize: 18, fontWeight: "600", color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }}
-            numberOfLines={1}
-          >
-            {t("activity.title")}
-          </Animated.Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <FloatingScreenHeader title={t("activity.title")} onBack={() => navigation.goBack()} scrollY={scrollY} />
 
       <AndroidGlassBackdrop providerId="ActivityScreen" style={{ flex: 1 }}>
         <LinearGradient
