@@ -34,9 +34,9 @@ const MAX_IMAGES = 4;
 const MIN_LENGTH = 10;
 
 const TYPES = [
-  { value: "bug", icon: "bug-outline", color: "#EF4444", labelKey: "feedback.typeBug", descKey: "feedback.typeBugDesc", placeholderKey: "feedback.placeholderBug" },
-  { value: "suggestion", icon: "bulb-outline", color: "#F59E0B", labelKey: "feedback.typeSuggestion", descKey: "feedback.typeSuggestionDesc", placeholderKey: "feedback.placeholderSuggestion" },
-  { value: "other", icon: "chatbubble-ellipses-outline", color: "#3B82F6", labelKey: "feedback.typeOther", descKey: "feedback.typeOtherDesc", placeholderKey: "feedback.placeholderOther" },
+  { value: "bug", icon: "bug", color: "#EF4444", labelKey: "feedback.typeBug", descKey: "feedback.typeBugDesc", placeholderKey: "feedback.placeholderBug" },
+  { value: "suggestion", icon: "bulb", color: "#F59E0B", labelKey: "feedback.typeSuggestion", descKey: "feedback.typeSuggestionDesc", placeholderKey: "feedback.placeholderSuggestion" },
+  { value: "other", icon: "chatbubble-ellipses", color: "#3B82F6", labelKey: "feedback.typeOther", descKey: "feedback.typeOtherDesc", placeholderKey: "feedback.placeholderOther" },
 ];
 
 function getOtaVersionString() {
@@ -257,13 +257,13 @@ export default function FeedbackScreen({ navigation, route }) {
             end={{ x: 1, y: 1 }}
             style={[styles.heroCard, { borderColor: isDarkMode ? "#1B472C" : "#D5EBD7" }]}
           >
-            <BannerWatermark icon="chatbubbles" color="#22C55E" size={130} />
-            <View style={{ flex: 1, zIndex: 1 }}>
-              <Text style={[styles.heroTitle, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("feedback.title")}</Text>
-              <Text style={[styles.heroSubtitle, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("feedback.subtitle")}</Text>
-            </View>
+            <BannerWatermark icon="bug" color="#22C55E" size={130} />
             <View style={[styles.heroIcon, { backgroundColor: tint("#EF4444", isDarkMode) }]}>
               <Ionicons name="bug" size={26} color="#EF4444" />
+            </View>
+            <View style={{ flex: 1, zIndex: 1, marginLeft: 14 }}>
+              <Text style={[styles.heroTitle, { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" }]}>{t("feedback.title")}</Text>
+              <Text style={[styles.heroSubtitle, { color: isDarkMode ? "#9CA3AF" : "#4B6B58" }]}>{t("feedback.subtitle")}</Text>
             </View>
           </LinearGradient>
 
@@ -424,8 +424,8 @@ const styles = StyleSheet.create({
   heroCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 18,
     marginBottom: 12,
     overflow: "hidden",
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: { fontSize: 19, fontWeight: "800", marginBottom: 4 },
   heroSubtitle: { fontSize: 13, lineHeight: 18 },
-  heroIcon: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", marginLeft: 12, zIndex: 1 },
+  heroIcon: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", zIndex: 1 },
   typeIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   shakeBanner: {
     flexDirection: "row",
