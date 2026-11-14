@@ -350,7 +350,7 @@ export default function Step3({ navigation, route }) {
             {
               backgroundColor: isDarkMode
                 ? "rgba(255,255,255,0.04)"
-                : "#F8FAFC",
+                : theme.surface,
               borderColor: theme.border,
             },
             // Android's `elevation` shadow always renders dark/black and
@@ -388,7 +388,7 @@ export default function Step3({ navigation, route }) {
             {
               backgroundColor: isDarkMode
                 ? "rgba(255,255,255,0.04)"
-                : "#F8FAFC",
+                : theme.surface,
               borderColor: theme.border,
             },
             isDarkMode && { elevation: 0, shadowOpacity: 0 },
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
   contentSubtitle: { fontSize: 14, marginBottom: 20, lineHeight: 20 },
   confirmCard: {
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     marginBottom: 14,
     shadowColor: "#0F172A",
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 14, fontWeight: "600", flex: 0.55, textAlign: "right" },
   notesCard: {
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     marginBottom: 14,
     shadowColor: "#0F172A",
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     padding: 14,
     minHeight: 80,
-    borderRadius: 10,
+    borderRadius: 14,
     margin: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
-    borderRadius: 30,
+    borderRadius: 999,
     gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

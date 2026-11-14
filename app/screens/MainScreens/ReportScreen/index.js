@@ -15,6 +15,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import { tint } from "../../../components/settings/SettingsUI";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -278,7 +279,7 @@ export default function ReportScreen({ navigation, route }) {
                     : "#FFFFFF",
                 borderColor:
                   selectedType === type.id ? theme.primary : theme.border,
-                borderWidth: selectedType === type.id ? 2 : 1,
+                borderWidth: selectedType === type.id ? 1.5 : StyleSheet.hairlineWidth,
                 // Android's `elevation` shadow is always rendered dark/black,
                 // ignoring shadowColor. Against a dark theme background
                 // that shadow shows through as a stray black smudge around
@@ -300,9 +301,7 @@ export default function ReportScreen({ navigation, route }) {
                   backgroundColor:
                     selectedType === type.id
                       ? theme.primary + "26"
-                      : isDarkMode
-                      ? "#374151"
-                      : "#F3FDF1",
+                      : tint("#22C55E", isDarkMode),
                 },
               ]}
             >
@@ -464,7 +463,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
-    borderRadius: 30,
+    borderRadius: 999,
     gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

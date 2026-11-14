@@ -25,6 +25,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import { tint } from "../../../components/settings/SettingsUI";
 // The Vietnamese strings themselves, not through t(): what is sent to the
 // server is Vietnamese whatever language the app is shown in.
 import vi from "../../../i18n/locales/vi.json";
@@ -124,7 +125,7 @@ function SelectedTag({ tag, onRemove, theme, isDarkMode }) {
       style={[
         styles.selectedTag,
         {
-          backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1",
+          backgroundColor: tint("#22C55E", isDarkMode),
           borderColor: theme.primary,
         },
       ]}
@@ -309,9 +310,7 @@ export default function Step2({ navigation, route }) {
                 styles.chip,
                 {
                   backgroundColor: isSelected
-                    ? isDarkMode
-                      ? "#064e3b"
-                      : "#F3FDF1"
+                    ? tint("#22C55E", isDarkMode)
                     : isDarkMode
                     ? "rgba(255,255,255,0.06)"
                     : "#F1F5F9",
@@ -419,8 +418,8 @@ export default function Step2({ navigation, route }) {
 
   const renderClassForm = () => (
     <>
-      <View style={[styles.sectionCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}>
-        <Text style={[styles.sectionCardTitle, { color: theme.primary }]}>
+      <View style={[styles.sectionCard, { backgroundColor: isDarkMode ? theme.surface ?? "rgba(255,255,255,0.04)" : theme.surface ?? "#F8FAFC", borderColor: theme.border }]}>
+        <Text style={[styles.sectionCardTitle, { color: theme.subText }]}>
           {t("report.classInfo")}
         </Text>
 
@@ -478,9 +477,7 @@ export default function Step2({ navigation, route }) {
                   {
                     backgroundColor:
                       cleanliness === status
-                        ? isDarkMode
-                          ? "#064e3b"
-                          : "#F3FDF1"
+                        ? tint("#22C55E", isDarkMode)
                         : isDarkMode
                         ? "rgba(255,255,255,0.06)"
                         : "#F1F5F9",
@@ -520,9 +517,7 @@ export default function Step2({ navigation, route }) {
                   {
                     backgroundColor:
                       uniform === status
-                        ? isDarkMode
-                          ? "#064e3b"
-                          : "#F3FDF1"
+                        ? tint("#22C55E", isDarkMode)
                         : isDarkMode
                         ? "rgba(255,255,255,0.06)"
                         : "#F1F5F9",
@@ -886,12 +881,12 @@ const styles = StyleSheet.create({
   sectionCard: {
     borderRadius: 18,
     padding: 16,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 16,
   },
-  sectionCardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 14 },
+  sectionCardTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 14 },
   inputContainer: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: "500", marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
   input: {
     borderWidth: 1,
     borderRadius: 16,
@@ -926,7 +921,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
-    borderRadius: 30,
+    borderRadius: 999,
     gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
