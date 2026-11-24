@@ -27,6 +27,7 @@ const ConversationHeader = ({
   onPressTitle,
   onOptions,
   onCall,
+  onVideoCall,
   canCall = true,
   hasCustomBackground = false,
   inBubble = false,
@@ -186,6 +187,21 @@ const ConversationHeader = ({
           <Ionicons name="call" size={19} color={isDarkMode ? "#4ADE80" : "#15803D"} />
         </LiquidButton>
       )}
+        {canCall && onVideoCall && (
+          <LiquidButton
+            size={38}
+            forceNoGlass
+            backgroundColor="transparent"
+            onPress={onVideoCall}
+            accessibilityLabel={t("call.videoCall", "Cuộc gọi video")}
+          >
+            <Ionicons
+              name="videocam-outline"
+              size={24}
+              color={hasCustomBackground ? theme.primary : primaryAccent}
+            />
+          </LiquidButton>
+        )}
 
         <LiquidButton
           size={40}

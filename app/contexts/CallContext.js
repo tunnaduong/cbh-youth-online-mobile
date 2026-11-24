@@ -31,7 +31,7 @@ import {
   playCallConnectedHaptic,
   playCallEndedHaptic,
 } from "../utils/callSounds";
-import { WebRtcBridge } from "../components/call/WebRtcBridge";
+import { NativeRtcBridge } from "../components/call/NativeRtcBridge";
 import IncomingCallModal from "../components/call/IncomingCallModal";
 import ActiveCallModal from "../components/call/ActiveCallModal";
 import Toast from "react-native-toast-message";
@@ -98,6 +98,10 @@ export const CallProvider = ({ children }) => {
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [remoteVideoOff, setRemoteVideoOff] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
 
   const bridgeRef = useRef(null);
   // Whether the bridge's peer connection is up (slows the HTTP poll down)
@@ -202,6 +206,10 @@ export const CallProvider = ({ children }) => {
     stopTimer();
     stopRingtoneVibration();
     bridgeRef.current?.sendMessage("END_CALL");
+    setIsVideoOff(false);
+    setRemoteVideoOff(false);
+    setLocalStream(null);
+    setRemoteStream(null);
     if (conversationChannelRef.current) {
       try {
         conversationChannelRef.current
@@ -431,6 +439,10 @@ export const CallProvider = ({ children }) => {
         }
       }
 
+      if (type === "video_state") {
+        setRemoteVideoOff(payload?.enabled === false);
+        return;
+      }
       if (type === "ringing") {
         console.log("[CallContext] Callee received call and started ringing.");
         ringingAckReceivedRef.current = true;
@@ -1148,9 +1160,27 @@ export const CallProvider = ({ children }) => {
   const toggleSpeaker = useCallback(() => {
     setIsSpeakerOn((prev) => {
       const next = !prev;
-      bridgeRef.current?.sendMessage("SET_SPEAKER", { enabled: next });
+      bridgeRef.current?.sendMessage("SET_SPEAKER", { enabled: next, on: next });
       return next;
     });
+  }, []);
+
+  const toggleVideo = useCallback(() => {
+    setIsVideoOff((prev) => {
+      const next = !prev;
+      bridgeRef.current?.sendMessage("SET_VIDEO_ENABLED", { enabled: !next });
+      const cid = activeCallRef.current?.id;
+      if (cid) {
+        sendCallSignalApi(cid, "video_state", { enabled: !next }).catch(
+          () => {}
+        );
+      }
+      return next;
+    });
+  }, []);
+
+  const switchCamera = useCallback(() => {
+    bridgeRef.current?.sendMessage("SWITCH_CAMERA");
   }, []);
 
   const toggleMinimize = useCallback(() => {
@@ -1161,10 +1191,24 @@ export const CallProvider = ({ children }) => {
   const handleBridgeMessage = useCallback(
     (data) => {
       const callId = data?.callId || activeCallRef.current?.id;
-      if (!callId && data.type !== "ERROR" && data.type !== "MEDIA_WARNING") {
+      if (
+        !callId &&
+        data.type !== "ERROR" &&
+        data.type !== "MEDIA_WARNING" &&
+        data.type !== "LOCAL_STREAM" &&
+        data.type !== "REMOTE_STREAM_READY"
+      ) {
         return;
       }
 
+      if (data.type === "LOCAL_STREAM") {
+        setLocalStream(data.stream || null);
+        return;
+      }
+      if (data.type === "REMOTE_STREAM_READY") {
+        setRemoteStream(data.stream || null);
+        return;
+      }
       if (data.type === "OFFER_CREATED" || data.type === "ANSWER_CREATED") {
         sendCallSignalApi(
           callId,
@@ -1209,12 +1253,18 @@ export const CallProvider = ({ children }) => {
         toggleMute,
         toggleSpeaker,
         toggleMinimize,
+        isVideoOff,
+        remoteVideoOff,
+        localStream,
+        remoteStream,
+        toggleVideo,
+        switchCamera,
       }}
     >
       {children}
 
       {/* Hidden WebRTC engine executing media & peer connections */}
-      <WebRtcBridge ref={bridgeRef} onMessage={handleBridgeMessage} />
+      <NativeRtcBridge ref={bridgeRef} onMessage={handleBridgeMessage} />
 
       {/* Incoming Call Dialog Overlay */}
       <IncomingCallModal
@@ -1237,6 +1287,13 @@ export const CallProvider = ({ children }) => {
         isMuted={isMuted}
         isSpeakerOn={isSpeakerOn}
         isMinimized={isMinimized}
+        callType={callType}
+        isVideoOff={isVideoOff}
+        remoteVideoOff={remoteVideoOff}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        onToggleVideo={toggleVideo}
+        onSwitchCamera={switchCamera}
         onToggleMute={toggleMute}
         onToggleSpeaker={toggleSpeaker}
         onToggleMinimize={toggleMinimize}

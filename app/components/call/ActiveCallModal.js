@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { RTCView } from "react-native-webrtc";
 import { AuthContext } from "../../contexts/AuthContext";
 import FastImage from "../FastImage";
 import { AvatarFrameWrap } from "../profile/AvatarFrame";
@@ -32,6 +33,12 @@ export default function ActiveCallModal({
   isMuted = false,
   isSpeakerOn = false,
   isMinimized = false,
+  isVideoOff = false,
+  remoteVideoOff = false,
+  localStream = null,
+  remoteStream = null,
+  onToggleVideo,
+  onSwitchCamera,
   onToggleMute,
   onToggleSpeaker,
   onToggleMinimize,
@@ -64,6 +71,16 @@ export default function ActiveCallModal({
       ? `https://api.chuyenbienhoa.com/v1.0/users/${remotePeer.username}/avatar`
       : null);
   const isVideo = call.type === "video";
+  const showRemoteVideo =
+    isVideo &&
+    !!remoteStream &&
+    remoteStream.getVideoTracks().length > 0 &&
+    !remoteVideoOff;
+  const showLocalVideo =
+    isVideo &&
+    !!localStream &&
+    localStream.getVideoTracks().length > 0 &&
+    !isVideoOff;
 
   const statusText =
     callStatus === "connected"
@@ -128,6 +145,23 @@ export default function ActiveCallModal({
           style={styles.ambientTopGlow}
           pointerEvents="none"
         />
+        {showRemoteVideo && (
+          <RTCView
+            streamURL={remoteStream.toURL()}
+            style={StyleSheet.absoluteFillObject}
+            objectFit="cover"
+            pointerEvents="none"
+          />
+        )}
+        {showLocalVideo && (
+          <RTCView
+            streamURL={localStream.toURL()}
+            style={[styles.localPip, { top: insets.top + 70 }]}
+            objectFit="cover"
+            mirror
+            zOrder={1}
+          />
+        )}
         {/* Top bar with Minimize */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -144,7 +178,10 @@ export default function ActiveCallModal({
         </View>
 
         {/* Center: Remote Participant Info & Timer */}
-        <View style={styles.centerSection}>
+        <View
+          style={[styles.centerSection, showRemoteVideo && { opacity: 0 }]}
+          pointerEvents="none"
+        >
           <View style={styles.avatarWrap}>
             <AvatarFrameWrap size={130} theme={remotePeer.profile_theme}>
               {avatarUrl ? (
@@ -190,6 +227,29 @@ export default function ActiveCallModal({
             />
             <Text style={styles.controlLabel}>{isMuted ? t("call.unmute", "Bật mic") : t("call.mute", "Tắt mic")}</Text>
           </TouchableOpacity>
+
+          {isVideo && (
+            <>
+              <TouchableOpacity
+                style={[styles.controlBtn, isVideoOff && styles.controlBtnActive]}
+                activeOpacity={0.8}
+                onPress={onToggleVideo}
+              >
+                <Ionicons
+                  name={isVideoOff ? "videocam-off" : "videocam"}
+                  size={26}
+                  color={isVideoOff ? "#EF4444" : "#FFFFFF"}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlBtn}
+                activeOpacity={0.8}
+                onPress={onSwitchCamera}
+              >
+                <Ionicons name="camera-reverse" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+            </>
+          )}
 
           {/* End Call */}
           <TouchableOpacity
@@ -316,7 +376,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     width: "100%",
-    maxWidth: 340,
+    maxWidth: 400,
+  },
+  localPip: {
+    position: "absolute",
+    right: 16,
+    width: 100,
+    height: 140,
+    borderRadius: 12,
+    overflow: "hidden",
+    zIndex: 5,
   },
   controlBtn: {
     alignItems: "center",

@@ -47,11 +47,9 @@
           "UIApplicationSupportsMultipleScenes": false,
           "UISceneConfigurations": {}
         },
-        "UIBackgroundModes": [
-          "voip",
-          "audio"
-        ],
-        "NSMicrophoneUsageDescription": "Cho ph?p CBH Youth Online truy c?p microphone c?a b?n ?? th?c hi?n cu?c g?i tho?i v? video"
+        "UIBackgroundModes": ["voip", "audio"],
+        "NSMicrophoneUsageDescription": "Cho phép CBH Youth Online truy cập microphone của bạn để thực hiện cuộc gọi thoại và video",
+        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để thực hiện cuộc gọi video"
       },
       "associatedDomains": [
         "applinks:chuyenbienhoa.com",
@@ -69,7 +67,11 @@
         "FOREGROUND_SERVICE",
         "RECORD_AUDIO",
         "MODIFY_AUDIO_SETTINGS",
-        "CAMERA"
+        "CAMERA",
+        "FOREGROUND_SERVICE_CAMERA",
+        "FOREGROUND_SERVICE_MICROPHONE",
+        "BLUETOOTH",
+        "BLUETOOTH_CONNECT"
       ],
       "intentFilters": [
         {
@@ -151,6 +153,13 @@
     "plugins": [
       "./plugins/withNativeTweaks",
       "react-native-compressor",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Cho phép CBH Youth Online truy cập camera để gọi video",
+          "microphonePermission": "Cho phép CBH Youth Online truy cập microphone để gọi thoại và video"
+        }
+      ],
       [
         "expo-splash-screen",
         {

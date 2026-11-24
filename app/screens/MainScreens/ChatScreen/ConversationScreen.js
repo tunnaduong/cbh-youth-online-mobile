@@ -3151,6 +3151,9 @@ const ConversationScreen = ({ navigation, route }) => {
     callVoice: () => {
       startCall(currentConversationId || conversationId, "audio", otherUser);
     },
+    callVideo: () => {
+      startCall(currentConversationId || conversationId, "video", otherUser);
+    },
     showOptions,
     openTitle: () => {
       if (currentConversation?.type === "group") {
@@ -3521,6 +3524,7 @@ const ConversationScreen = ({ navigation, route }) => {
         onPressTitle={uiActions.openTitle}
         onOptions={uiActions.showOptions}
         onCall={uiActions.callVoice}
+        onVideoCall={uiActions.callVideo}
         canCall={CALL_FEATURES_ENABLED && !isGroupConversation && !Boolean(otherUser?.is_ai) && (otherUser?.role !== "ai") && !Boolean(otherUser?.username?.startsWith("ai_"))}
         hasCustomBackground={Boolean(chatBackgroundUrl)}
       />
