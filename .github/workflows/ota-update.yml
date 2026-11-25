@@ -59,7 +59,7 @@ jobs:
           if [ -n "$INPUT_VERSION" ]; then
             echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
           else
-            RESOLVED=$(node -p "require('./app.json').expo.runtimeVersion || '7.4.10'")
+            RESOLVED=$(node -p "require('./app.json').expo.runtimeVersion || '7.5.0'")
             echo "version=$RESOLVED" >> $GITHUB_OUTPUT
           fi
 

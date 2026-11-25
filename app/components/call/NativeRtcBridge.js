@@ -3,9 +3,11 @@ import {
   RTCPeerConnection,
   RTCIceCandidate,
   RTCSessionDescription,
+  RTCRtpSender,
   MediaStream,
   mediaDevices,
 } from "react-native-webrtc";
+import { Platform } from "react-native";
 import InCallManager from "react-native-incall-manager";
 import { WebRtcBridge as ToneBridge } from "./WebRtcBridge";
 
@@ -19,15 +21,6 @@ const DEFAULT_ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun.cloudflare.com:3478" },
-  {
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turn:openrelay.metered.ca:443?transport=tcp",
-    ],
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
 ];
 
 const TONE_ACTIONS = new Set([
@@ -96,6 +89,27 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
     });
   };
 
+  // iOS: answering from CallKit ends the CallKit call a moment later, and the system
+  // then deactivates the audio session. Start ours now and once more after that settles.
+  const startAudioSession = (callType) => {
+    const media = callType === "video" ? "video" : "audio";
+    InCallManager.start({ media });
+    if (Platform.OS === "ios") {
+      setTimeout(() => {
+        if (s.pc) InCallManager.start({ media });
+      }, 1200);
+    }
+  };
+
+  const reportMediaGaps = (callType) => {
+    if (!s.local || s.local.getAudioTracks().length === 0) {
+      emit({ type: "MEDIA_WARNING", code: "no_mic", message: "No microphone" });
+    }
+    if (callType === "video" && (!s.local || s.local.getVideoTracks().length === 0)) {
+      emit({ type: "MEDIA_WARNING", code: "no_camera", message: "No camera" });
+    }
+  };
+
   const acquireMedia = async (callType) => {
     if (s.local && s.local.getTracks().some((t) => t.readyState === "live")) {
       return s.local;
@@ -120,15 +134,22 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
             });
           } catch (e2) {
             emit({ type: "MEDIA_WARNING", message: e2?.message });
+            s.local = null;
+            reportMediaGaps(callType);
             return null;
           }
         }
       } else {
         emit({ type: "MEDIA_WARNING", message: err?.message });
+        s.local = null;
+        reportMediaGaps(callType);
         return null;
       }
     }
+    s.facing = "user";
+    emit({ type: "LOCAL_FACING", facing: s.facing });
     emit({ type: "LOCAL_STREAM", stream: s.local });
+    reportMediaGaps(callType);
     return s.local;
   };
 
@@ -145,6 +166,26 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
           pc.addTransceiver("video", { direction: "recvonly" });
         }
       } catch {}
+    }
+  };
+
+  // AV1 / VP9 decode in software on many phones and stutter: offer VP8 / H.264 only.
+  const preferCodecs = (pc) => {
+    try {
+      const caps = RTCRtpSender.getCapabilities && RTCRtpSender.getCapabilities("video");
+      if (!caps?.codecs) return;
+      const codecs = caps.codecs.filter(
+        (c) => !["video/av1", "video/vp9"].includes(String(c.mimeType).toLowerCase())
+      );
+      if (!codecs.length) return;
+      pc.getTransceivers().forEach((t) => {
+        const kind = t.sender?.track?.kind || t.receiver?.track?.kind;
+        if (kind === "video" && typeof t.setCodecPreferences === "function") {
+          t.setCodecPreferences(codecs);
+        }
+      });
+    } catch {
+      // best effort: default negotiation still works
     }
   };
 
@@ -204,10 +245,6 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
       if (action === "SET_ICE_SERVERS") {
         if (Array.isArray(payload) && payload.length) {
           const merged = payload.slice();
-          const hasTurn = merged.some((x) =>
-            JSON.stringify(x.urls || "").includes("turn:")
-          );
-          if (!hasTurn) merged.push(DEFAULT_ICE_SERVERS.at(-1));
           s.ice = merged;
         }
       } else if (action === "START_OUTGOING_CALL") {
@@ -216,11 +253,12 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
         s.callId = callId;
         s.callType = callType;
         if (callId) s.offerFor = String(callId);
-        InCallManager.start({ media: callType === "video" ? "video" : "audio" });
-        if (callType === "video") InCallManager.setForceSpeakerphoneOn(true);
+        s.isCaller = true;
+        startAudioSession(callType);
         const stream = await acquireMedia(callType);
         const pc = createPc(callId);
         attach(pc, stream, callType);
+        preferCodecs(pc);
         const offer = await pc.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: callType === "video",
@@ -235,8 +273,8 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
         const { callId, callType = "audio", remoteOffer } = payload;
         s.callId = callId;
         s.callType = callType;
-        InCallManager.start({ media: callType === "video" ? "video" : "audio" });
-        if (callType === "video") InCallManager.setForceSpeakerphoneOn(true);
+        s.isCaller = false;
+        startAudioSession(callType);
         const stream = await acquireMedia(callType);
         const pc = s.pc || createPc(callId);
         attach(pc, stream, callType);
@@ -245,6 +283,7 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
           s.pendingSdp = null;
           s.processedOffer = offer.sdp || "processed";
           await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          preferCodecs(pc);
           await drain();
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
@@ -301,7 +340,25 @@ export const NativeRtcBridge = forwardRef(({ onMessage }, ref) => {
         s.local?.getVideoTracks().forEach((t) => (t.enabled = !!payload.enabled));
       } else if (action === "SWITCH_CAMERA") {
         const track = s.local?.getVideoTracks()[0];
-        if (track && track._switchCamera) track._switchCamera();
+        if (track && track._switchCamera) {
+          track._switchCamera();
+          s.facing = s.facing === "user" ? "environment" : "user";
+          emit({ type: "LOCAL_FACING", facing: s.facing });
+        }
+      } else if (action === "RESTART_ICE") {
+        // Only the caller renegotiates; the callee answers the new offer.
+        const pc = s.pc;
+        if (pc && s.isCaller && pc.signalingState === "stable") {
+          const offer = await pc.createOffer({ iceRestart: true });
+          await pc.setLocalDescription(offer);
+          emit({
+            type: "OFFER_CREATED",
+            sdp: serializeSdp(pc.localDescription),
+            callId: s.callId,
+          });
+        }
+      } else if (action === "PLAY_AUDIO_CHUNK") {
+        // HTTP audio relay is a web-only fallback; mobile recovers with ICE restart.
       } else if (action === "SET_SPEAKER") {
         InCallManager.setForceSpeakerphoneOn(!!(payload.enabled ?? payload.on));
       } else if (action === "END_CALL") {

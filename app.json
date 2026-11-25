@@ -27,7 +27,7 @@
       "buildNumber": "1103",
       "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
-        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
+        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh và thực hiện cuộc gọi video",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
         "UIFileSharingEnabled": true,
@@ -48,8 +48,7 @@
           "UISceneConfigurations": {}
         },
         "UIBackgroundModes": ["voip", "audio"],
-        "NSMicrophoneUsageDescription": "Cho phép CBH Youth Online truy cập microphone của bạn để thực hiện cuộc gọi thoại và video",
-        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để thực hiện cuộc gọi video"
+        "NSMicrophoneUsageDescription": "Cho phép CBH Youth Online truy cập microphone của bạn để thực hiện cuộc gọi thoại và video"
       },
       "associatedDomains": [
         "applinks:chuyenbienhoa.com",
@@ -139,7 +138,7 @@
       },
       "minNativeBuild": 1193
     },
-    "runtimeVersion": "7.4.10",
+    "runtimeVersion": "7.5.0",
     "updates": {
       "enabled": true,
       "url": "https://api.chuyenbienhoa.com/v1.0/ota/manifest",

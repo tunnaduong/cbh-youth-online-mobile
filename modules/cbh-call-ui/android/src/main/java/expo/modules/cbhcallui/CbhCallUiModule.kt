@@ -48,6 +48,15 @@ class CbhCallUiModule : Module() {
       LockScreen.release()
     }
 
+    /** Keeps mic/camera alive while the app is in the background during a call. */
+    Function("startCallService") { title: String, video: Boolean ->
+      CallForegroundService.start(context, title, video)
+    }
+
+    Function("stopCallService") {
+      CallForegroundService.stop(context)
+    }
+
     Function("canUseFullScreenIntent") {
       IncomingCallNotifier.canUseFullScreenIntent(context)
     }
@@ -83,6 +92,7 @@ class CbhCallUiModule : Module() {
     // iOS-only (CallKit / PushKit); no-ops here so JS can call them blindly.
     Function("getVoipToken") { null as String? }
     Function("reportIncomingCall") { _: String, _: String, _: Boolean -> }
+    // Android-only; no-ops on iOS (CallKit keeps the audio session alive).
     Function("endCall") { callId: String, _: String ->
       IncomingCallNotifier.cancel(context, callId)
     }

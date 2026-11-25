@@ -118,3 +118,14 @@ export function openFullScreenIntentSettings() {
   if (!Native || Platform.OS !== "android") return;
   safe(() => Native.openFullScreenIntentSettings());
 }
+
+/** Android: keep mic/camera alive in the background while a call runs. */
+export function startCallForegroundService(title, isVideo) {
+  if (!Native || Platform.OS !== "android") return;
+  safe(() => Native.startCallService?.(String(title || "CBH Youth Online"), !!isVideo));
+}
+
+export function stopCallForegroundService() {
+  if (!Native || Platform.OS !== "android") return;
+  safe(() => Native.stopCallService?.());
+}

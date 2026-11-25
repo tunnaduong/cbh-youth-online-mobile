@@ -36,6 +36,7 @@ export default function ActiveCallModal({
   isVideoOff = false,
   remoteVideoOff = false,
   localStream = null,
+  localFacing = "user",
   remoteStream = null,
   onToggleVideo,
   onSwitchCamera,
@@ -133,7 +134,7 @@ export default function ActiveCallModal({
 
   // Full-Screen Active Call Screen
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" supportedOrientations={["portrait", "landscape"]}>
       <LinearGradient
         colors={["#0c381c", "#072312", "#031209"]}
         start={{ x: 0.5, y: 0 }}
@@ -158,7 +159,7 @@ export default function ActiveCallModal({
             streamURL={localStream.toURL()}
             style={[styles.localPip, { top: insets.top + 70 }]}
             objectFit="cover"
-            mirror
+            mirror={localFacing === "user"}
             zOrder={1}
           />
         )}

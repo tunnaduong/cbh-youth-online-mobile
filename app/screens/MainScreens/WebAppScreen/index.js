@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { CallContext } from "../../../contexts/CallContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import WebViewHeader, { WebHeaderButton } from "../../../components/WebViewHeader";
 import CustomLoading from "../../../components/CustomLoading";
@@ -109,6 +110,7 @@ export default function WebAppScreen({ navigation, route }) {
   // its form.
   const forceHandoff = useRef(false);
   const retriedHandoff = useRef(false);
+  const callCtx = useContext(CallContext);
   const retryHandoff = useCallback(() => {
     if (retriedHandoff.current) return false;
     retriedHandoff.current = true;
@@ -249,6 +251,16 @@ export default function WebAppScreen({ navigation, route }) {
             }}
             onMessage={(event) => {
               const data = event.nativeEvent?.data;
+              // The web chat asks the app to place calls natively (the WebView cannot ring).
+              if (typeof data === "string" && data.startsWith("{")) {
+                try {
+                  const msg = JSON.parse(data);
+                  if (msg?.type === "START_CALL" && msg.conversationId) {
+                    callCtx?.startCall?.(msg.conversationId, msg.callType === "video" ? "video" : "audio");
+                    return;
+                  }
+                } catch {}
+              }
               if (data === WEB_LOGIN_PAGE_MESSAGE) retryHandoff();
               // Loaded without a session: worth another handoff only when
               // the app itself is signed in (a guest browses signed out).

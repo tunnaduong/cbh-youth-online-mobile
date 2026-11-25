@@ -50,6 +50,8 @@ import {
   dismissOsIncomingCall,
   markAnsweredInApp,
   osCallEnded,
+  startCallForegroundService,
+  stopCallForegroundService,
   getVoipToken,
   consumePendingCallActions,
   addCallActionListener,
@@ -76,15 +78,25 @@ async function ensureNativeCallPermissions(type = "audio") {
       if (type === "video") {
         perms.push(PermissionsAndroid.PERMISSIONS.CAMERA);
       }
-      await PermissionsAndroid.requestMultiple(perms);
-    } else {
-      await Camera.requestMicrophonePermissionsAsync();
-      if (type === "video") {
-        await Camera.requestCameraPermissionsAsync();
-      }
+      const res = await PermissionsAndroid.requestMultiple(perms);
+      return {
+        mic: res[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === "granted",
+        camera:
+          type !== "video" ||
+          res[PermissionsAndroid.PERMISSIONS.CAMERA] === "granted",
+      };
     }
+    const mic = await Camera.requestMicrophonePermissionsAsync();
+    let camera = true;
+    if (type === "video") {
+      const cam = await Camera.requestCameraPermissionsAsync();
+      camera = !!cam?.granted;
+    }
+    return { mic: !!mic?.granted, camera };
   } catch (err) {
     console.warn("[CallContext] Native permission request warning:", err?.message);
+    // Unknown: let the engine try; it reports a media warning if it cannot.
+    return { mic: true, camera: true };
   }
 }
 
@@ -102,6 +114,14 @@ export const CallProvider = ({ children }) => {
   const [remoteVideoOff, setRemoteVideoOff] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [localFacing, setLocalFacing] = useState("user");
+  const isMutedRef = useRef(false);
+  const isVideoOffRef = useRef(false);
+  const isSpeakerOnRef = useRef(false);
+  // Camera paused by us because the app went to the background
+  const videoPausedByBackgroundRef = useRef(false);
+  const reconnectTimerRef = useRef(null);
+  const reconnectDeadlineRef = useRef(null);
 
   const bridgeRef = useRef(null);
   // Whether the bridge's peer connection is up (slows the HTTP poll down)
@@ -171,7 +191,8 @@ export const CallProvider = ({ children }) => {
 
   // Duration timer
   const startTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    // A reconnect must not reset the call duration to 00:00.
+    if (timerRef.current) return;
     setCallDuration(0);
     timerRef.current = setInterval(() => {
       setCallDuration((prev) => prev + 1);
@@ -192,6 +213,7 @@ export const CallProvider = ({ children }) => {
       osCallEnded(activeCallRef.current.id);
     }
     pendingOsAnswerRef.current = null;
+    stopCallForegroundService();
     clearConnectingTimeout();
     clearRingingTimeout();
     clearRingingRetryTimers();
@@ -206,6 +228,16 @@ export const CallProvider = ({ children }) => {
     stopTimer();
     stopRingtoneVibration();
     bridgeRef.current?.sendMessage("END_CALL");
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    reconnectDeadlineRef.current = null;
+    isMutedRef.current = false;
+    isVideoOffRef.current = false;
+    isSpeakerOnRef.current = false;
+    videoPausedByBackgroundRef.current = false;
+    transportConnectedRef.current = false;
     setIsVideoOff(false);
     setRemoteVideoOff(false);
     setLocalStream(null);
@@ -490,7 +522,7 @@ export const CallProvider = ({ children }) => {
       if (!cur?.id || cancelled) return;
 
       try {
-        const res = await getActiveCallApi(cur.id);
+        const res = await getActiveCallApi(cur.id, processedSignalSeqRef.current);
         if (cancelled) return;
         const remoteCall = res?.data?.call;
         const signals = res?.data?.signals;
@@ -768,8 +800,27 @@ export const CallProvider = ({ children }) => {
       try {
         if (!conversationId) return;
 
-        await ensureNativeCallPermissions(type);
+        const perms = await ensureNativeCallPermissions(type);
+        if (!perms.mic) {
+          Toast.show({
+            type: "error",
+            text1: "Cần quyền micro để gọi",
+            text2: "Hãy cấp quyền micro cho ứng dụng trong Cài đặt.",
+          });
+          return;
+        }
+        if (type === "video" && !perms.camera) {
+          // No camera permission: place it as a voice call instead of a black video call.
+          type = "audio";
+          Toast.show({
+            type: "info",
+            text1: "Chưa có quyền camera",
+            text2: "Cuộc gọi sẽ chuyển thành cuộc gọi thoại.",
+          });
+        }
 
+        isSpeakerOnRef.current = type === "video";
+        setIsSpeakerOn(type === "video");
         ringingAckReceivedRef.current = false;
         offerStartedForCallRef.current = null;
         processedSignalSeqRef.current = 0;
@@ -815,6 +866,12 @@ export const CallProvider = ({ children }) => {
         const res = await initiateCallApi(conversationId, type);
         const callData = res?.data?.call || res?.data;
         const callId = callData?.id;
+
+        // Fresh TURN logins for this call (the ones fetched at login may have expired).
+        const freshIce = res?.data?.ice_servers;
+        if (Array.isArray(freshIce) && freshIce.length) {
+          bridgeRef.current?.sendMessage("SET_ICE_SERVERS", freshIce);
+        }
 
         if (callId) {
           const updatedCall = {
@@ -881,7 +938,19 @@ export const CallProvider = ({ children }) => {
       markAnsweredInApp(call.id);
       dismissOsIncomingCall(call.id);
 
-      await ensureNativeCallPermissions(call.type || callTypeRef.current);
+      const answerType = call.type || callTypeRef.current;
+      const perms = await ensureNativeCallPermissions(answerType);
+      if (!perms.mic) {
+        Toast.show({
+          type: "error",
+          text1: "Cần quyền micro để nghe máy",
+          text2: "Hãy cấp quyền micro cho ứng dụng trong Cài đặt.",
+        });
+      }
+      // Camera denied on a video call: the engine answers without a camera and
+      // reports "no_camera", which turns our video off and tells the peer.
+      isSpeakerOnRef.current = answerType === "video";
+      setIsSpeakerOn(answerType === "video");
 
       callStatusRef.current = "connected";
       setCallStatus("connected");
@@ -894,7 +963,12 @@ export const CallProvider = ({ children }) => {
         remoteOffer: pendingRemoteOfferRef.current,
       });
 
-      await answerCallApi(call.id);
+      const answerRes = await answerCallApi(call.id);
+      const freshIce = answerRes?.data?.ice_servers;
+      if (Array.isArray(freshIce) && freshIce.length) {
+        // Late for this offer/answer round but used by an ICE restart.
+        bridgeRef.current?.sendMessage("SET_ICE_SERVERS", freshIce);
+      }
     } catch (err) {
       console.error("[CallContext] answerCall error:", err);
       cleanupCallState();
@@ -936,8 +1010,11 @@ export const CallProvider = ({ children }) => {
 
     const subAnswer = DeviceEventEmitter.addListener(
       "INCOMING_CALL_ANSWER_ACTION",
-      () => {
-        answerCall();
+      (pushData) => {
+        // Cold start: the Answer button can arrive before the call is known here.
+        const call = pushData?.call || pushData;
+        if (!activeCallRef.current && call?.id) beginIncomingRinging(call);
+        setTimeout(() => answerCall(), activeCallRef.current ? 0 : 400);
       }
     );
 
@@ -1150,34 +1227,51 @@ export const CallProvider = ({ children }) => {
   }, [isLoggedIn]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted((prev) => {
-      const next = !prev;
-      bridgeRef.current?.sendMessage("SET_MUTED", { muted: next });
-      return next;
-    });
+    const next = !isMutedRef.current;
+    isMutedRef.current = next;
+    setIsMuted(next);
+    bridgeRef.current?.sendMessage("SET_MUTED", { muted: next });
   }, []);
 
   const toggleSpeaker = useCallback(() => {
-    setIsSpeakerOn((prev) => {
-      const next = !prev;
-      bridgeRef.current?.sendMessage("SET_SPEAKER", { enabled: next, on: next });
-      return next;
-    });
+    const next = !isSpeakerOnRef.current;
+    isSpeakerOnRef.current = next;
+    setIsSpeakerOn(next);
+    bridgeRef.current?.sendMessage("SET_SPEAKER", { enabled: next, on: next });
+  }, []);
+
+  // Turns the camera on/off and tells the peer (so it shows the avatar, not a frozen frame).
+  const applyVideoOff = useCallback((off) => {
+    isVideoOffRef.current = off;
+    setIsVideoOff(off);
+    bridgeRef.current?.sendMessage("SET_VIDEO_ENABLED", { enabled: !off });
+    const cid = activeCallRef.current?.id;
+    if (cid) {
+      sendCallSignalApi(cid, "video_state", { enabled: !off }).catch(() => {});
+    }
   }, []);
 
   const toggleVideo = useCallback(() => {
-    setIsVideoOff((prev) => {
-      const next = !prev;
-      bridgeRef.current?.sendMessage("SET_VIDEO_ENABLED", { enabled: !next });
-      const cid = activeCallRef.current?.id;
-      if (cid) {
-        sendCallSignalApi(cid, "video_state", { enabled: !next }).catch(
-          () => {}
-        );
+    videoPausedByBackgroundRef.current = false;
+    applyVideoOff(!isVideoOffRef.current);
+  }, [applyVideoOff]);
+
+  // Camera capture stops in the background: tell the peer, and resume on return.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (callTypeRef.current !== "video" || callStatusRef.current !== "connected") return;
+      if (nextState === "active") {
+        if (videoPausedByBackgroundRef.current) {
+          videoPausedByBackgroundRef.current = false;
+          applyVideoOff(false);
+        }
+      } else if (!isVideoOffRef.current) {
+        videoPausedByBackgroundRef.current = true;
+        applyVideoOff(true);
       }
-      return next;
     });
-  }, []);
+    return () => sub.remove();
+  }, [applyVideoOff]);
 
   const switchCamera = useCallback(() => {
     bridgeRef.current?.sendMessage("SWITCH_CAMERA");
@@ -1196,11 +1290,27 @@ export const CallProvider = ({ children }) => {
         data.type !== "ERROR" &&
         data.type !== "MEDIA_WARNING" &&
         data.type !== "LOCAL_STREAM" &&
+        data.type !== "LOCAL_FACING" &&
         data.type !== "REMOTE_STREAM_READY"
       ) {
         return;
       }
 
+      if (data.type === "MEDIA_WARNING" || data.type === "ERROR") {
+        console.warn("[CallContext] media", data.type, data.code, data.message);
+        if (data.code === "no_camera") {
+          // Peer would otherwise see black frames: show the avatar instead.
+          if (!isVideoOffRef.current) applyVideoOff(true);
+          Toast.show({ type: "info", text1: "Không mở được camera", text2: "Bạn vẫn nghe và xem được người kia." });
+        } else if (data.code === "no_mic") {
+          Toast.show({ type: "error", text1: "Không mở được micro", text2: "Người kia sẽ không nghe thấy bạn." });
+        }
+        return;
+      }
+      if (data.type === "LOCAL_FACING") {
+        setLocalFacing(data.facing || "user");
+        return;
+      }
       if (data.type === "LOCAL_STREAM") {
         setLocalStream(data.stream || null);
         return;
@@ -1225,15 +1335,43 @@ export const CallProvider = ({ children }) => {
       } else if (data.type === "CONNECTION_STATE_CHANGE") {
         transportConnectedRef.current = data.state === "connected";
         if (data.state === "connected") {
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+          reconnectDeadlineRef.current = null;
           callStatusRef.current = "connected";
+          startCallForegroundService("CBH Youth Online", callTypeRef.current === "video");
           setCallStatus("connected");
           startTimer();
-        } else if (data.state === "failed" || data.state === "disconnected") {
+        } else if (
+          (data.state === "failed" || data.state === "disconnected") &&
+          callStatusRef.current === "connected"
+        ) {
           console.warn("[CallContext] WebRTC state:", data.state);
+          // Recover: give a blip a few seconds, then restart ICE (caller side);
+          // if still down after ~25s, end the call with a clear message.
+          if (!reconnectDeadlineRef.current) {
+            reconnectDeadlineRef.current = Date.now() + 25000;
+          }
+          if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+          const wait = data.state === "failed" ? 0 : 4000;
+          const attempt = () => {
+            reconnectTimerRef.current = null;
+            if (callStatusRef.current !== "connected" || transportConnectedRef.current) return;
+            if (Date.now() > (reconnectDeadlineRef.current || 0)) {
+              Toast.show({ type: "error", text1: "Mất kết nối", text2: "Cuộc gọi đã kết thúc do mạng không ổn định." });
+              endCall();
+              return;
+            }
+            bridgeRef.current?.sendMessage("RESTART_ICE");
+            reconnectTimerRef.current = setTimeout(attempt, 7000);
+          };
+          reconnectTimerRef.current = setTimeout(attempt, wait);
         }
       }
     },
-    [startTimer]
+    [startTimer, applyVideoOff, endCall]
   );
 
   return (
@@ -1257,6 +1395,7 @@ export const CallProvider = ({ children }) => {
         remoteVideoOff,
         localStream,
         remoteStream,
+        localFacing,
         toggleVideo,
         switchCamera,
       }}
@@ -1292,6 +1431,7 @@ export const CallProvider = ({ children }) => {
         remoteVideoOff={remoteVideoOff}
         localStream={localStream}
         remoteStream={remoteStream}
+        localFacing={localFacing}
         onToggleVideo={toggleVideo}
         onSwitchCamera={switchCamera}
         onToggleMute={toggleMute}
