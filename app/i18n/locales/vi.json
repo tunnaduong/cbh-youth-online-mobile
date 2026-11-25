@@ -97,6 +97,15 @@
     "report": "Tạo báo cáo",
     "development": "Tính năng đang được phát triển"
   },
+  "emailVerifySuccess": {
+    "verifying": "Đang xác minh email...",
+    "title": "Email đã được xác minh!",
+    "subtitle": "Địa chỉ email của bạn đã được xác minh thành công. Bạn có thể sử dụng đầy đủ các tính năng ngay bây giờ.",
+    "goHome": "Về trang chủ",
+    "errorTitle": "Xác minh thất bại",
+    "errorDefault": "Liên kết xác minh không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại email xác minh.",
+    "invalidLink": "Liên kết xác minh không hợp lệ."
+  },
   "home": {
     "loading": "Đang tải...",
     "loadingError": "Không thể tải nội dung. Vui lòng thử lại sau.",

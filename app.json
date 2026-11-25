@@ -108,6 +108,21 @@
           ]
         },
         {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "chuyenbienhoa.com",
+              "pathPrefix": "/email/verify/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "autoVerify": true
+        },
+        {
           "action": "SEND",
           "data": [
             {

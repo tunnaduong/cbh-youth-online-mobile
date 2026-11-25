@@ -104,6 +104,15 @@
     "report": "Create report",
     "development": "Feature is under development"
   },
+  "emailVerifySuccess": {
+    "verifying": "Verifying your email...",
+    "title": "Email Verified!",
+    "subtitle": "Your email address has been successfully verified. You can now use all features.",
+    "goHome": "Go to Home",
+    "errorTitle": "Verification Failed",
+    "errorDefault": "The verification link is invalid or has expired. Please request a new verification email.",
+    "invalidLink": "Invalid verification link."
+  },
   "home": {
     "loading": "Loading...",
     "loadingError": "Could not load content. Please try again later.",

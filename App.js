@@ -111,6 +111,7 @@ import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 import ProfileCustomizerScreen from "./app/screens/MainScreens/ProfileCustomizerScreen";
 import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
+import EmailVerifySuccessScreen from "./app/screens/MainScreens/SettingsScreen/EmailVerifySuccessScreen";
 import AppIconScreen from "./app/screens/MainScreens/SettingsScreen/AppIconScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
@@ -332,6 +333,10 @@ const parseDeepLink = (url) => {
     }
 
     if ((scheme === "https" || scheme === "http") && (host === "chuyenbienhoa.com" || host === "www.chuyenbienhoa.com")) {
+      if (pathSegment.startsWith("email/verify/")) {
+        const token = pathSegment.slice("email/verify/".length).split("?")[0];
+        if (token) return { screen: "EmailVerifySuccessScreen", params: { token } };
+      }
       if (pathSegment.startsWith("post/")) {
         const postId = parseInt(pathSegment.slice(5).split("-")[0], 10);
         if (!isNaN(postId)) return { screen: "PostScreen", params: { postId, item: null } };
@@ -1018,6 +1023,14 @@ const App = ({ skipSplash = false }) => {
                 component={StudentVerificationScreen}
                 options={{
                   headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="EmailVerifySuccessScreen"
+                component={EmailVerifySuccessScreen}
+                options={{
+                  headerShown: false,
+                  animation: "slide_from_bottom",
                 }}
               />
               <Stack.Screen
