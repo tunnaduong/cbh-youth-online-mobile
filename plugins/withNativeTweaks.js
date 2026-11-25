@@ -207,6 +207,8 @@ ${R8_PROGUARD_MARKER}
 # WebRTC & InCallManager
 -keep class com.oney.WebRTCModule.** { *; }
 -keep class org.webrtc.** { *; }
+-dontwarn org.webrtc.**
+-dontwarn org.webrtc.Dav1dDecoder$Natives
 -keep class com.zxcpoiu.incallmanager.** { *; }
 
 # FastImage & Glide
