@@ -82,6 +82,70 @@ task here:
   in Conventions / Design system. The whole file stays under ~500 lines / 60 KB;
   trim in the same commit if a change pushes past it.
 
+## OTA compatibility — khi nào drop support cho build/version cũ
+
+Hai giá trị trong `app.json` kiểm soát việc OTA có được apply hay không.
+**Đọc section này trước khi thay đổi chúng.**
+
+### `expo.runtimeVersion` (ví dụ `"7.5.0"`)
+
+Expo chỉ apply một OTA bundle cho binary có **cùng** `runtimeVersion`.
+Thay đổi giá trị này = phát hành một native build mới, và **toàn bộ OTA
+cũ (cùng channel) không còn được serve cho binary mới** — chúng nằm
+trong một thư mục khác trên server (`/ota/{channel}/{runtimeVersion}/`).
+
+**Bump `runtimeVersion` khi và chỉ khi:**
+- Có thay đổi native (thêm/xóa package có native module, sửa
+  `plugins/withNativeTweaks.js`, sửa `app.json` ios/android config,
+  nâng `deploymentTarget`, thêm permission…) buộc người dùng cài lại
+  APK/IPA từ store/sideload.
+- Quy tắc: bump patch (ví dụ `7.5.0` → `7.5.1`) cho thay đổi native nhỏ;
+  bump minor (`7.5.x` → `7.6.0`) khi architecture thay đổi đáng kể.
+- **Không** bump khi thay đổi chỉ là JS/TS/assets — OTA handle việc đó.
+
+### `expo.extra.minNativeBuild` (ví dụ `1193`)
+
+Thiết bị có `versionCode`/`buildNumber` **nhỏ hơn** giá trị này sẽ bị
+chặn nhận OTA và được nhắc cài bản native mới hơn
+(`app/services/ota/otaConfig.js → MIN_NATIVE_BUILD_REQUIRED`).
+
+**Tăng `minNativeBuild` khi:**
+- OTA mới dùng API endpoint, field, hoặc hành vi mà binary cũ không có
+  (ví dụ: thêm native module mới vào build #1200, OTA sau đó dùng module
+  đó → set `minNativeBuild: 1200`).
+- Muốn buộc người dùng upgrade binary vì lý do bảo mật hoặc breaking change.
+- **Không** tăng khi OTA không yêu cầu binary mới hơn — để người dùng cũ
+  vẫn nhận update JS.
+
+### Quy tắc tự động quyết định cho Claude
+
+Trước khi publish OTA hoặc tạo native build mới, tự trả lời:
+
+1. **Thay đổi có chạm vào native code không?**
+   - Có → bump `runtimeVersion` (patch hoặc minor tùy mức độ).
+   - Không → giữ nguyên `runtimeVersion`.
+
+2. **OTA mới có cần native build cao hơn `minNativeBuild` hiện tại không?**
+   - Có (dùng API mới/native module mới) → tăng `minNativeBuild` lên build
+     number của native build tối thiểu cần thiết.
+   - Không → giữ nguyên `minNativeBuild`.
+
+3. **Server OTA chỉ giữ 3 bản gần nhất** (xem API `OtaController`).
+   Khi bump `runtimeVersion`, thư mục OTA cũ trên server **không tự xóa** —
+   cần xóa thủ công nếu muốn giải phóng dung lượng (thư mục
+   `storage/app/ota/{channel}/{oldRuntimeVersion}/` trên server).
+
+### Giá trị hiện tại (cập nhật khi thay đổi)
+
+| Trường | Giá trị | Ý nghĩa |
+|---|---|---|
+| `runtimeVersion` | `7.5.0` | Native build hiện tại |
+| `minNativeBuild` | `1193` | Build tối thiểu để nhận OTA |
+| `ios.buildNumber` | `1103` | Build number iOS (CI ghi đè) |
+| `android.versionCode` | `1103` | Version code Android (CI ghi đè) |
+
+---
+
 ## Repo rules (details in INFO.md)
 
 - Work on branch `dhphuc`; conventional English commit messages.
