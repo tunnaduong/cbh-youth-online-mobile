@@ -178,7 +178,13 @@ const Comment = React.memo(React.forwardRef(
                     renderersProps={{
                       a: {
                         onPress: (event, href) => {
-                          if (href) openExternalLink(navigation, href, theme);
+                          if (!href) return;
+                          // Mention hrefs are relative (/username) — resolve against our domain
+                          // so resolveInAppRoute can navigate to ProfileScreen instead of a browser.
+                          const resolved = href.startsWith("/") && !href.startsWith("//")
+                            ? "https://chuyenbienhoa.com" + href
+                            : href;
+                          openExternalLink(navigation, resolved, theme);
                         },
                       },
                     }}
