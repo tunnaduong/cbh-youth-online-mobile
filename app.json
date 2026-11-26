@@ -212,7 +212,6 @@
         }
       ],
       "expo-web-browser",
-      "expo-store-review",
       [
         "expo-screen-orientation",
         {
