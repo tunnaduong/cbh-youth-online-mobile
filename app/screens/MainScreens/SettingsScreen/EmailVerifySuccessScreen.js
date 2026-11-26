@@ -15,7 +15,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { verifyEmail } from "../../../services/api/Api";
-import useStatusBarStyle from "../../../hooks/useStatusBarStyle";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 export default function EmailVerifySuccessScreen({ navigation, route }) {
   const { token } = route.params || {};
