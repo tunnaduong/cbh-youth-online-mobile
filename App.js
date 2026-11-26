@@ -130,6 +130,8 @@ import {
 } from "./app/services/ota/otaService";
 import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
 import { useGlobalFontsLoaded } from "./app/utils/globalFont";
+import * as StoreReview from "expo-store-review";
+import { storage } from "./app/global/storage";
 
 // Patches console.log/warn/error as early as possible so nothing logged
 // during app startup is missed if dev mode is already enabled from a
@@ -492,6 +494,38 @@ const App = ({ skipSplash = false }) => {
       clearTimeout(timer);
     };
   }, [showSplash, isLoading, isLoggedIn]);
+
+  // Request an in-app store review on the 2nd app open (and no more after that).
+  // We wait until the user is logged in and the splash is gone so the dialog
+  // doesn't interrupt onboarding or the loading screen.
+  useEffect(() => {
+    if (showSplash || isLoading || !isLoggedIn) return;
+
+    const REQUEST_REVIEW_AFTER = 2;
+    const STORAGE_KEY_OPENS = "app_open_count";
+    const STORAGE_KEY_REVIEWED = "store_review_requested";
+
+    // Don't ask again once we've already triggered the prompt.
+    if (storage.getBoolean(STORAGE_KEY_REVIEWED)) return;
+
+    const prev = storage.getNumber(STORAGE_KEY_OPENS) ?? 0;
+    const next = prev + 1;
+    storage.set(STORAGE_KEY_OPENS, next);
+
+    if (next >= REQUEST_REVIEW_AFTER) {
+      StoreReview.isAvailableAsync().then((available) => {
+        if (!available) return;
+        // Mark before requesting so a crash/race never double-prompts.
+        storage.set(STORAGE_KEY_REVIEWED, true);
+        // Small delay so the home feed has time to settle before the OS dialog appears.
+        setTimeout(() => {
+          StoreReview.requestReview().catch(() => {});
+        }, 2000);
+      });
+    }
+  // Run once when the app becomes "ready" (logged in, splash gone).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, showSplash, isLoading]);
 
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
