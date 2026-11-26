@@ -68,6 +68,9 @@ import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
+import LinkPreviewCard from "../../../components/LinkPreviewCard";
+import { findPreviewableUrlInHtml, findPreviewableUrl } from "../../../utils/linkPreview";
+import { openExternalLink } from "../../../utils/externalLink";
 
 const Comment = React.memo(React.forwardRef(
   ({ comment, level = 0, border = false, commentRefs,
@@ -175,8 +178,7 @@ const Comment = React.memo(React.forwardRef(
                     renderersProps={{
                       a: {
                         onPress: (event, href) => {
-                          const match = /^\/([\w.-]+)$/.exec(href || "");
-                          if (match) navigation.navigate("ProfileScreen", { username: match[1] });
+                          if (href) openExternalLink(navigation, href, theme);
                         },
                       },
                     }}
@@ -248,6 +250,14 @@ const Comment = React.memo(React.forwardRef(
                   ))}
                 </View>
               )}
+              {!comment.image_urls?.length && (() => {
+                const previewUrl = contentHtml
+                  ? findPreviewableUrlInHtml(contentHtml)
+                  : findPreviewableUrl(content);
+                return previewUrl ? (
+                  <LinkPreviewCard url={previewUrl} style={{ marginTop: 6 }} />
+                ) : null;
+              })()}
               <View className="flex-row items-center mt-1">
                 <Text style={{ fontSize: 12, color: "gray" }}>
                   {comment.created_at ? formatTime(comment.created_at) : ""}
