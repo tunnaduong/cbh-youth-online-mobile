@@ -135,8 +135,8 @@ export default function StudentVerificationScreen({ navigation }) {
     setSubmitting(true);
     try {
       const [selfieUrl, cardUrl] = await Promise.all([
-        uploadStudentVerificationPhoto(selfieUri, userInfo?.id),
-        uploadStudentVerificationPhoto(cardUri, userInfo?.id),
+        uploadStudentVerificationPhoto(selfieUri, userInfo?.id, "selfie"),
+        uploadStudentVerificationPhoto(cardUri, userInfo?.id, "card"),
       ]);
 
       if (!selfieUrl || !cardUrl) {

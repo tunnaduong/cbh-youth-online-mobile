@@ -239,14 +239,16 @@ export const submitStudentVerification = (params) => {
  *
  * @param {string} imageUri  Local file uri from expo-image-picker
  * @param {number} userId    Owner of the upload (the endpoint requires `uid`)
+ * @param {string} [kind]    Photo label ("selfie" | "card") to keep filenames distinct
  */
-export const uploadStudentVerificationPhoto = async (imageUri, userId) => {
+export const uploadStudentVerificationPhoto = async (imageUri, userId, kind = "photo") => {
   const isPng = imageUri.toLowerCase().endsWith(".png");
+  const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const formData = new FormData();
   formData.append("file", {
     uri: imageUri,
     type: isPng ? "image/png" : "image/jpeg",
-    name: isPng ? "verification.png" : "verification.jpg",
+    name: `verification_${kind}_${suffix}.${isPng ? "png" : "jpg"}`,
   });
   formData.append("uid", String(userId));
 
