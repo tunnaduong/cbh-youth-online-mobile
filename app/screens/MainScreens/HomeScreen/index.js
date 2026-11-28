@@ -1081,6 +1081,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const storyRef = useRef(null);
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
+  const [adRefreshKey, setAdRefreshKey] = useState(0);
   const [currentStory, setCurrentStory] = useState(null);
   const currentStoryRef = useRef(null);
   useEffect(() => {
@@ -2308,8 +2309,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
         {EmailVerificationAlert()}
 
-        {/* Sponsored banner right under the home header */}
-        <HomeAdBanner navigation={navigation} />
+        {/* Sponsored banner carousel right under the home header */}
+        <HomeAdBanner
+          navigation={navigation}
+          refreshKey={adRefreshKey}
+          isFocused={isFocused && !isStoryVisible}
+        />
 
         {/* Modern "Bạn đang nghĩ gì?" composer card */}
         <View style={styles.composerCardWrapper}>
@@ -2709,6 +2714,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // This prevents content from being pushed down
 
     fetchStories();
+    setAdRefreshKey((k) => k + 1);
 
     // Refresh user info to update email verification status
     if (isLoggedIn && refreshUserInfo) {

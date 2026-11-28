@@ -144,6 +144,7 @@
     "feed": "News Feed",
     "adBadge": "Ad",
     "adBannerLabel": "Sponsored banner",
+    "adSlide": "Ad {{index}} of {{total}}",
     "forYou": "For You",
     "latest": "Latest",
     "youthNews": "Youth Union news",

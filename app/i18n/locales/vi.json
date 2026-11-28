@@ -137,6 +137,7 @@
     "feed": "Bảng tin",
     "adBadge": "Quảng cáo",
     "adBannerLabel": "Banner quảng cáo",
+    "adSlide": "Quảng cáo {{index}}/{{total}}",
     "forYou": "Dành cho bạn",
     "latest": "Mới nhất",
     "youthNews": "Tin tức Đoàn",
