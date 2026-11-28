@@ -20,7 +20,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Application from "expo-application";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import FastImage from "../../../components/FastImage";
+import SortableImageStrip, { arrayMove } from "../../../components/SortableImageStrip";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { ACCENT, tint } from "../../../components/settings/SettingsUI";
@@ -103,6 +103,7 @@ export default function FeedbackScreen({ navigation, route }) {
   const [images, setImages] = useState(() => (shakeScreenshot ? [shakeScreenshot] : [])); // local URIs
   const [submitting, setSubmitting] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState(-1);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
 
   const inputBg = isDarkMode ? "#2A2A2A" : "#F3F4F6";
   const activeType = TYPES.find((x) => x.value === type) || TYPES[0];
@@ -240,6 +241,7 @@ export default function FeedbackScreen({ navigation, route }) {
         />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <Animated.ScrollView
+          scrollEnabled={!isDraggingImage}
           scrollEventThrottle={16}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
             useNativeDriver: false,
@@ -331,43 +333,46 @@ export default function FeedbackScreen({ navigation, route }) {
               </Text>
             )}
           </View>
-          <View style={styles.imageRow}>
-            {images.map((uri, idx) => (
-              <View key={uri} style={styles.imageWrap}>
-                <FastImage source={{ uri }} style={styles.image} />
-                {submitting && (
-                  <View style={styles.imageLoadingOverlay}>
-                    {uploadingIndex === idx ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    ) : uploadingIndex > idx ? (
-                      <Ionicons name="checkmark-circle" size={24} color="#22c55e" />
-                    ) : (
-                      <View style={styles.pendingDot} />
-                    )}
-                  </View>
-                )}
-                {!submitting && (
-                  <TouchableOpacity
-                    style={styles.removeImage}
-                    onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-                    hitSlop={6}
-                  >
-                    <Ionicons name="close" size={14} color="#fff" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-            {!submitting && images.length < MAX_IMAGES && (
-              <TouchableOpacity
-                onPress={pickImages}
-                style={[styles.addImage, { borderColor: theme.border }]}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="image-outline" size={22} color={theme.subText} />
-                <Text style={{ color: theme.subText, fontSize: 11, marginTop: 4 }}>{t("feedback.addImage")}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <SortableImageStrip
+            images={images}
+            onReorder={(fromIndex, toIndex) =>
+              setImages((prev) => arrayMove(prev, fromIndex, toIndex))
+            }
+            onRemove={(idx) => setImages((prev) => prev.filter((_, i) => i !== idx))}
+            onDragStateChange={setIsDraggingImage}
+            disabled={submitting}
+            tileSize={76}
+            gap={8}
+            borderRadius={14}
+            contentContainerStyle={{ paddingHorizontal: 0 }}
+            hintStyle={{ paddingHorizontal: 0 }}
+            hintText={t("createPost.dragToReorderImages")}
+            renderOverlay={(_img, idx) =>
+              submitting ? (
+                <View style={styles.imageLoadingOverlay}>
+                  {uploadingIndex === idx ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : uploadingIndex > idx ? (
+                    <Ionicons name="checkmark-circle" size={24} color="#22c55e" />
+                  ) : (
+                    <View style={styles.pendingDot} />
+                  )}
+                </View>
+              ) : null
+            }
+            trailingContent={
+              !submitting && images.length < MAX_IMAGES ? (
+                <TouchableOpacity
+                  onPress={pickImages}
+                  style={[styles.addImage, { borderColor: theme.border }]}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="image-outline" size={22} color={theme.subText} />
+                  <Text style={{ color: theme.subText, fontSize: 11, marginTop: 4 }}>{t("feedback.addImage")}</Text>
+                </TouchableOpacity>
+              ) : null
+            }
+          />
 
           <Text style={[styles.label, { color: theme.text }]}>{t("feedback.emailLabel")}</Text>
           <TextInput

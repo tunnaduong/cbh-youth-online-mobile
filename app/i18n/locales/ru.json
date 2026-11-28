@@ -523,6 +523,7 @@
     "categoryLabel": "Раздел",
     "privacyLabel": "Кто видит",
     "removeAttachment": "Удалить вложение",
+    "dragToReorderImages": "Удерживайте и перетащите фото для изменения порядка",
     "toolbar": {
       "bold": "Жирный",
       "italic": "Курсив",

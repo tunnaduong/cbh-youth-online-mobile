@@ -1,8 +1,6 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import {
-  Animated,
   Platform,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -21,7 +19,7 @@ import { tint } from "../settings/SettingsUI";
 import { AndroidGlassBackdrop } from "../GlassModules";
 import CustomLoading from "../CustomLoading";
 import Dropdown from "../Dropdown";
-import FastImage from "../FastImage";
+import SortableImageStrip from "../SortableImageStrip";
 import VideoThumbnail from "../VideoThumbnail";
 import { getSubforumIcon, getSectionIcon } from "../../utils/forumUtils";
 import { TOOLBAR_HEIGHT } from "./MarkdownToolbar";
@@ -119,12 +117,14 @@ export default function PostComposerLayout({
   onPickVideo,
   onPickDocument,
   onRemoveImage,
+  onReorderImages,
   onRemoveVideo,
   onRemoveDocument,
 }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
 
   // Both screens using this layout are opened with `presentation: "modal"`.
   // On iOS that is a sheet which already starts below the status bar, while
@@ -224,6 +224,7 @@ export default function PostComposerLayout({
         ) : (
           <KeyboardAwareScrollView
             style={{ flex: 1 }}
+            scrollEnabled={!isDraggingImage}
             contentContainerStyle={{
               padding: 16,
               paddingTop: 4,
@@ -379,31 +380,18 @@ export default function PostComposerLayout({
 
               {hasMedia && (
                 // Photos and videos share one row so attaching either feels
-                // like the same action.
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.mediaRow}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {images.map((image, index) => (
-                    <View key={`image-${index}-${image.uri}`} style={styles.mediaTile}>
-                      <FastImage
-                        source={{ uri: image.uri }}
-                        style={[styles.mediaImage, { borderColor: theme.border }]}
-                      />
-                      <TouchableOpacity
-                        onPress={() => onRemoveImage(index)}
-                        style={styles.removeBadge}
-                        hitSlop={6}
-                        accessibilityRole="button"
-                        accessibilityLabel={t("createPost.removeAttachment")}
-                      >
-                        <Ionicons name="close" size={14} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  {videos.map((video, index) => (
+                // like the same action. Images can be long-pressed & dragged
+                // to reorder; videos trail right after them in the same strip.
+                <SortableImageStrip
+                  images={images}
+                  onReorder={onReorderImages}
+                  onRemove={onRemoveImage}
+                  onDragStateChange={setIsDraggingImage}
+                  tileSize={MEDIA_TILE}
+                  gap={8}
+                  borderRadius={14}
+                  hintText={t("createPost.dragToReorderImages")}
+                  trailingContent={videos.map((video, index) => (
                     <VideoThumbnail
                       key={`video-${index}-${video.uri}`}
                       uri={video.uri}
@@ -413,7 +401,7 @@ export default function PostComposerLayout({
                       onRemove={() => onRemoveVideo(index)}
                     />
                   ))}
-                </ScrollView>
+                />
               )}
 
               {documents.map((doc, index) => (

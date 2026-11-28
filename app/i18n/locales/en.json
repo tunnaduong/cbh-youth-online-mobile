@@ -513,6 +513,7 @@
     "categoryLabel": "Category",
     "privacyLabel": "Who can see it",
     "removeAttachment": "Remove attachment",
+    "dragToReorderImages": "Press and hold an image to reorder",
     "toolbar": {
       "bold": "Bold",
       "italic": "Italic",

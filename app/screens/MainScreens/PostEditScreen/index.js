@@ -19,6 +19,7 @@ import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
 import usePostEditor from "../../../components/PostEditor/usePostEditor";
 import PostComposerLayout from "../../../components/PostEditor/PostComposerLayout";
+import { arrayMove } from "../../../components/SortableImageStrip";
 import { hasPendingUploads } from "../../../utils/markdownEdit";
 
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -161,11 +162,11 @@ const PostEditScreen = ({ navigation, route }) => {
         }
 
         if (post.images && post.images.length > 0) {
-          setSelectedImages(post.images.map(img => ({ id: img.id, uri: img.url })));
+          setSelectedImages(post.images.map(img => ({ uid: `existing-${img.id}`, id: img.id, uri: img.url })));
         } else if (post.cdn_image_id) {
           const imageUrls = post.cdn_image_id
             .split(",")
-            .map((id) => ({ id: id, uri: `https://api.chuyenbienhoa.com/v1.0/cdn/${id}` }));
+            .map((id) => ({ uid: `existing-${id}`, id: id, uri: `https://api.chuyenbienhoa.com/v1.0/cdn/${id}` }));
           setSelectedImages(imageUrls);
         }
 
@@ -236,7 +237,10 @@ const PostEditScreen = ({ navigation, route }) => {
             fileSize: validation.size,
           });
         } else {
-          newImages.push({ uri: asset.uri });
+          newImages.push({
+            uid: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            uri: asset.uri,
+          });
         }
       }
 
@@ -289,9 +293,13 @@ const PostEditScreen = ({ navigation, route }) => {
       });
 
       if (!result.canceled && result.assets) {
+        const now = Date.now();
         setSelectedImages((prev) => [
           ...prev,
-          ...result.assets.map((asset) => ({ uri: asset.uri })),
+          ...result.assets.map((asset, i) => ({
+            uid: `new-${now}-${i}-${Math.random().toString(36).slice(2)}`,
+            uri: asset.uri,
+          })),
         ]);
       }
     } catch (error) {
@@ -409,6 +417,10 @@ const PostEditScreen = ({ navigation, route }) => {
     );
   };
 
+  const reorderImages = (fromIndex, toIndex) => {
+    setSelectedImages((prev) => arrayMove(prev, fromIndex, toIndex));
+  };
+
   const removeDocument = (indexToRemove) => {
     setSelectedDocuments((prev) =>
       prev.filter((_, index) => index !== indexToRemove)
@@ -463,22 +475,35 @@ const PostEditScreen = ({ navigation, route }) => {
     startUpload({
       kind: "postEdit",
       task: async (report) => {
-        // Kept IDs
-        const keptImageIds = images.filter((img) => img.id).map((img) => img.id);
+        // Kept IDs for documents/videos; images are processed in exact display
+        // order below so interleaved existing + newly added images preserve
+        // whatever order the author dragged them into.
         const keptDocumentIds = documents.filter((doc) => doc.id).map((doc) => doc.id);
         const keptVideoIds = videos.filter((video) => video.id).map((video) => video.id);
 
-        const newImages = images.filter((img) => !img.id && img.uri);
+        const isLocalNewImage = (img) =>
+          !img.id && img.uri && !img.uri.includes("api.chuyenbienhoa.com");
+        const newImagesCount = images.filter(isLocalNewImage).length;
         const newDocs = documents.filter((doc) => !doc.id && doc.uri);
         const newVideos = videos.filter((video) => !video.id && video.uri);
 
         // One bar for the whole save: each new file is an equal share of it.
-        const totalFiles = newImages.length + newDocs.length + newVideos.length;
+        const totalFiles = newImagesCount + newDocs.length + newVideos.length;
         let filesDone = 0;
-        const overall = (ratio) => (filesDone + ratio) / totalFiles;
+        const overall = (ratio) => (totalFiles > 0 ? (filesDone + ratio) / totalFiles : 1);
 
-        const newCdnIds = [];
-        for (const img of newImages) {
+        const orderedCdnIds = [];
+        for (const img of images) {
+          if (img.id) {
+            orderedCdnIds.push(img.id);
+            continue;
+          }
+          if (img.uri && img.uri.includes("api.chuyenbienhoa.com")) {
+            orderedCdnIds.push(img.uri.split("/").pop());
+            continue;
+          }
+          if (!img.uri) continue;
+
           // Compressed on the device (the API no longer does it).
           report("compressingImage", { progress: overall(0) });
           const imageUri = await compressImageForUpload(img.uri);
@@ -506,7 +531,7 @@ const PostEditScreen = ({ navigation, route }) => {
               report.progress("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
             },
           });
-          newCdnIds.push(uploadResponse.data.id);
+          orderedCdnIds.push(uploadResponse.data.id);
           filesDone += 1;
         }
 
@@ -572,11 +597,7 @@ const PostEditScreen = ({ navigation, route }) => {
           filesDone += 1;
         }
 
-        // Get existing CDN IDs from kept IDs or fallback to parsing from URLs
-        const urlImageIds = images
-          .filter((img) => !img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
-          .map((img) => img.uri.split("/").pop());
-        const allCdnIds = [...new Set([...keptImageIds, ...urlImageIds, ...newCdnIds])];
+        const allCdnIds = [...new Set(orderedCdnIds.filter(Boolean))];
 
         const urlDocIds = documents
           .filter((doc) => !doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
@@ -682,6 +703,7 @@ const PostEditScreen = ({ navigation, route }) => {
       onPickMedia={pickMedia}
       onPickDocument={pickDocument}
       onRemoveImage={removeImage}
+      onReorderImages={reorderImages}
       onRemoveVideo={removeVideo}
       onRemoveDocument={removeDocument}
     />

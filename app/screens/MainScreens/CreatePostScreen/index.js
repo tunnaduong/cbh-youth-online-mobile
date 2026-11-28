@@ -28,6 +28,7 @@ import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
 import { CustomAlert } from "../../../components/CustomAlert";
 import usePostEditor from "../../../components/PostEditor/usePostEditor";
 import PostComposerLayout from "../../../components/PostEditor/PostComposerLayout";
+import { arrayMove } from "../../../components/SortableImageStrip";
 import { hasPendingUploads } from "../../../utils/markdownEdit";
 import { clearPostDraft, isDraftEmpty, loadPostDraft, savePostDraft } from "../../../utils/postDraft";
 
@@ -270,9 +271,13 @@ const CreatePostScreen = ({ navigation, route }) => {
       });
 
       if (!result.canceled && result.assets) {
+        const now = Date.now();
         setSelectedImages((prev) => [
           ...prev,
-          ...result.assets.map((asset) => asset.uri),
+          ...result.assets.map((asset, i) => ({
+            uid: `img-${now}-${i}-${Math.random().toString(36).slice(2)}`,
+            uri: asset.uri,
+          })),
         ]);
       }
     } catch (error) {
@@ -321,7 +326,10 @@ const CreatePostScreen = ({ navigation, route }) => {
             fileSize: validation.size,
           });
         } else {
-          newImages.push(asset.uri);
+          newImages.push({
+            uid: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            uri: asset.uri,
+          });
         }
       }
 
@@ -476,6 +484,10 @@ const CreatePostScreen = ({ navigation, route }) => {
     );
   };
 
+  const reorderImages = (fromIndex, toIndex) => {
+    setSelectedImages((prev) => arrayMove(prev, fromIndex, toIndex));
+  };
+
   const removeDocument = (indexToRemove) => {
     setSelectedDocuments((prev) =>
       prev.filter((_, index) => index !== indexToRemove),
@@ -542,7 +554,8 @@ const CreatePostScreen = ({ navigation, route }) => {
         const overall = (ratio) => (filesDone + ratio) / totalFiles;
 
         const cdnIds = [];
-        for (const originalUri of images) {
+        for (const item of images) {
+          const originalUri = typeof item === "string" ? item : item.uri;
           // Compressed on the device (the API no longer does it).
           report("compressingImage", { progress: overall(0) });
           const imageUri = await compressImageForUpload(originalUri);
@@ -752,12 +765,13 @@ const CreatePostScreen = ({ navigation, route }) => {
         onChangePrivacy={setViewSelected}
         anonymous={isAnonymous}
         onToggleAnonymous={setIsAnonymous}
-        images={selectedImages.map((uri) => ({ uri }))}
+        images={selectedImages}
         videos={selectedVideos}
         documents={selectedDocuments}
         onPickMedia={pickMedia}
         onPickDocument={pickDocument}
         onRemoveImage={removeImage}
+        onReorderImages={reorderImages}
         onRemoveVideo={removeVideo}
         onRemoveDocument={removeDocument}
       />
