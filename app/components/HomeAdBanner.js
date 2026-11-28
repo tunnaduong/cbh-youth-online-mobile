@@ -42,6 +42,7 @@ const HomeAdBanner = React.memo(({ navigation }) => {
 
   const [remoteAd, setRemoteAd] = useState(null);
   const [remoteFailed, setRemoteFailed] = useState(false);
+  const [hiddenByAdmin, setHiddenByAdmin] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO);
   const trackedImpressionIdRef = useRef(null);
 
@@ -55,12 +56,16 @@ const HomeAdBanner = React.memo(({ navigation }) => {
         const list = Array.isArray(payload) ? payload : payload?.data || [];
         const picked = pickCreative(list);
         if (picked?.image_url) {
+          setHiddenByAdmin(false);
           setRemoteFailed(false);
           setRemoteAd(picked);
           if (picked.id && trackedImpressionIdRef.current !== picked.id) {
             trackedImpressionIdRef.current = picked.id;
             trackAd(picked.id, "impression").catch(() => {});
           }
+        } else if (res?.headers?.["x-placement-managed"] === "1") {
+          setRemoteAd(null);
+          setHiddenByAdmin(true);
         }
       })
       .catch((error) => {
@@ -120,6 +125,10 @@ const HomeAdBanner = React.memo(({ navigation }) => {
       setAspectRatio(DEFAULT_ASPECT_RATIO);
     }
   }, [activeRemote]);
+
+  if (hiddenByAdmin) {
+    return null;
+  }
 
   return (
     <View style={styles.wrapper}>
