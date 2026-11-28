@@ -1111,3 +1111,13 @@ export const restartQuiz = (quizSetId) => {
 export const createCustomQuiz = (formData) => {
   return Api.postFormDataRequest("/v1.0/quiz/custom", formData);
 };
+
+// Managed ad slots (configured in web /admin/ads)
+export const getAds = (placement, config = {}) => {
+  const qs = placement ? `?placement=${encodeURIComponent(placement)}` : "";
+  return Api.getRequest(`/v1.0/ads${qs}`, config);
+};
+
+export const trackAd = (id, type) => {
+  return Api.postRequest(`/v1.0/ads/${id}/track`, { type });
+};

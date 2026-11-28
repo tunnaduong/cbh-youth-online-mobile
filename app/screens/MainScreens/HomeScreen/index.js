@@ -59,6 +59,7 @@ import ReportModal from "../../../components/ReportModal";
 import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
+import HomeAdBanner from "../../../components/HomeAdBanner";
 import CustomLoading from "../../../components/CustomLoading";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storage } from "../../../global/storage";
@@ -2306,6 +2307,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         </View>
 
         {EmailVerificationAlert()}
+
+        {/* Sponsored banner right under the home header */}
+        <HomeAdBanner navigation={navigation} />
 
         {/* Modern "Bạn đang nghĩ gì?" composer card */}
         <View style={styles.composerCardWrapper}>
