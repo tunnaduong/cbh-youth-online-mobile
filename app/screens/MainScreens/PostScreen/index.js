@@ -23,7 +23,9 @@ import {
   ActivityIndicator,
   Platform,
   Keyboard,
+  Dimensions,
 } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -57,6 +59,8 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedActionsContext } from "../../../contexts/FeedContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
+import PostCommentAd from "../../../components/ads/PostCommentAd";
+import { invalidatePlacementAds, PLACEMENT_POST_COMMENTS } from "../../../components/ads/adStore";
 import { tableRenderers } from "../../../components/MarkdownTable";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
@@ -389,6 +393,34 @@ const PostScreen = ({ route, navigation }) => {
   }, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const isFocused = useIsFocused();
+  const [commentAdVisible, setCommentAdVisible] = useState(false);
+  const [commentAdRefreshKey, setCommentAdRefreshKey] = useState(0);
+  const commentAdYRef = useRef(null);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    if (commentAdVisible) return undefined;
+    const listenerId = scrollY.addListener(({ value }) => {
+      lastScrollYRef.current = value;
+      const adY = commentAdYRef.current;
+      if (adY !== null && value + Dimensions.get("window").height + 80 >= adY) {
+        setCommentAdVisible(true);
+      }
+    });
+    return () => {
+      scrollY.removeListener(listenerId);
+    };
+  }, [scrollY, commentAdVisible]);
+
+  const handleCommentAdLayout = React.useCallback((e) => {
+    const y = e?.nativeEvent?.layout?.y;
+    if (typeof y !== "number") return;
+    commentAdYRef.current = y;
+    if (lastScrollYRef.current + Dimensions.get("window").height + 80 >= y) {
+      setCommentAdVisible(true);
+    }
+  }, []);
 
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 10, 60],
@@ -474,6 +506,8 @@ const PostScreen = ({ route, navigation }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
+    invalidatePlacementAds(PLACEMENT_POST_COMMENTS);
+    setCommentAdRefreshKey((k) => k + 1);
     fetchData().finally(() => {
       setTimeout(() => {
         setRefreshing(false);
@@ -593,6 +627,15 @@ const PostScreen = ({ route, navigation }) => {
             isActive={autoplayVideos}
             optionsOpenerRef={postOptionsRef}
           />
+          {/* Sponsored content ad before comments - mounts WebView lazily on scroll */}
+          <View onLayout={handleCommentAdLayout}>
+            <PostCommentAd
+              navigation={navigation}
+              isVisible={commentAdVisible}
+              isFocused={isFocused}
+              refreshKey={commentAdRefreshKey}
+            />
+          </View>
           {/* comment section */}
           <View style={{ paddingHorizontal: 15 }}>
             <Text
@@ -608,7 +651,22 @@ const PostScreen = ({ route, navigation }) => {
           </View>
         </>
       ) : null,
-    [post, navigation, votes, isSaved, handleVote, handleSavePost, screenName, autoplayVideos, theme.text, t]
+    [
+      post,
+      navigation,
+      votes,
+      isSaved,
+      handleVote,
+      handleSavePost,
+      screenName,
+      autoplayVideos,
+      theme.text,
+      t,
+      handleCommentAdLayout,
+      commentAdVisible,
+      isFocused,
+      commentAdRefreshKey,
+    ]
   );
 
   const findParentIdForReply = (comments, targetId, currentParentId = null) => {

@@ -60,6 +60,8 @@ import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import HomeAdBanner from "../../../components/HomeAdBanner";
+import FeedAdCard from "../../../components/ads/FeedAdCard";
+import { invalidatePlacementAds, PLACEMENT_FEED_INLINE } from "../../../components/ads/adStore";
 import CustomLoading from "../../../components/CustomLoading";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storage } from "../../../global/storage";
@@ -1082,6 +1084,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
   const [adRefreshKey, setAdRefreshKey] = useState(0);
+  const [visibleAdIds, setVisibleAdIds] = useState({});
+  const visibleAdIdsRef = useRef(new Set());
   const [currentStory, setCurrentStory] = useState(null);
   const currentStoryRef = useRef(null);
   useEffect(() => {
@@ -1589,8 +1593,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   // One object per real change: a new one on every render made the list
   // re-render all of its rows each time anything on this screen changed.
   const feedExtraData = React.useMemo(
-    () => ({ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }),
-    [t, theme, isDarkMode, activePostId, isFocused, autoplayVideos]
+    () => ({ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos, visibleAdIds, adRefreshKey }),
+    [t, theme, isDarkMode, activePostId, isFocused, autoplayVideos, visibleAdIds, adRefreshKey]
   );
 
   const handleExpandPost = (index) => {
@@ -1636,6 +1640,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             {item.label}
           </Text>
         </View>
+      ) : item.type === "ad" ? (
+        <FeedAdCard
+          navigation={navigation}
+          isVisible={Boolean(visibleAdIds[item.id])}
+          refreshKey={adRefreshKey}
+          isFocused={isFocused && !isStoryVisible}
+        />
       ) : (
         <PostItem
           item={item}
@@ -1646,7 +1657,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           isActive={autoplayVideos && isFocused && item.id === activePostId}
         />
       ),
-    [theme, navigation, autoplayVideos, isFocused, activePostId]
+    [theme, navigation, autoplayVideos, isFocused, isStoryVisible, activePostId, visibleAdIds, adRefreshKey]
   );
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }) => {
@@ -1656,10 +1667,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // pick a post that actually contains a video so scrolling past text/image
     // posts does not trigger activePostId state updates and list re-renders.
     let activeItem = null;
+    const newlyVisibleAds = [];
 
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
       if (viewableItem.item.type === "divider") return;
+      if (viewableItem.item.type === "ad") {
+        const adId = viewableItem.item.id;
+        if (adId && !visibleAdIdsRef.current.has(adId)) {
+          visibleAdIdsRef.current.add(adId);
+          newlyVisibleAds.push(adId);
+        }
+        return;
+      }
       const item = viewableItem.item;
       const postId = item.id;
 
@@ -1678,6 +1698,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         activeItem = item;
       }
     });
+
+    if (newlyVisibleAds.length > 0) {
+      setVisibleAdIds((prev) => {
+        const next = { ...prev };
+        newlyVisibleAds.forEach((id) => {
+          next[id] = true;
+        });
+        return next;
+      });
+    }
 
     const nextId = activeItem ? activeItem.id : null;
     setActivePostId((prev) => (prev === nextId ? prev : nextId));
@@ -2714,6 +2744,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // This prevents content from being pushed down
 
     fetchStories();
+    invalidatePlacementAds(PLACEMENT_FEED_INLINE);
     setAdRefreshKey((k) => k + 1);
 
     // Refresh user info to update email verification status
@@ -3076,6 +3107,26 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return safeFeed;
   }, [feed, blockedUsers]);
 
+  // Interleave an in-feed sponsored slot after every 5th real post.
+  const feedWithAds = useMemo(() => {
+    if (filteredFeed === null) return null;
+    const out = [];
+    let realPostCount = 0;
+    let adSlotIndex = 0;
+    for (let i = 0; i < filteredFeed.length; i++) {
+      const item = filteredFeed[i];
+      out.push(item);
+      if (item?.type !== "divider") {
+        realPostCount += 1;
+        if (realPostCount % 5 === 0) {
+          adSlotIndex += 1;
+          out.push({ type: "ad", id: `feed-ad-${adSlotIndex}` });
+        }
+      }
+    }
+    return out;
+  }, [filteredFeed]);
+
   const filteredStories = useMemo(() => {
     if (!userStories) return [];
     const filtered = blockedUsers && blockedUsers.length > 0
@@ -3183,10 +3234,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           scrollEventThrottle={16}
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
-          data={filteredFeed}
+          data={feedWithAds}
           extraData={feedExtraData}
           keyExtractor={(item, index) =>
-            item.type === "divider" ? "caught-up-divider" : `post-${item.id ?? index}`
+            item.type === "divider"
+              ? "caught-up-divider"
+              : item.type === "ad"
+                ? item.id
+                : `post-${item.id ?? index}`
           }
           // One screen mounted above and below the visible one: posts are
           // tall, and everything outside is unmounted (its measured height

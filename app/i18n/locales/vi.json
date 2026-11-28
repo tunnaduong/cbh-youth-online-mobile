@@ -2767,5 +2767,14 @@
       "newyear_2027": "Năm mới 2027 (Đinh Mùi)",
       "school": "Huy hiệu trường"
     }
+  },
+  "ads": {
+    "sponsored": "ĐƯỢC TÀI TRỢ",
+    "sponsoredContent": "NỘI DUNG ĐƯỢC TÀI TRỢ",
+    "advertiseOnCbh": "Quảng cáo trên CBH Online",
+    "learnMore": "Đặt chỗ",
+    "optionsTitle": "Quảng cáo trên CBH Online",
+    "optionsMessage": "Bạn muốn đặt banner hoặc nội dung tài trợ trên CBH Online?",
+    "contactAds": "Liên hệ đặt quảng cáo"
   }
 }

@@ -2782,5 +2782,14 @@
       "newyear_2027": "New Year 2027 (Year of the Goat)",
       "school": "School Crest"
     }
+  },
+  "ads": {
+    "sponsored": "SPONSORED",
+    "sponsoredContent": "SPONSORED CONTENT",
+    "advertiseOnCbh": "Advertise on CBH Online",
+    "learnMore": "Advertise",
+    "optionsTitle": "CBH Online Ads",
+    "optionsMessage": "Want to place a banner or sponsored ad on CBH Online?",
+    "contactAds": "Contact to advertise"
   }
 }

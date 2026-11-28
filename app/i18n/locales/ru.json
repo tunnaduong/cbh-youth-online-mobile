@@ -2801,5 +2801,14 @@
       "newyear_2027": "Новый год 2027 (Год Козы)",
       "school": "Герб школы"
     }
+  },
+  "ads": {
+    "sponsored": "РЕКЛАМА",
+    "sponsoredContent": "РЕКЛАМНЫЙ КОНТЕНТ",
+    "advertiseOnCbh": "Реклама в CBH Online",
+    "learnMore": "Разместить",
+    "optionsTitle": "Реклама в CBH Online",
+    "optionsMessage": "Хотите разместить баннер или рекламу в CBH Online?",
+    "contactAds": "Связаться по рекламе"
   }
 }
